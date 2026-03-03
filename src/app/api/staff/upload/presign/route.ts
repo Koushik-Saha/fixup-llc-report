@@ -5,19 +5,24 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-const s3 = new S3Client({
-    region: process.env.AWS_REGION!,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    }
-})
-
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Validate AWS config exists before attempting to sign
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET_NAME) {
+        return NextResponse.json({ error: 'AWS S3 credentials are not configured in the server environment.' }, { status: 500 })
+    }
+
+    const s3 = new S3Client({
+        region: process.env.AWS_REGION || 'us-east-1',
+        credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        }
+    })
 
     const { filename, contentType } = await req.json()
 

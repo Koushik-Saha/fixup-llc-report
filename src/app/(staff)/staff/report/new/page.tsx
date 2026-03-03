@@ -38,7 +38,10 @@ export default function SubmitReportPage() {
             body: JSON.stringify({ filename: file.name, contentType: file.type })
         })
 
-        if (!presignRes.ok) throw new Error("Failed to get presigned URL")
+        if (!presignRes.ok) {
+            const errorData = await presignRes.json().catch(() => ({}))
+            throw new Error(errorData.error || "Failed to get upload securely")
+        }
 
         const { presignedUrl, publicUrl } = await presignRes.json()
 
