@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
 
                 let storeId = null
                 if (user.role === "Staff" && user.storeMembers.length > 0) {
-                    const activeMember = user.storeMembers.find(m => m.status === "Active")
+                    const activeMember = user.storeMembers.find((m: any) => m.status === "Active")
                     if (activeMember) {
                         storeId = activeMember.store_id
                     }
