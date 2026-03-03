@@ -1,0 +1,67 @@
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  const adminPassword = await bcrypt.hash('Admin@123', 10)
+  const staffPassword = await bcrypt.hash('Staff@123', 10)
+
+  // Seed Admin
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@fixitup.com' },
+    update: {},
+    create: {
+      email: 'admin@fixitup.com',
+      name: 'Super Admin',
+      password_hash: adminPassword,
+      role: 'Admin',
+      status: 'Active',
+    },
+  })
+
+  // Seed Staff User
+  const staff = await prisma.user.upsert({
+    where: { email: 'staff@fixitup.com' },
+    update: {},
+    create: {
+      email: 'staff@fixitup.com',
+      name: 'John Staff',
+      password_hash: staffPassword,
+      role: 'Staff',
+      status: 'Active',
+    },
+  })
+
+  // Seed Store
+  const store1 = await prisma.store.create({
+    data: {
+      name: 'Las Vegas - Store 1',
+      city: 'Las Vegas',
+      state: 'NV',
+    },
+  })
+
+  // Assign staff to store as reporter
+  await prisma.storeMember.create({
+    data: {
+      store_id: store1.id,
+      user_id: staff.id,
+      is_reporter: true,
+      status: 'Active',
+    }
+  })
+  
+  console.log('Seed completed:')
+  console.log({ admin: admin.email, staff: staff.email, store: store1.name })
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect()
+  })
+  .catch(async (e) => {
+    console.error(e)
+    await prisma.$disconnect()
+    process.exit(1)
+  })

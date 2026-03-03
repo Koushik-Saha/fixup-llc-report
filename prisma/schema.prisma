@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id          String        @id @default(cuid())
+  name        String
+  city        String
+  state       String
+  status      String        @default("Active") // 'Active' or 'Inactive'
+  max_members Int           @default(3)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members     StoreMember[]
+  reports     DailyReport[]
+
+  @@map("stores")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  password_hash String
+  role          String        @default("Staff") // 'Admin' or 'Staff'
+  status        String        @default("Active") // 'Active' or 'Inactive'
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  storeMembers  StoreMember[]
+  reports       DailyReport[]
+
+  @@map("users")
+}
+
+model StoreMember {
+  id          String   @id @default(cuid())
+  store_id    String
+  user_id     String
+  is_reporter Boolean  @default(false)
+  status      String   @default("Active") // 'Active' or 'Inactive'
+  assigned_at DateTime @default(now())
+
+  store       Store    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([store_id, user_id])
+  @@map("store_members")
+}
+
+model DailyReport {
+  id                   String   @id @default(cuid())
+  store_id             String
+  report_date          DateTime @db.Date
+  submitted_by_user_id String
+  cash_amount          Decimal  @db.Decimal(10, 2)
+  card_amount          Decimal  @db.Decimal(10, 2)
+  total_amount         Decimal  @db.Decimal(10, 2)
+  notes                String?
+  status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  store                Store         @relation(fields: [store_id], references: [id])
+  submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id])
+  images               ReportImage[]
+
+  @@unique([store_id, report_date])
+  @@map("daily_reports")
+}
+
+model ReportImage {
+  id          String   @id @default(cuid())
+  report_id   String
+  image_url   String
+  createdAt   DateTime @default(now())
+
+  report      DailyReport @relation(fields: [report_id], references: [id], onDelete: Cascade)
+
+  @@map("report_images")
+}
