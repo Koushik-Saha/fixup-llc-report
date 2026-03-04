@@ -9,6 +9,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const storeId = searchParams.get('storeId')
+    const userId = searchParams.get('userId')
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
 
@@ -17,6 +18,10 @@ export async function GET(req: Request) {
 
     if (storeId) {
         where.store_id = storeId
+    }
+
+    if (userId) {
+        where.submitted_by_user_id = userId
     }
 
     if (startDateStr || endDateStr) {

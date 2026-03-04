@@ -5,24 +5,31 @@ import Link from "next/link"
 export default function AdminReportsPage() {
     const [reports, setReports] = useState<any[]>([])
     const [stores, setStores] = useState<any[]>([])
+    const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     // Filters
     const [storeId, setStoreId] = useState("")
+    const [userId, setUserId] = useState("")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
 
     useEffect(() => {
-        // Fetch filter options (stores)
-        fetch('/api/admin/stores')
-            .then(res => res.json())
-            .then(data => setStores(data))
+        // Fetch filter options (stores and users)
+        Promise.all([
+            fetch('/api/admin/stores').then(res => res.json()),
+            fetch('/api/admin/users').then(res => res.json())
+        ]).then(([storesData, usersData]) => {
+            setStores(storesData)
+            setUsers(usersData)
+        })
     }, [])
 
     const fetchReports = () => {
         setLoading(true)
         const params = new URLSearchParams()
         if (storeId) params.append('storeId', storeId)
+        if (userId) params.append('userId', userId)
         if (startDate) params.append('startDate', startDate)
         if (endDate) params.append('endDate', endDate)
 
@@ -36,7 +43,7 @@ export default function AdminReportsPage() {
 
     useEffect(() => {
         fetchReports()
-    }, [storeId, startDate, endDate])
+    }, [storeId, userId, startDate, endDate])
 
     const handleExportCSV = () => {
         // Simple client-side CSV export
@@ -72,8 +79,8 @@ export default function AdminReportsPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row sm:items-end gap-4">
-                <div className="flex-1">
+            <div className="bg-white p-4 rounded-lg shadow grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Store</label>
                     <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={storeId} onChange={e => setStoreId(e.target.value)}>
                         <option value="">All Stores</option>
@@ -82,16 +89,25 @@ export default function AdminReportsPage() {
                         ))}
                     </select>
                 </div>
-                <div className="flex-1">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by User</label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={userId} onChange={e => setUserId(e.target.value)}>
+                        <option value="">All Users</option>
+                        {users.map(user => (
+                            <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                     <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={startDate} onChange={e => setStartDate(e.target.value)} />
                 </div>
-                <div className="flex-1">
+                <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                     <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={endDate} onChange={e => setEndDate(e.target.value)} />
                 </div>
                 <div>
-                    <button onClick={() => { setStoreId(""); setStartDate(""); setEndDate(""); }} className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium">Clear</button>
+                    <button onClick={() => { setStoreId(""); setUserId(""); setStartDate(""); setEndDate(""); }} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium">Clear</button>
                 </div>
             </div>
 

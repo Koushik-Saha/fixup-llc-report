@@ -25,6 +25,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/admin/analytics" className="block py-2 px-4 rounded hover:bg-gray-800 transition">
                         Analytics
                     </Link>
+                    <Link href="/admin/logs" className="block py-2 px-4 rounded hover:bg-gray-800 transition">
+                        Activity Logs
+                    </Link>
                 </nav>
             </aside>
             <div className="flex-1 flex flex-col">
