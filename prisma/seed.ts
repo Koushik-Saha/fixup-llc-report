@@ -9,10 +9,10 @@ async function main() {
 
   // Seed Admin
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@fixitup.com' },
+    where: { email: 'admin@freedomshippingllc.com' },
     update: {},
     create: {
-      email: 'admin@fixitup.com',
+      email: 'admin@freedomshippingllc.com',
       name: 'Super Admin',
       password_hash: adminPassword,
       role: 'Admin',
@@ -22,10 +22,10 @@ async function main() {
 
   // Seed Staff User
   const staff = await prisma.user.upsert({
-    where: { email: 'staff@fixitup.com' },
+    where: { email: 'staff@freedomshippingllc.com' },
     update: {},
     create: {
-      email: 'staff@fixitup.com',
+      email: 'staff@freedomshippingllc.com',
       name: 'John Staff',
       password_hash: staffPassword,
       role: 'Staff',

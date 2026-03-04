@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Report App',
-        short_name: 'Reports',
+        name: 'Freedom Shipping LLC',
+        short_name: 'Freedom Shipping',
         description: 'Multi-Store Daily Reporting System',
         start_url: '/',
         display: 'standalone',
