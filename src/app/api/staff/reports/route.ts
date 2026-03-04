@@ -103,6 +103,11 @@ export async function GET(req: Request) {
             total_amount: true,
             status: true,
             staff_edit_count: true,
+            store: {
+                select: {
+                    name: true
+                }
+            }
         }
     })
 
