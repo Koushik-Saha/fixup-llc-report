@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || (session.user.role !== 'Staff' && session.user.role !== 'Admin')) {
