@@ -7,7 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'Staff') {
+    if (!session?.user || (session.user.role !== 'Staff' && session.user.role !== 'Admin')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -33,7 +33,8 @@ export async function POST(req: Request) {
     try {
         const ext = filename.split('.').pop()
         const uniqueFilename = `${uuidv4()}.${ext}`
-        const key = `reports/${session.user.storeId}/${new Date().toISOString().split('T')[0]}/${uniqueFilename}`
+        const folder = session.user.role === 'Admin' ? 'admin_edits' : session.user.storeId
+        const key = `reports/${folder}/${new Date().toISOString().split('T')[0]}/${uniqueFilename}`
 
         const command = new PutObjectCommand({
             Bucket: process.env.AWS_S3_BUCKET_NAME!,
