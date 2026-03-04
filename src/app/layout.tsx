@@ -31,6 +31,8 @@ export const viewport = {
   maximumScale: 1,
 };
 
+import { PwaRegister } from "@/components/PwaRegister";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,6 +46,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster position="bottom-right" />
+          <PwaRegister />
         </AuthProvider>
       </body>
     </html>
