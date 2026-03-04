@@ -22,14 +22,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const id = (await params).id
     const body = await req.json()
-    const { name, city, state, max_members, status } = body
+    const { name, address, city, state, zip_code, block, max_members, status } = body
 
     const store = await prisma.store.update({
         where: { id },
         data: {
             name,
+            address,
             city,
             state,
+            zip_code,
+            block: block || null,
             max_members: Number(max_members),
             status
         }

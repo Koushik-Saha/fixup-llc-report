@@ -37,8 +37,11 @@ async function main() {
   const store1 = await prisma.store.create({
     data: {
       name: 'Las Vegas - Store 1',
+      address: '123 Casino Drive',
       city: 'Las Vegas',
       state: 'NV',
+      zip_code: '89109',
+      max_members: 5,
     },
   })
 
@@ -51,7 +54,7 @@ async function main() {
       status: 'Active',
     }
   })
-  
+
   console.log('Seed completed:')
   console.log({ admin: admin.email, staff: staff.email, store: store1.name })
 }

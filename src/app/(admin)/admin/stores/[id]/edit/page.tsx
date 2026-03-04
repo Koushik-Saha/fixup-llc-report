@@ -6,7 +6,7 @@ import Link from "next/link"
 export default function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
-    const [formData, setFormData] = useState({ name: "", city: "", state: "", max_members: 3, status: "Active" })
+    const [formData, setFormData] = useState({ name: "", address: "", city: "", state: "", zip_code: "", block: "", max_members: 3, status: "Active" })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
@@ -14,7 +14,12 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
         fetch(`/api/admin/stores/${id}`)
             .then(res => res.json())
             .then(data => {
-                setFormData(data)
+                setFormData({
+                    ...data,
+                    address: data.address || "",
+                    zip_code: data.zip_code || "",
+                    block: data.block || ""
+                })
                 setLoading(false)
             })
     }, [id])
@@ -46,8 +51,12 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
                     <label className="block text-sm font-medium text-gray-700">Store Name</label>
                     <input type="text" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Address / Location</label>
+                    <input type="text" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="sm:col-span-2">
                         <label className="block text-sm font-medium text-gray-700">City</label>
                         <input type="text" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} />
                     </div>
@@ -55,6 +64,14 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
                         <label className="block text-sm font-medium text-gray-700">State</label>
                         <input type="text" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.state} onChange={e => setFormData({ ...formData, state: e.target.value })} />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Zip Code</label>
+                        <input type="text" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.zip_code} onChange={e => setFormData({ ...formData, zip_code: e.target.value })} />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Block (Optional)</label>
+                    <input type="text" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.block || ""} onChange={e => setFormData({ ...formData, block: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
