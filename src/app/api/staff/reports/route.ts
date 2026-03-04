@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendDailySummary } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'Staff') {
