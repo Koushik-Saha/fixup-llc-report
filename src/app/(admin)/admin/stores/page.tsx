@@ -48,7 +48,12 @@ export default function StoresPage() {
                                         {store.status}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">{store._count.members} / {store.max_members}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-gray-900">{store._count.members} / {store.max_members}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {store.members?.map((m: any) => m.user.name).join(', ') || 'None'}
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <Link href={`/admin/stores/${store.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
                                     <Link href={`/admin/stores/${store.id}/members`} className="text-indigo-600 hover:text-indigo-900">Members</Link>

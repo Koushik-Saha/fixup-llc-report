@@ -10,16 +10,28 @@ export async function GET(req: Request) {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
-    const range = searchParams.get('range') || '1m' // 1m, 3m, 6m, 1y
+    const range = searchParams.get('range') || '1m' // 1d, 3d, 1w, 15d, 1m, 3m, 6m, 1y, 2y, custom
+    const customStart = searchParams.get('startDate')
+    const customEnd = searchParams.get('endDate')
 
-    const end = new Date()
-    const start = new Date()
+    let start = new Date()
+    let end = new Date()
 
-    if (range === '1m') start.setMonth(start.getMonth() - 1)
-    else if (range === '3m') start.setMonth(start.getMonth() - 3)
-    else if (range === '6m') start.setMonth(start.getMonth() - 6)
-    else if (range === '1y') start.setFullYear(start.getFullYear() - 1)
-    else if (range === '2y') start.setFullYear(start.getFullYear() - 2)
+    if (range === 'custom' && customStart && customEnd) {
+        start = new Date(customStart)
+        end = new Date(customEnd)
+        end.setHours(23, 59, 59, 999)
+    } else {
+        if (range === '1d') start.setDate(start.getDate() - 1)
+        else if (range === '3d') start.setDate(start.getDate() - 3)
+        else if (range === '1w') start.setDate(start.getDate() - 7)
+        else if (range === '15d') start.setDate(start.getDate() - 15)
+        else if (range === '1m') start.setMonth(start.getMonth() - 1)
+        else if (range === '3m') start.setMonth(start.getMonth() - 3)
+        else if (range === '6m') start.setMonth(start.getMonth() - 6)
+        else if (range === '1y') start.setFullYear(start.getFullYear() - 1)
+        else if (range === '2y') start.setFullYear(start.getFullYear() - 2)
+    }
 
     const reports = await prisma.dailyReport.findMany({
         where: {

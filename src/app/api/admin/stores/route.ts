@@ -14,6 +14,12 @@ export async function GET() {
         include: {
             _count: {
                 select: { members: { where: { status: 'Active' } } }
+            },
+            members: {
+                where: { status: 'Active' },
+                include: {
+                    user: { select: { name: true } }
+                }
             }
         }
     })
