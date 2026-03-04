@@ -12,7 +12,10 @@ export async function GET(req: Request) {
     const userId = searchParams.get('userId')
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
-    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 20
+    const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+    const skip = (page - 1) * limit
+    const search = searchParams.get('search')
 
     // Build the where clause for the EditLog query
     const where: any = {}
@@ -41,24 +44,42 @@ export async function GET(req: Request) {
         }
     }
 
+    if (search) {
+        where.OR = [
+            { user: { name: { contains: search, mode: 'insensitive' } } },
+            { report: { store: { name: { contains: search, mode: 'insensitive' } } } }
+        ]
+    }
+
     try {
-        const logs = await prisma.editLog.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-            include: {
-                user: { select: { id: true, name: true, role: true } },
-                report: {
-                    select: {
-                        id: true,
-                        report_date: true,
-                        store: { select: { id: true, name: true } }
+        const [logs, total] = await Promise.all([
+            prisma.editLog.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                include: {
+                    user: { select: { id: true, name: true, role: true } },
+                    report: {
+                        select: {
+                            id: true,
+                            report_date: true,
+                            store: { select: { id: true, name: true } }
+                        }
                     }
                 }
+            }),
+            prisma.editLog.count({ where })
+        ])
+
+        return NextResponse.json({
+            data: logs,
+            pagination: {
+                total,
+                page,
+                totalPages: Math.ceil(total / limit)
             }
         })
-
-        return NextResponse.json(logs)
     } catch (err) {
         console.error("Error fetching activity logs:", err)
         return NextResponse.json({ error: "Failed to fetch activity logs" }, { status: 500 })

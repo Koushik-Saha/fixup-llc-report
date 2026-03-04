@@ -1,25 +1,30 @@
 "use client"
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function SubmitReportPage() {
     const router = useRouter()
     const [cash, setCash] = useState<number | "">("")
     const [card, setCard] = useState<number | "">("")
+    const [expenses, setExpenses] = useState<number | "">("")
+    const [payouts, setPayouts] = useState<number | "">("")
     const [notes, setNotes] = useState("")
     const [files, setFiles] = useState<File[]>([])
 
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState("")
 
-    const total = (Number(cash) || 0) + (Number(card) || 0)
+    const netCash = (Number(cash) || 0) - (Number(expenses) || 0) - (Number(payouts) || 0)
+    const total = netCash + (Number(card) || 0)
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const selectedFiles = Array.from(e.target.files)
             // Enforce max 10 images policy
             if (files.length + selectedFiles.length > 10) {
-                alert("Maximum 10 images allowed.")
+                toast.error("Maximum 10 images allowed.")
                 return
             }
             setFiles([...files, ...selectedFiles])
@@ -70,6 +75,8 @@ export default function SubmitReportPage() {
             const payload = {
                 cash_amount: Number(cash),
                 card_amount: Number(card),
+                expenses_amount: Number(expenses),
+                payouts_amount: Number(payouts),
                 notes: notes.trim(),
                 imageUrls: publicUrls
             }
@@ -80,14 +87,18 @@ export default function SubmitReportPage() {
                 body: JSON.stringify(payload)
             })
 
-            if (!res.ok) {
+            if (res.ok) {
+                const reportData = await res.json()
+                toast.success("Report submitted successfully")
+                router.push(`/staff/report/${reportData.id}`)
+                router.refresh()
+            } else {
                 const data = await res.json()
-                throw new Error(data.error || "Failed to submit report")
+                const errorMessage = data.error || "Failed to submit report. Please try again."
+                toast.error(errorMessage)
+                setError(errorMessage)
+                setUploading(false) // Ensure uploading state is reset on failure
             }
-
-            const reportData = await res.json()
-            router.push(`/staff/report/${reportData.id}`)
-            router.refresh()
 
         } catch (err: any) {
             console.error(err)
@@ -123,9 +134,36 @@ export default function SubmitReportPage() {
                     />
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center text-xl font-bold">
-                    <span className="text-blue-900">Total Calculation</span>
-                    <span className="text-blue-700">${total.toFixed(2)}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Expenses Amount ($)</label>
+                        <input
+                            type="number" step="0.01" min="0" required
+                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
+                            value={expenses}
+                            onChange={e => setExpenses(e.target.value === "" ? "" : Number(e.target.value))}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Payouts Amount ($)</label>
+                        <input
+                            type="number" step="0.01" min="0" required
+                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
+                            value={payouts}
+                            onChange={e => setPayouts(e.target.value === "" ? "" : Number(e.target.value))}
+                        />
+                    </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-2">
+                    <div className="flex justify-between items-center text-sm font-semibold text-gray-700">
+                        <span>Net Cash (Cash - Exp - Payouts)</span>
+                        <span>${netCash.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xl font-bold">
+                        <span className="text-blue-900">Total Deposit</span>
+                        <span className="text-blue-700">${total.toFixed(2)}</span>
+                    </div>
                 </div>
 
                 <div>

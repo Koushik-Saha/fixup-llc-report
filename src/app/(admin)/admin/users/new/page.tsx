@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function CreateUserPage() {
     const router = useRouter()
@@ -21,11 +22,12 @@ export default function CreateUserPage() {
         })
 
         if (res.ok) {
+            toast.success("User created successfully")
             router.push("/admin/users")
             router.refresh()
         } else {
             const data = await res.json()
-            setError(data.error || "Failed to create user")
+            toast.error(data.error || "Failed to create user")
             setLoading(false)
         }
     }

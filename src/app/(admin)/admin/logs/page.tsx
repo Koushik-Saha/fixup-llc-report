@@ -1,9 +1,11 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { SkeletonRow } from "@/components/Skeleton"
 
 export default function AdminActivityLogsPage() {
     const [logs, setLogs] = useState<any[]>([])
+    const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 })
     const [stores, setStores] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -13,6 +15,8 @@ export default function AdminActivityLogsPage() {
     const [userId, setUserId] = useState("")
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
+    const [search, setSearch] = useState("")
+    const [page, setPage] = useState(1)
 
     useEffect(() => {
         // Fetch filter options (stores and users)
@@ -32,18 +36,21 @@ export default function AdminActivityLogsPage() {
         if (userId) params.append('userId', userId)
         if (startDate) params.append('startDate', startDate)
         if (endDate) params.append('endDate', endDate)
+        if (search) params.append('search', search)
+        params.append('page', page.toString())
 
         fetch(`/api/admin/logs?${params.toString()}`)
             .then(res => res.json())
-            .then(data => {
-                setLogs(data)
+            .then(resData => {
+                setLogs(resData.data || [])
+                setPagination(resData.pagination || { total: 0, page: 1, totalPages: 1 })
                 setLoading(false)
             })
     }
 
     useEffect(() => {
         fetchLogs()
-    }, [storeId, userId, startDate, endDate])
+    }, [storeId, userId, startDate, endDate, search, page])
 
     return (
         <div className="space-y-6">
@@ -53,40 +60,45 @@ export default function AdminActivityLogsPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white p-4 rounded-lg shadow grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Store</label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={storeId} onChange={e => setStoreId(e.target.value)}>
-                        <option value="">All Stores</option>
-                        {stores.map(store => (
-                            <option key={store.id} value={store.id}>{store.name}</option>
-                        ))}
-                    </select>
+            <div className="bg-white p-4 rounded-lg shadow space-y-4">
+                <div className="w-full">
+                    <input type="text" placeholder="Search by store or user name..." className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by User</label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={userId} onChange={e => setUserId(e.target.value)}>
-                        <option value="">All Users</option>
-                        {users.map(user => (
-                            <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                    <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                    <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                </div>
-                <div>
-                    <button onClick={() => { setStoreId(""); setUserId(""); setStartDate(""); setEndDate(""); }} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium">Clear</button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Store</label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={storeId} onChange={e => { setStoreId(e.target.value); setPage(1); }}>
+                            <option value="">All Stores</option>
+                            {stores.map(store => (
+                                <option key={store.id} value={store.id}>{store.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by User</label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={userId} onChange={e => { setUserId(e.target.value); setPage(1); }}>
+                            <option value="">All Users</option>
+                            {users.map(user => (
+                                <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); }} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); }} />
+                    </div>
+                    <div>
+                        <button onClick={() => { setStoreId(""); setUserId(""); setStartDate(""); setEndDate(""); setSearch(""); setPage(1); }} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium">Clear</button>
+                    </div>
                 </div>
             </div>
 
             {loading ? (
-                <div>Loading activity logs...</div>
+                <div className="bg-white p-6 shadow rounded-lg max-w-full"><SkeletonRow rows={6} /></div>
             ) : (
                 <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
                     <table className="min-w-full divide-y border-gray-200">
@@ -148,6 +160,29 @@ export default function AdminActivityLogsPage() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-700">
+                            Showing page <span className="font-medium">{pagination.page}</span> of <span className="font-medium">{Math.max(1, pagination.totalPages)}</span> ({pagination.total} total logs)
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={pagination.page <= 1}
+                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                disabled={pagination.page >= pagination.totalPages}
+                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

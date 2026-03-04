@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -37,10 +38,12 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         })
 
         if (res.ok) {
+            toast.success("User updated successfully")
             router.push("/admin/users")
             router.refresh()
         } else {
             const data = await res.json()
+            toast.error(data.error || "Failed to update user")
             setError(data.error || "Failed to update user")
             setSaving(false)
         }

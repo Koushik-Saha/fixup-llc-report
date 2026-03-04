@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -33,10 +34,11 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
             body: JSON.stringify(formData)
         })
         if (res.ok) {
+            toast.success("Store updated successfully")
             router.push("/admin/stores")
             router.refresh()
         } else {
-            alert("Failed to update store")
+            toast.error("Failed to update store")
             setSaving(false)
         }
     }

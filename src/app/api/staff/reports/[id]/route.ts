@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
@@ -63,7 +64,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     // Fetch current report to verify ownership and edit count
     const existingReport = await prisma.dailyReport.findUnique({
-        where: { id: report_id }
+        where: { id: report_id },
+        include: { store: true }
     })
 
     if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -76,14 +78,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, notes } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, notes } = body
 
     // Calculate what changed
-    const total = Number(cash_amount) + Number(card_amount)
+    const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
+    const total = netCash + Number(card_amount)
 
     const changes = {
         cash: { old: Number(existingReport.cash_amount), new: Number(cash_amount) },
         card: { old: Number(existingReport.card_amount), new: Number(card_amount) },
+        expenses: { old: Number(existingReport.expenses_amount), new: Number(expenses_amount) || 0 },
+        payouts: { old: Number(existingReport.payouts_amount), new: Number(payouts_amount) || 0 },
         total: { old: Number(existingReport.total_amount), new: total },
         notes: { old: existingReport.notes, new: notes }
     }
@@ -96,6 +101,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 data: {
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
+                    expenses_amount: Number(expenses_amount) || 0,
+                    payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
                     notes: notes || null,
                     staff_edit_count: { increment: 1 }
@@ -112,6 +119,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             })
 
             return report
+        })
+
+        sendIrregularEditAlert({
+            storeName: existingReport.store.name,
+            reportDate: existingReport.report_date.toLocaleDateString(),
+            editorName: session.user.name || session.user.email || "Staff Member",
+            changesText: JSON.stringify(changes, null, 2)
         })
 
         return NextResponse.json(updatedReport)

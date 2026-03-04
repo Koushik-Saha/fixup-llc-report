@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect, use } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function StoreMembersPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -29,7 +31,7 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
 
     const handleAddMember = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedUser) return alert("Select a user")
+        if (!selectedUser) return toast.error("Select a user")
 
         const res = await fetch(`/api/admin/stores/${id}/members`, {
             method: "POST",
@@ -38,12 +40,14 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
         })
 
         if (res.ok) {
+            const newMember = await res.json() // Assuming the API returns the new member
             setSelectedUser("")
             setIsReporter(false)
-            fetchMembers()
+            setMembers([...members, newMember])
+            toast.success("Member added successfully")
         } else {
             const data = await res.json()
-            alert(data.error || "Failed to add member")
+            toast.error(data.error || "Failed to add member")
         }
     }
 
@@ -54,8 +58,10 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
             body: JSON.stringify({ status, is_reporter: isReporter })
         })
 
-        if (res.ok) fetchMembers()
-        else alert("Failed to update status")
+        if (res.ok) {
+            setMembers(members.map(m => m.id === memberId ? { ...m, status: status, is_reporter: isReporter } : m))
+            toast.success("Member status updated")
+        } else toast.error("Failed to update status")
     }
 
     if (loading) return <div>Loading...</div>

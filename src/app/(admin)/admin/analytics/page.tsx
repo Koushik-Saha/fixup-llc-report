@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { SkeletonCard, Skeleton } from "@/components/Skeleton"
 
 export default function AnalyticsPage() {
     const [data, setData] = useState<any[]>([])
@@ -42,7 +43,10 @@ export default function AnalyticsPage() {
             </div>
 
             {loading ? (
-                <div className="p-12 text-center text-gray-500">Loading charts...</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </div>
             ) : data.length === 0 ? (
                 <div className="p-12 text-center text-gray-500 bg-white shadow rounded-lg">No data available for the selected range.</div>
             ) : (

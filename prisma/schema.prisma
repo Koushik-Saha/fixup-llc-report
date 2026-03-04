@@ -10,10 +10,10 @@ datasource db {
 model Store {
   id          String        @id @default(cuid())
   name        String
-  address     String
-  city        String
-  state       String
-  zip_code    String
+  address     String        @default("")
+  city        String        @default("")
+  state       String        @default("")
+  zip_code    String        @default("")
   block       String?
   status      String        @default("Active") // 'Active' or 'Inactive'
   max_members Int           @default(3)
@@ -27,18 +27,20 @@ model Store {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  name          String
-  email         String        @unique
-  password_hash String
-  role          String        @default("Staff") // 'Admin' or 'Staff'
-  status        String        @default("Active") // 'Active' or 'Inactive'
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  email              String        @unique
+  password_hash      String
+  role               String        @default("Staff") // 'Admin' or 'Staff'
+  status             String        @default("Active") // 'Active' or 'Inactive'
+  reset_token        String?
+  reset_token_expiry DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  storeMembers  StoreMember[]
-  reports       DailyReport[]
-  edit_logs     EditLog[]
+  storeMembers       StoreMember[]
+  reports            DailyReport[]
+  edit_logs          EditLog[]
 
   @@map("users")
 }
@@ -65,6 +67,8 @@ model DailyReport {
   submitted_by_user_id String
   cash_amount          Decimal  @db.Decimal(10, 2)
   card_amount          Decimal  @db.Decimal(10, 2)
+  expenses_amount      Decimal  @default(0) @db.Decimal(10, 2)
+  payouts_amount       Decimal  @default(0) @db.Decimal(10, 2)
   total_amount         Decimal  @db.Decimal(10, 2)
   notes                String?
   status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'

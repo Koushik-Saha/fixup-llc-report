@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { sendDailySummary } from '@/lib/email'
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
@@ -15,13 +16,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, notes, imageUrls } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, notes, imageUrls } = body
 
     if (cash_amount === undefined || card_amount === undefined) {
         return NextResponse.json({ error: 'Cash and Card amounts are required' }, { status: 400 })
     }
 
-    const total = Number(cash_amount) + Number(card_amount)
+    const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
+    const total = netCash + Number(card_amount)
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -50,6 +52,8 @@ export async function POST(req: Request) {
                     submitted_by_user_id: session.user.id,
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
+                    expenses_amount: Number(expenses_amount) || 0,
+                    payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
                     notes: notes || null,
                     status: 'Submitted'
@@ -64,6 +68,16 @@ export async function POST(req: Request) {
                     }))
                 })
             }
+
+            const store = await tx.store.findUnique({ where: { id: storeId } })
+            sendDailySummary({
+                storeName: store?.name || 'Unknown Store',
+                reportDate: today.toLocaleDateString(),
+                netCash,
+                cardAmount: Number(card_amount),
+                totalDeposit: total,
+                notes: notes || null
+            })
 
             return newReport
         })

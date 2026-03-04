@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { SkeletonRow } from "@/components/Skeleton"
 
 export default function StoresPage() {
     const [stores, setStores] = useState<any[]>([])
@@ -15,7 +16,7 @@ export default function StoresPage() {
             })
     }, [])
 
-    if (loading) return <div>Loading...</div>
+    if (loading) return <div className="p-6 bg-white shadow rounded-lg w-full"><SkeletonRow rows={5} /></div>
 
     return (
         <div>

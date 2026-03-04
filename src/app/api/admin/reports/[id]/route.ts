@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
@@ -61,18 +62,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
 
     const body = await req.json()
-    const { status, cash_amount, card_amount, notes, keptImageIds, newImageUrls } = body
+    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, notes, keptImageIds, newImageUrls } = body
 
     try {
         if (cash_amount !== undefined && card_amount !== undefined) {
             // Admin is editing the actual amounts and images
             const existingReport = await prisma.dailyReport.findUnique({
                 where: { id },
-                include: { images: true }
+                include: { images: true, store: true }
             })
             if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-            const total = Number(cash_amount) + Number(card_amount)
+            const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
+            const total = netCash + Number(card_amount)
 
             let imagesChanged = false
             const existingImageIds = existingReport.images.map((img: any) => img.id)
@@ -90,6 +92,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             const changes: any = {
                 cash: { old: Number(existingReport.cash_amount), new: Number(cash_amount) },
                 card: { old: Number(existingReport.card_amount), new: Number(card_amount) },
+                expenses: { old: Number(existingReport.expenses_amount), new: Number(expenses_amount) || 0 },
+                payouts: { old: Number(existingReport.payouts_amount), new: Number(payouts_amount) || 0 },
                 total: { old: Number(existingReport.total_amount), new: total },
                 notes: { old: existingReport.notes, new: notes }
             }
@@ -105,6 +109,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         status: status || existingReport.status,
                         cash_amount: Number(cash_amount),
                         card_amount: Number(card_amount),
+                        expenses_amount: Number(expenses_amount) || 0,
+                        payouts_amount: Number(payouts_amount) || 0,
                         total_amount: total,
                         notes: notes || null
                     }
@@ -139,6 +145,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 })
                 return report
             })
+
+            sendIrregularEditAlert({
+                storeName: existingReport.store.name,
+                reportDate: existingReport.report_date.toLocaleDateString(),
+                editorName: session.user.name || session.user.email || "Admin User",
+                changesText: JSON.stringify(changes, null, 2)
+            })
+
             return NextResponse.json(updatedReport)
         } else {
             // Admin is just updating status (Verify / Correction Requested)

@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function LoginPage() {
     const router = useRouter()
@@ -66,6 +67,11 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
+                    </div>
+                    <div className="flex items-center justify-end -mt-2">
+                        <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            Forgot your password?
+                        </Link>
                     </div>
                     <button
                         type="submit"

@@ -2,6 +2,7 @@
 import { useEffect, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function StaffEditReportPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
@@ -12,6 +13,8 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
 
     const [cash, setCash] = useState("")
     const [card, setCard] = useState("")
+    const [expenses, setExpenses] = useState("")
+    const [payouts, setPayouts] = useState("")
     const [notes, setNotes] = useState("")
     const [editCount, setEditCount] = useState(0)
 
@@ -20,12 +23,16 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
+                    toast.error(data.error)
                     setError(data.error)
                 } else if (data.staff_edit_count >= 2) {
+                    toast.error("Maximum edit limit reached.")
                     setError("You have reached the maximum edit limit (2) for this report.")
                 } else {
                     setCash(data.cash_amount)
                     setCard(data.card_amount)
+                    setExpenses(data.expenses_amount || 0)
+                    setPayouts(data.payouts_amount || 0)
                     setNotes(data.notes || "")
                     setEditCount(data.staff_edit_count)
                 }
@@ -49,16 +56,25 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
                 body: JSON.stringify({
                     cash_amount: cash,
                     card_amount: card,
+                    expenses_amount: expenses,
+                    payouts_amount: payouts,
                     notes
                 })
             })
 
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Failed to update report')
+            if (!res.ok) {
+                const data = await res.json()
+                toast.error(data.error || "Failed to update report")
+                throw new Error(data.error || "Failed to update report")
+            }
 
+            toast.success("Report updated successfully")
             router.push(`/staff/report/${id}`)
             router.refresh()
+
         } catch (err: any) {
+            console.error(err)
+            toast.error(err.message)
             setError(err.message)
             setSubmitting(false)
         }
@@ -111,11 +127,46 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 p-4 rounded-md flex justify-between items-center">
-                        <span className="text-gray-700 font-medium">New Total:</span>
-                        <span className="text-xl font-bold text-gray-900">
-                            ${(Number(cash || 0) + Number(card || 0)).toFixed(2)}
-                        </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Expenses Amount ($)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                required
+                                min="0"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                value={expenses}
+                                onChange={(e) => setExpenses(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Payouts Amount ($)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                required
+                                min="0"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                value={payouts}
+                                onChange={(e) => setPayouts(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-md space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-700 font-medium">Net Cash:</span>
+                            <span className="font-semibold text-gray-900">
+                                ${(Number(cash || 0) - Number(expenses || 0) - Number(payouts || 0)).toFixed(2)}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                            <span className="text-gray-700 font-bold">New Final Total:</span>
+                            <span className="text-xl font-bold text-gray-900">
+                                ${(Number(cash || 0) - Number(expenses || 0) - Number(payouts || 0) + Number(card || 0)).toFixed(2)}
+                            </span>
+                        </div>
                     </div>
 
                     <div>

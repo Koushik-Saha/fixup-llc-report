@@ -1,5 +1,6 @@
 "use client"
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, use, useRef } from "react"
+import { useReactToPrint } from "react-to-print"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -8,6 +9,12 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
     const router = useRouter()
     const [report, setReport] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const printRef = useRef<HTMLDivElement>(null)
+
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `Report_${report?.store?.name || 'Store'}_${report?.report_date ? new Date(report.report_date).toLocaleDateString() : 'Date'}`,
+    })
 
     useEffect(() => {
         fetch(`/api/admin/reports/${id}`)
@@ -38,6 +45,13 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">Report from {report.store.name}</h2>
                 <div className="flex gap-4 items-center">
+                    <button
+                        onClick={() => handlePrint()}
+                        className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-200 font-medium text-sm transition flex items-center gap-1"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                        PDF / Print
+                    </button>
                     <Link href={`/admin/reports/${id}/edit`} className="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-md hover:bg-purple-200 font-medium text-sm transition">
                         Edit Amounts
                     </Link>
@@ -45,7 +59,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500 space-y-6">
+            <div ref={printRef} className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500 space-y-6">
                 <div className="flex justify-between items-start border-b pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-gray-800">{new Date(report.report_date).toLocaleDateString()}</h3>
@@ -75,7 +89,19 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                         <p className="text-sm text-gray-500 font-medium">Card Amount</p>
                         <p className="text-xl font-bold text-blue-700">${Number(report.card_amount).toFixed(2)}</p>
                     </div>
-                    <div className="col-span-2 pt-2 border-t border-gray-200 flex justify-between items-center">
+                    <div>
+                        <p className="text-sm text-gray-500 font-medium">Expenses</p>
+                        <p className="text-xl font-bold text-red-600">-${Number(report.expenses_amount || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 font-medium">Payouts</p>
+                        <p className="text-xl font-bold text-red-600">-${Number(report.payouts_amount || 0).toFixed(2)}</p>
+                    </div>
+                    <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-200 flex justify-between items-center">
+                        <p className="text-gray-600 font-bold uppercase">Net Cash</p>
+                        <p className="text-lg font-bold text-gray-800">${(Number(report.cash_amount) - Number(report.expenses_amount || 0) - Number(report.payouts_amount || 0)).toFixed(2)}</p>
+                    </div>
+                    <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-200 flex justify-between items-center">
                         <p className="text-gray-600 font-bold uppercase">Total Computed</p>
                         <p className="text-2xl font-black text-gray-900">${Number(report.total_amount).toFixed(2)}</p>
                     </div>
@@ -132,6 +158,18 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                                                 <div className="flex justify-between border-b border-gray-200 pb-1">
                                                     <span>Card:</span>
                                                     <span><span className="line-through text-red-500 mr-2">${changes.card.old}</span> <span className="text-green-600 font-medium">${changes.card.new}</span></span>
+                                                </div>
+                                            )}
+                                            {changes.expenses && changes.expenses.old !== changes.expenses.new && (
+                                                <div className="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>Expenses:</span>
+                                                    <span><span className="line-through text-red-500 mr-2">${changes.expenses.old}</span> <span className="text-red-500 font-medium">${changes.expenses.new}</span></span>
+                                                </div>
+                                            )}
+                                            {changes.payouts && changes.payouts.old !== changes.payouts.new && (
+                                                <div className="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span>Payouts:</span>
+                                                    <span><span className="line-through text-red-500 mr-2">${changes.payouts.old}</span> <span className="text-red-500 font-medium">${changes.payouts.new}</span></span>
                                                 </div>
                                             )}
                                             <div className="flex justify-between font-bold pt-1">

@@ -13,6 +13,11 @@ export async function GET(req: Request) {
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
 
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 20
+    const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+    const skip = (page - 1) * limit
+    const search = searchParams.get('search')
+
     // Build the where clause dynamically
     const where: any = {}
 
@@ -30,14 +35,33 @@ export async function GET(req: Request) {
         if (endDateStr) where.report_date.lte = new Date(endDateStr)
     }
 
-    const reports = await prisma.dailyReport.findMany({
-        where,
-        orderBy: { report_date: 'desc' },
-        include: {
-            store: { select: { name: true, city: true } },
-            submitted_by: { select: { name: true } }
+    if (search) {
+        where.OR = [
+            { store: { name: { contains: search, mode: 'insensitive' } } },
+            { submitted_by: { name: { contains: search, mode: 'insensitive' } } }
+        ]
+    }
+
+    const [reports, total] = await Promise.all([
+        prisma.dailyReport.findMany({
+            where,
+            orderBy: { report_date: 'desc' },
+            skip,
+            take: limit,
+            include: {
+                store: { select: { name: true, city: true } },
+                submitted_by: { select: { name: true } }
+            }
+        }),
+        prisma.dailyReport.count({ where })
+    ])
+
+    return NextResponse.json({
+        data: reports,
+        pagination: {
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
         }
     })
-
-    return NextResponse.json(reports)
 }

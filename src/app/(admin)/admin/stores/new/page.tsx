@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import toast from "react-hot-toast"
 
 export default function CreateStorePage() {
     const router = useRouter()
@@ -17,10 +18,11 @@ export default function CreateStorePage() {
             body: JSON.stringify(formData)
         })
         if (res.ok) {
+            toast.success("Store created successfully")
             router.push("/admin/stores")
             router.refresh()
         } else {
-            alert("Failed to create store")
+            toast.error("Failed to create store")
             setLoading(false)
         }
     }

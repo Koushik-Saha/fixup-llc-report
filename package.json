@@ -17,7 +17,10 @@
     "next-auth": "^4.24.13",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hot-toast": "^2.6.0",
+    "react-to-print": "^3.3.0",
     "recharts": "^3.7.0",
+    "resend": "^6.9.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

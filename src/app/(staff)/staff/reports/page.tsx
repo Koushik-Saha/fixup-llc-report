@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { SkeletonRow } from "@/components/Skeleton"
 
 type ReportSummary = {
     id: string
@@ -32,7 +33,7 @@ export default function StaffReportsPage() {
             })
     }, [])
 
-    if (loading) return <div className="p-8 text-center text-gray-600">Loading your history...</div>
+    if (loading) return <div className="p-6 bg-white shadow rounded-lg max-w-4xl mx-auto"><SkeletonRow rows={5} /></div>
     if (error) return <div className="p-8 text-red-500 text-center">{error}</div>
 
     return (
