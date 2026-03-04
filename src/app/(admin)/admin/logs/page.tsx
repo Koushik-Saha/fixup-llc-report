@@ -107,6 +107,7 @@ export default function AdminActivityLogsPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">System Ref</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Context Link</th>
                             </tr>
                         </thead>
@@ -157,8 +158,10 @@ export default function AdminActivityLogsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-normal text-sm text-gray-800">
-                                            <div className="font-medium mb-1">{actionText}</div>
-                                            <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded border">System Ref: {log.action}</div>
+                                            <div className="font-medium">{actionText}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded border border-gray-200 font-mono tracking-tight">{log.action}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {log.entity === 'DailyReport' && (
