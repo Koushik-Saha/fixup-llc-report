@@ -119,14 +119,51 @@ export default function AdminActivityLogsPage() {
                                 } catch (e) { }
 
                                 // Format details nicely for display depending on action
-                                let detailText = ''
-                                if (log.action === 'USER_LOGIN') detailText = 'User signed in.'
+                                let detailContent = null
+                                if (log.action === 'USER_LOGIN') detailContent = <span className="text-gray-500 italic">User signed in.</span>
                                 else if (log.action === 'REPORT_EDIT') {
-                                    detailText = `Changes: `
-                                    if (detailsObj.cash) detailText += `Cash $${detailsObj.cash.old} -> $${detailsObj.cash.new} `
-                                    if (detailsObj.card) detailText += ` | Card $${detailsObj.card.old} -> $${detailsObj.card.new}`
+                                    detailContent = (
+                                        <div className="grid gap-1 text-xs">
+                                            {detailsObj.cash && String(detailsObj.cash.old) !== String(detailsObj.cash.new) && (
+                                                <div className="flex gap-2 items-center">
+                                                    <span className="font-medium text-gray-600">Cash:</span>
+                                                    <span className="line-through text-red-400">${detailsObj.cash.old}</span>
+                                                    <span className="text-gray-400">→</span>
+                                                    <span className="text-green-600 font-medium">${detailsObj.cash.new}</span>
+                                                </div>
+                                            )}
+                                            {detailsObj.card && String(detailsObj.card.old) !== String(detailsObj.card.new) && (
+                                                <div className="flex gap-2 items-center">
+                                                    <span className="font-medium text-gray-600">Card:</span>
+                                                    <span className="line-through text-red-400">${detailsObj.card.old}</span>
+                                                    <span className="text-gray-400">→</span>
+                                                    <span className="text-green-600 font-medium">${detailsObj.card.new}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
                                 } else {
-                                    detailText = JSON.stringify(detailsObj).substring(0, 100) + (JSON.stringify(detailsObj).length > 100 ? '...' : '')
+                                    detailContent = (
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            {Object.keys(detailsObj).map((key) => {
+                                                const val = detailsObj[key]
+                                                if (typeof val === 'object' && val !== null) {
+                                                    return (
+                                                        <div key={key} className="bg-gray-50 border border-gray-200 rounded px-2 py-1 flex gap-1.5 items-center">
+                                                            <span className="font-semibold text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                            <span className="text-gray-400 italic">Object</span>
+                                                        </div>
+                                                    )
+                                                }
+                                                return (
+                                                    <div key={key} className="bg-gray-50 border border-gray-200 rounded px-2 py-1 flex gap-1.5 items-center">
+                                                        <span className="font-semibold text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                                                        <span className="text-gray-900">{String(val)}</span>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )
                                 }
 
                                 return (
@@ -148,7 +185,7 @@ export default function AdminActivityLogsPage() {
                                             <div className="text-[10px] text-gray-400 font-mono mt-0.5">{log.entity_id}</div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-700 max-w-sm truncate whitespace-normal break-words leading-tight">
-                                            <div className="font-mono text-xs bg-gray-100 p-2 rounded border">{detailText}</div>
+                                            {detailContent}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {log.entity === 'DailyReport' && (
