@@ -78,3 +78,33 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }
+
+export async function GET(req: Request) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== 'Staff') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const storeId = session.user.storeId
+    if (!storeId) {
+        return NextResponse.json({ error: 'No active store assigned' }, { status: 400 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 30 // default 30 days
+
+    const reports = await prisma.dailyReport.findMany({
+        where: { store_id: storeId },
+        orderBy: { report_date: 'desc' },
+        take: limit,
+        select: {
+            id: true,
+            report_date: true,
+            total_amount: true,
+            status: true,
+            staff_edit_count: true,
+        }
+    })
+
+    return NextResponse.json(reports)
+}

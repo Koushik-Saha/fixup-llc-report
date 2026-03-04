@@ -52,3 +52,71 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json(report)
 }
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== 'Staff') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const report_id = (await params).id
+    const store_id = session.user.storeId
+
+    // Fetch current report to verify ownership and edit count
+    const existingReport = await prisma.dailyReport.findUnique({
+        where: { id: report_id }
+    })
+
+    if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (existingReport.store_id !== store_id) {
+        return NextResponse.json({ error: 'Unauthorized to edit this report' }, { status: 403 })
+    }
+
+    if (existingReport.staff_edit_count >= 2) {
+        return NextResponse.json({ error: 'Maximum edit limit (2) reached for this report.' }, { status: 400 })
+    }
+
+    const body = await req.json()
+    const { cash_amount, card_amount, notes } = body
+
+    // Calculate what changed
+    const total = Number(cash_amount) + Number(card_amount)
+
+    const changes = {
+        cash: { old: Number(existingReport.cash_amount), new: Number(cash_amount) },
+        card: { old: Number(existingReport.card_amount), new: Number(card_amount) },
+        total: { old: Number(existingReport.total_amount), new: total },
+        notes: { old: existingReport.notes, new: notes }
+    }
+
+    try {
+        const updatedReport = await prisma.$transaction(async (tx: any) => {
+            // Update the report fields and increment the edit count
+            const report = await tx.dailyReport.update({
+                where: { id: report_id },
+                data: {
+                    cash_amount: Number(cash_amount),
+                    card_amount: Number(card_amount),
+                    total_amount: total,
+                    notes: notes || null,
+                    staff_edit_count: { increment: 1 }
+                }
+            })
+
+            // Log the edit
+            await tx.editLog.create({
+                data: {
+                    report_id: report_id,
+                    user_id: session.user.id,
+                    changes: JSON.stringify(changes)
+                }
+            })
+
+            return report
+        })
+
+        return NextResponse.json(updatedReport)
+    } catch (err) {
+        console.error('Error updating report:', err)
+        return NextResponse.json({ error: 'Failed to update report' }, { status: 500 })
+    }
+}

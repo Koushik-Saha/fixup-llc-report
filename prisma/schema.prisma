@@ -35,6 +35,7 @@ model User {
 
   storeMembers  StoreMember[]
   reports       DailyReport[]
+  edit_logs     EditLog[]
 
   @@map("users")
 }
@@ -64,12 +65,14 @@ model DailyReport {
   total_amount         Decimal  @db.Decimal(10, 2)
   notes                String?
   status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'
+  staff_edit_count     Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   store                Store         @relation(fields: [store_id], references: [id])
   submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id])
   images               ReportImage[]
+  edit_logs            EditLog[]
 
   @@unique([store_id, report_date])
   @@map("daily_reports")
@@ -84,4 +87,18 @@ model ReportImage {
   report      DailyReport @relation(fields: [report_id], references: [id], onDelete: Cascade)
 
   @@map("report_images")
+}
+
+model EditLog {
+  id          String   @id @default(cuid())
+  report_id   String
+  user_id     String   // The user (admin or staff) who made the edit
+  changes     String   // JSON payload of what changed {"cash": {"old": 100, "new": 150}}
+  createdAt   DateTime @default(now())
+
+  report      DailyReport @relation(fields: [report_id], references: [id], onDelete: Cascade)
+  // user object relation is optional, we'll join by user_id to keep it simple but let's add it for consistency
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("edit_logs")
 }

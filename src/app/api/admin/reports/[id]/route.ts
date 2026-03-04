@@ -15,7 +15,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         include: {
             images: true,
             store: { select: { name: true, city: true, state: true } },
-            submitted_by: { select: { name: true, email: true } }
+            submitted_by: { select: { name: true, email: true } },
+            edit_logs: {
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    user: { select: { name: true, role: true } }
+                }
+            }
         }
     })
 
@@ -54,12 +60,55 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
 
     const body = await req.json()
-    const { status } = body
+    const { status, cash_amount, card_amount, notes } = body
 
-    const report = await prisma.dailyReport.update({
-        where: { id },
-        data: { status }
-    })
+    try {
+        if (cash_amount !== undefined && card_amount !== undefined) {
+            // Admin is editing the actual amounts
+            const existingReport = await prisma.dailyReport.findUnique({ where: { id } })
+            if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json(report)
+            const total = Number(cash_amount) + Number(card_amount)
+
+            const changes = {
+                cash: { old: Number(existingReport.cash_amount), new: Number(cash_amount) },
+                card: { old: Number(existingReport.card_amount), new: Number(card_amount) },
+                total: { old: Number(existingReport.total_amount), new: total },
+                notes: { old: existingReport.notes, new: notes }
+            }
+
+            const updatedReport = await prisma.$transaction(async (tx: any) => {
+                const report = await tx.dailyReport.update({
+                    where: { id },
+                    data: {
+                        status: status || existingReport.status,
+                        cash_amount: Number(cash_amount),
+                        card_amount: Number(card_amount),
+                        total_amount: total,
+                        notes: notes || null
+                    }
+                })
+
+                await tx.editLog.create({
+                    data: {
+                        report_id: id,
+                        user_id: session.user.id,
+                        changes: JSON.stringify(changes)
+                    }
+                })
+                return report
+            })
+            return NextResponse.json(updatedReport)
+        } else {
+            // Admin is just updating status (Verify / Correction Requested)
+            const report = await prisma.dailyReport.update({
+                where: { id },
+                data: { status }
+            })
+            return NextResponse.json(report)
+        }
+    } catch (e) {
+        console.error(e)
+        return NextResponse.json({ error: 'Failed to update report' }, { status: 500 })
+    }
 }
