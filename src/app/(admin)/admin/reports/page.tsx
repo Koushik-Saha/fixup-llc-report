@@ -132,6 +132,9 @@ export default function AdminReportsPage() {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total amount</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -142,6 +145,9 @@ export default function AdminReportsPage() {
                                 <tr key={report.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">{new Date(report.report_date).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{report.submitted_by?.name || 'Unknown'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.cash_amount).toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.card_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap font-bold">${Number(report.total_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
@@ -156,7 +162,7 @@ export default function AdminReportsPage() {
                             ))}
                             {reports.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No reports match the current filters.</td>
+                                    <td colSpan={8} className="px-6 py-4 text-center text-gray-500">No reports match the current filters.</td>
                                 </tr>
                             )}
                         </tbody>
