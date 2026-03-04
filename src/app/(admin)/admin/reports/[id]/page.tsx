@@ -66,7 +66,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 bg-gray-50 p-4 rounded border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-4 rounded border">
                     <div>
                         <p className="text-sm text-gray-500 font-medium">Cash Amount</p>
                         <p className="text-xl font-bold text-green-700">${Number(report.cash_amount).toFixed(2)}</p>

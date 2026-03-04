@@ -97,7 +97,7 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                 </form>
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
                 <table className="min-w-full divide-y border-gray-200">
                     <thead className="bg-gray-50">
                         <tr>

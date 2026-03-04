@@ -34,7 +34,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 bg-gray-50 p-4 rounded border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-4 rounded border">
                 <div>
                     <p className="text-sm text-gray-500 font-medium">Report Date</p>
                     <p className="text-lg font-bold">{new Date(report.report_date).toLocaleDateString()}</p>
