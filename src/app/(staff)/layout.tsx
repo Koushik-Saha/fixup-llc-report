@@ -5,8 +5,8 @@ import { signOut } from 'next-auth/react'
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <header className="bg-white shadow">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <header className="bg-white shadow shrink-0">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap gap-4 justify-between items-center">
                     <Link href="/staff/home" className="text-xl font-bold text-gray-900">
                         Daily Sales
                     </Link>
