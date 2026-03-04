@@ -41,6 +41,7 @@ model User {
   storeMembers       StoreMember[]
   reports            DailyReport[]
   edit_logs          EditLog[]
+  system_logs        SystemLog[]
 
   @@map("users")
 }
@@ -108,4 +109,18 @@ model EditLog {
   user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("edit_logs")
+}
+
+model SystemLog {
+  id          String   @id @default(cuid())
+  user_id     String   // Who did it
+  action      String   // e.g. "USER_LOGIN", "STORE_CREATE", "REPORT_EDIT", "USER_DELETE"
+  entity      String   // e.g. "User", "Store", "DailyReport"
+  entity_id   String   // ID of the target object
+  details     String?  // JSON stringified payload of changes or context
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("system_logs")
 }

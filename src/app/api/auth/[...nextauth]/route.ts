@@ -69,6 +69,23 @@ export const authOptions: NextAuthOptions = {
             return session
         }
     },
+    events: {
+        async signIn({ user }) {
+            try {
+                await prisma.systemLog.create({
+                    data: {
+                        user_id: user.id,
+                        action: 'USER_LOGIN',
+                        entity: 'User',
+                        entity_id: user.id,
+                        details: JSON.stringify({ message: 'User logged into the system' })
+                    }
+                })
+            } catch (error) {
+                console.error('Failed to log sign-in event:', error)
+            }
+        }
+    },
     pages: {
         signIn: "/login",
     },

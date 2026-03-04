@@ -50,5 +50,15 @@ export async function POST(req: Request) {
         }
     })
 
+    await prisma.systemLog.create({
+        data: {
+            user_id: session.user.id,
+            action: 'STORE_CREATE',
+            entity: 'Store',
+            entity_id: store.id,
+            details: JSON.stringify({ name: store.name, city: store.city, state: store.state })
+        }
+    })
+
     return NextResponse.json(store)
 }

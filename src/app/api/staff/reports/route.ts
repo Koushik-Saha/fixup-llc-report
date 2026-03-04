@@ -71,6 +71,16 @@ export async function POST(req: Request) {
                 })
             }
 
+            await tx.systemLog.create({
+                data: {
+                    user_id: session.user.id,
+                    action: 'REPORT_CREATE',
+                    entity: 'DailyReport',
+                    entity_id: newReport.id,
+                    details: JSON.stringify({ cash: newReport.cash_amount, card: newReport.card_amount, total: newReport.total_amount })
+                }
+            })
+
             const store = await tx.store.findUnique({ where: { id: storeId } })
             sendDailySummary({
                 storeName: store?.name || 'Unknown Store',

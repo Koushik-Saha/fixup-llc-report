@@ -52,5 +52,15 @@ export async function POST(req: Request) {
         }
     })
 
+    await prisma.systemLog.create({
+        data: {
+            user_id: session.user.id,
+            action: 'USER_CREATE',
+            entity: 'User',
+            entity_id: user.id,
+            details: JSON.stringify({ name: user.name, email: user.email, role: user.role })
+        }
+    })
+
     return NextResponse.json({ id: user.id, name: user.name, email: user.email })
 }

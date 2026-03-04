@@ -145,6 +145,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         changes: JSON.stringify(changes)
                     }
                 })
+
+                await tx.systemLog.create({
+                    data: {
+                        user_id: session.user.id,
+                        action: 'REPORT_EDIT',
+                        entity: 'DailyReport',
+                        entity_id: id,
+                        details: JSON.stringify(changes)
+                    }
+                })
                 return report
             })
 
@@ -162,6 +172,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 where: { id },
                 data: { status }
             })
+
+            await prisma.systemLog.create({
+                data: {
+                    user_id: session.user.id,
+                    action: 'REPORT_STATUS_UPDATE',
+                    entity: 'DailyReport',
+                    entity_id: id,
+                    details: JSON.stringify({ new_status: status })
+                }
+            })
+
             return NextResponse.json(report)
         }
     } catch (e) {

@@ -39,6 +39,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             where: { id },
             data: updateData
         })
+
+        await prisma.systemLog.create({
+            data: {
+                user_id: session.user.id,
+                action: 'USER_UPDATE',
+                entity: 'User',
+                entity_id: user.id,
+                details: JSON.stringify({ changes: updateData })
+            }
+        })
+
         return NextResponse.json({ id: user.id, name: user.name, email: user.email })
     } catch (err: any) {
         return NextResponse.json({ error: 'Update failed' }, { status: 400 })

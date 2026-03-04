@@ -19,15 +19,15 @@ export async function GET(req: Request) {
     const skip = (page - 1) * limit
     const search = searchParams.get('search')
 
-    // Build the where clause for the EditLog query
+    // Build the where clause for the SystemLog query
     const where: any = {}
 
-    // Filtering by user who made the edit
+    // Filtering by user who made the action
     if (userId) {
         where.user_id = userId
     }
 
-    // Filtering by timestamp of the edit
+    // Filtering by timestamp of the action
     if (startDateStr || endDateStr) {
         where.createdAt = {}
         if (startDateStr) where.createdAt.gte = new Date(startDateStr)
@@ -39,39 +39,51 @@ export async function GET(req: Request) {
         }
     }
 
-    // Filtering by store requires a relation filter since EditLog points to DailyReport which points to Store
+    // Filtering by store requires polymorphic mapping
     if (storeId) {
-        where.report = {
-            store_id: storeId
-        }
+        const storeReports = await prisma.dailyReport.findMany({ where: { store_id: storeId }, select: { id: true } })
+        const storeMembers = await prisma.storeMember.findMany({ where: { store_id: storeId }, select: { id: true } })
+
+        where.OR = [
+            { entity: 'Store', entity_id: storeId },
+            { entity: 'DailyReport', entity_id: { in: storeReports.map((r: { id: string }) => r.id) } },
+            { entity: 'StoreMember', entity_id: { in: storeMembers.map((m: { id: string }) => m.id) } }
+        ]
     }
 
     if (search) {
-        where.OR = [
-            { user: { name: { contains: search, mode: 'insensitive' } } },
-            { report: { store: { name: { contains: search, mode: 'insensitive' } } } }
-        ]
+        const searchWhere: any = {
+            OR: [
+                { user: { name: { contains: search, mode: 'insensitive' } } },
+                { details: { contains: search, mode: 'insensitive' } },
+                { action: { contains: search, mode: 'insensitive' } },
+                { entity: { contains: search, mode: 'insensitive' } }
+            ]
+        }
+
+        if (where.OR) {
+            where.AND = [
+                { OR: where.OR },
+                searchWhere
+            ]
+            delete where.OR
+        } else {
+            where.OR = searchWhere.OR
+        }
     }
 
     try {
         const [logs, total] = await Promise.all([
-            prisma.editLog.findMany({
+            prisma.systemLog.findMany({
                 where,
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit,
                 include: {
-                    user: { select: { id: true, name: true, role: true } },
-                    report: {
-                        select: {
-                            id: true,
-                            report_date: true,
-                            store: { select: { id: true, name: true } }
-                        }
-                    }
+                    user: { select: { id: true, name: true, role: true } }
                 }
             }),
-            prisma.editLog.count({ where })
+            prisma.systemLog.count({ where })
         ])
 
         return NextResponse.json({

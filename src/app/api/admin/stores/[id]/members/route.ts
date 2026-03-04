@@ -62,6 +62,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             where: { id: existing.id },
             data: { status: 'Active', is_reporter: Boolean(is_reporter) }
         })
+
+        await prisma.systemLog.create({
+            data: {
+                user_id: session.user.id,
+                action: 'MEMBER_REACTIVATED',
+                entity: 'StoreMember',
+                entity_id: updated.id,
+                details: JSON.stringify({ store_id, target_user: user_id, is_reporter })
+            }
+        })
+
         return NextResponse.json(updated)
     }
 
@@ -71,6 +82,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             user_id,
             is_reporter: Boolean(is_reporter),
             status: 'Active'
+        }
+    })
+
+    await prisma.systemLog.create({
+        data: {
+            user_id: session.user.id,
+            action: 'MEMBER_ASSIGNED',
+            entity: 'StoreMember',
+            entity_id: member.id,
+            details: JSON.stringify({ store_id, target_user: user_id, is_reporter })
         }
     })
 

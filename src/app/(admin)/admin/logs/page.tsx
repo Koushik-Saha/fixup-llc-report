@@ -106,14 +106,29 @@ export default function AdminActivityLogsPage() {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store & Report Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action Overview</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Details</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action & Entity</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase flex-1 whitespace-normal">Raw Details</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Context Link</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {logs.map((log: any) => {
-                                const changes = JSON.parse(log.changes)
+                                let detailsObj: any = {}
+                                try {
+                                    detailsObj = JSON.parse(log.details || '{}')
+                                } catch (e) { }
+
+                                // Format details nicely for display depending on action
+                                let detailText = ''
+                                if (log.action === 'USER_LOGIN') detailText = 'User signed in.'
+                                else if (log.action === 'REPORT_EDIT') {
+                                    detailText = `Changes: `
+                                    if (detailsObj.cash) detailText += `Cash $${detailsObj.cash.old} -> $${detailsObj.cash.new} `
+                                    if (detailsObj.card) detailText += ` | Card $${detailsObj.card.old} -> $${detailsObj.card.new}`
+                                } else {
+                                    detailText = JSON.stringify(detailsObj).substring(0, 100) + (JSON.stringify(detailsObj).length > 100 ? '...' : '')
+                                }
+
                                 return (
                                     <tr key={log.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -128,27 +143,20 @@ export default function AdminActivityLogsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">{log.report.store.name}</div>
-                                            <div className="text-xs text-gray-500">Report from: {new Date(log.report.report_date).toLocaleDateString()}</div>
+                                            <div className="text-sm font-bold text-gray-800">{log.action}</div>
+                                            <div className="text-xs text-gray-500 mt-1">Entity: {log.entity}</div>
+                                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{log.entity_id}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700">
-                                            <div className="grid gap-1">
-                                                {changes.cash && changes.cash.old !== changes.cash.new && (
-                                                    <div className="flex gap-2 text-xs">
-                                                        <span className="font-medium">Cash:</span>
-                                                        <span className="line-through text-red-500">${changes.cash.old}</span> → <span className="text-green-600">${changes.cash.new}</span>
-                                                    </div>
-                                                )}
-                                                {changes.card && changes.card.old !== changes.card.new && (
-                                                    <div className="flex gap-2 text-xs">
-                                                        <span className="font-medium">Card:</span>
-                                                        <span className="line-through text-red-500">${changes.card.old}</span> → <span className="text-green-600">${changes.card.new}</span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                        <td className="px-6 py-4 text-sm text-gray-700 max-w-sm truncate whitespace-normal break-words leading-tight">
+                                            <div className="font-mono text-xs bg-gray-100 p-2 rounded border">{detailText}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <Link href={`/admin/reports/${log.report.id}`} className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-md">View Report</Link>
+                                            {log.entity === 'DailyReport' && (
+                                                <Link href={`/admin/reports/${log.entity_id}`} className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-md">View Report</Link>
+                                            )}
+                                            {log.entity === 'Store' && (
+                                                <Link href={`/admin/stores/${log.entity_id}/edit`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1.5 rounded-md">View Store</Link>
+                                            )}
                                         </td>
                                     </tr>
                                 )

@@ -40,5 +40,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
     })
 
+    await prisma.systemLog.create({
+        data: {
+            user_id: session.user.id,
+            action: 'STORE_UPDATE',
+            entity: 'Store',
+            entity_id: store.id,
+            details: JSON.stringify({ changes: { name, address, city, state, zip_code, block, max_members, status } })
+        }
+    })
+
     return NextResponse.json(store)
 }

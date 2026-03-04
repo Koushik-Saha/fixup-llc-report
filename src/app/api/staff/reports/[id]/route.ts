@@ -111,12 +111,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 }
             })
 
-            // Log the edit
+            // Log the edit using legacy EditLog
             await tx.editLog.create({
                 data: {
                     report_id: report_id,
                     user_id: session.user.id,
                     changes: JSON.stringify(changes)
+                }
+            })
+
+            // Log the edit using universal SystemLog
+            await tx.systemLog.create({
+                data: {
+                    user_id: session.user.id,
+                    action: 'REPORT_EDIT',
+                    entity: 'DailyReport',
+                    entity_id: report_id,
+                    details: JSON.stringify(changes)
                 }
             })
 
