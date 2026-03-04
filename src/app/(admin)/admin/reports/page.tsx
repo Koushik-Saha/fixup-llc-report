@@ -137,7 +137,8 @@ export default function AdminReportsPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                                        <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
+                                        <Link href={`/admin/reports/${report.id}/edit`} className="text-orange-600 hover:text-orange-900">Edit</Link>
                                     </td>
                                 </tr>
                             ))}
