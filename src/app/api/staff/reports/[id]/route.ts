@@ -6,6 +6,8 @@ import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
