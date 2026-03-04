@@ -106,8 +106,7 @@ export default function AdminActivityLogsPage() {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action & Entity</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase flex-1 whitespace-normal">Raw Details</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Context Link</th>
                             </tr>
                         </thead>
@@ -118,53 +117,31 @@ export default function AdminActivityLogsPage() {
                                     detailsObj = JSON.parse(log.details || '{}')
                                 } catch (e) { }
 
-                                // Format details nicely for display depending on action
-                                let detailContent = null
-                                if (log.action === 'USER_LOGIN') detailContent = <span className="text-gray-500 italic">User signed in.</span>
+                                // Create human-readable action text
+                                let actionText = 'Performed an action'
+                                if (log.action === 'USER_LOGIN') actionText = 'Logged into the portal.'
+                                else if (log.action === 'REPORT_CREATE') actionText = `Submitted a Daily Report for $${detailsObj.total || 0}.`
                                 else if (log.action === 'REPORT_EDIT') {
-                                    detailContent = (
-                                        <div className="grid gap-1 text-xs">
-                                            {detailsObj.cash && String(detailsObj.cash.old) !== String(detailsObj.cash.new) && (
-                                                <div className="flex gap-2 items-center">
-                                                    <span className="font-medium text-gray-600">Cash:</span>
-                                                    <span className="line-through text-red-400">${detailsObj.cash.old}</span>
-                                                    <span className="text-gray-400">→</span>
-                                                    <span className="text-green-600 font-medium">${detailsObj.cash.new}</span>
-                                                </div>
-                                            )}
-                                            {detailsObj.card && String(detailsObj.card.old) !== String(detailsObj.card.new) && (
-                                                <div className="flex gap-2 items-center">
-                                                    <span className="font-medium text-gray-600">Card:</span>
-                                                    <span className="line-through text-red-400">${detailsObj.card.old}</span>
-                                                    <span className="text-gray-400">→</span>
-                                                    <span className="text-green-600 font-medium">${detailsObj.card.new}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                } else {
-                                    detailContent = (
-                                        <div className="flex flex-wrap gap-2 text-xs">
-                                            {Object.keys(detailsObj).map((key) => {
-                                                const val = detailsObj[key]
-                                                if (typeof val === 'object' && val !== null) {
-                                                    return (
-                                                        <div key={key} className="bg-gray-50 border border-gray-200 rounded px-2 py-1 flex gap-1.5 items-center">
-                                                            <span className="font-semibold text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
-                                                            <span className="text-gray-400 italic">Object</span>
-                                                        </div>
-                                                    )
-                                                }
-                                                return (
-                                                    <div key={key} className="bg-gray-50 border border-gray-200 rounded px-2 py-1 flex gap-1.5 items-center">
-                                                        <span className="font-semibold text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
-                                                        <span className="text-gray-900">{String(val)}</span>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    )
+                                    actionText = `Edited a Daily Report`
+                                    const changes = []
+                                    if (detailsObj.cash && String(detailsObj.cash.old) !== String(detailsObj.cash.new)) {
+                                        changes.push(`Cash: $${detailsObj.cash.old} → $${detailsObj.cash.new}`)
+                                    }
+                                    if (detailsObj.card && String(detailsObj.card.old) !== String(detailsObj.card.new)) {
+                                        changes.push(`Card: $${detailsObj.card.old} → $${detailsObj.card.new}`)
+                                    }
+                                    if (changes.length > 0) {
+                                        actionText += ` (${changes.join(' | ')})`
+                                    }
                                 }
+                                else if (log.action === 'REPORT_STATUS_UPDATE') actionText = `Updated Report Status to ${detailsObj.new_status}`
+                                else if (log.action === 'STORE_CREATE') actionText = `Created a new Store: ${detailsObj.name || ''}`
+                                else if (log.action === 'STORE_UPDATE') actionText = `Edited Store details`
+                                else if (log.action === 'USER_CREATE') actionText = `Created a new User: ${detailsObj.name || detailsObj.email || ''}`
+                                else if (log.action === 'USER_UPDATE') actionText = `Updated User details`
+                                else if (log.action === 'MEMBER_ASSIGNED') actionText = `Assigned a new staff member to the Store`
+                                else if (log.action === 'MEMBER_REACTIVATED') actionText = `Reactivated a staff member for the Store`
+                                else if (log.action === 'MEMBER_STATUS_UPDATE') actionText = `Updated Store Member status to ${detailsObj.status}`
 
                                 return (
                                     <tr key={log.id} className="hover:bg-gray-50">
@@ -179,13 +156,9 @@ export default function AdminActivityLogsPage() {
                                                 <span className="font-semibold text-gray-900 text-sm">{log.user.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-gray-800">{log.action}</div>
-                                            <div className="text-xs text-gray-500 mt-1">Entity: {log.entity}</div>
-                                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{log.entity_id}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700 max-w-sm truncate whitespace-normal break-words leading-tight">
-                                            {detailContent}
+                                        <td className="px-6 py-4 whitespace-normal text-sm text-gray-800">
+                                            <div className="font-medium mb-1">{actionText}</div>
+                                            <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded border">System Ref: {log.action}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {log.entity === 'DailyReport' && (
