@@ -35,6 +35,7 @@ export default function StoresPage() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Names</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -50,7 +51,9 @@ export default function StoresPage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-gray-900">{store._count.members} / {store.max_members}</div>
-                                    <div className="text-xs text-gray-500 mt-1">
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-500">
                                         {store.members?.map((m: any) => m.user.name).join(', ') || 'None'}
                                     </div>
                                 </td>
@@ -62,7 +65,7 @@ export default function StoresPage() {
                         ))}
                         {stores.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No stores found.</td>
+                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No stores found.</td>
                             </tr>
                         )}
                     </tbody>
