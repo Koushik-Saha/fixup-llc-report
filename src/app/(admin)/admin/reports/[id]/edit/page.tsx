@@ -13,6 +13,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
     const [cash, setCash] = useState("")
     const [card, setCard] = useState("")
     const [notes, setNotes] = useState("")
+    const [existingImages, setExistingImages] = useState<any[]>([])
+    const [files, setFiles] = useState<File[]>([])
 
     useEffect(() => {
         fetch(`/api/admin/reports/${id}`)
@@ -23,6 +25,7 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     setCash(data.cash_amount)
                     setCard(data.card_amount)
                     setNotes(data.notes || "")
+                    setExistingImages(data.images || [])
                 }
                 setLoading(false)
             })
@@ -32,19 +35,62 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
             })
     }, [id])
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const selectedFiles = Array.from(e.target.files)
+            if (existingImages.length + files.length + selectedFiles.length > 10) {
+                alert("Maximum 10 images allowed.")
+                return
+            }
+            setFiles([...files, ...selectedFiles])
+        }
+    }
+
+    const removeExistingImage = (id: string) => {
+        setExistingImages(existingImages.filter(img => img.id !== id))
+    }
+
+    const removeNewFile = (index: number) => {
+        setFiles(files.filter((_, i) => i !== index))
+    }
+
+    const uploadFileToS3 = async (file: File) => {
+        const presignRes = await fetch("/api/staff/upload/presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: file.name, contentType: file.type })
+        })
+        if (!presignRes.ok) throw new Error("Failed to get upload securely")
+        const { presignedUrl, publicUrl } = await presignRes.json()
+        const uploadRes = await fetch(presignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": file.type },
+            body: file
+        })
+        if (!uploadRes.ok) throw new Error("Failed to upload image")
+        return publicUrl
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
         setError("")
 
         try {
+            // Upload new images first
+            const newImageUrls = await Promise.all(files.map(uploadFileToS3))
+
+            const keptImageIds = existingImages.map(img => img.id)
+
             const res = await fetch(`/api/admin/reports/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     cash_amount: cash,
                     card_amount: card,
-                    notes
+                    notes,
+                    keptImageIds,
+                    newImageUrls
                 })
             })
 
@@ -106,6 +152,51 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                         <span className="text-xl font-bold text-gray-900">
                             ${(Number(cash || 0) + Number(card || 0)).toFixed(2)}
                         </span>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                        <label className="block text-sm font-medium text-gray-700 mb-4">Receipt Images</label>
+
+                        {/* Display Existing Images */}
+                        {existingImages.length > 0 && (
+                            <div className="mb-4">
+                                <p className="text-xs text-gray-500 mb-2">Existing Images</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    {existingImages.map((img: any) => (
+                                        <div key={img.id} className="relative group border rounded-lg overflow-hidden">
+                                            <img src={img.image_url} alt="Receipt" className="w-full h-24 object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExistingImage(img.id)}
+                                                className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-sm opacity-90 hover:opacity-100"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Upload New File Input */}
+                        <div className="mt-4">
+                            <label className="block text-xs text-gray-500 mb-2">Upload New Images (Max 10 total)</label>
+                            <input
+                                type="file" multiple accept="image/*"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                                onChange={handleFileChange}
+                            />
+                            {files.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {files.map((file, idx) => (
+                                        <div key={idx} className="relative inline-block border rounded bg-gray-50 p-2 text-center">
+                                            <p className="text-xs max-w-[100px] truncate">{file.name}</p>
+                                            <button type="button" onClick={() => removeNewFile(idx)} className="text-red-500 text-xs mt-1 font-medium hover:underline">Remove</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div>

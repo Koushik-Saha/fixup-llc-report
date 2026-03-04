@@ -39,7 +39,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const bucketUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/`
 
         for (let i = 0; i < report.images.length; i++) {
-            let img = report.images[i]
+            let img: any = report.images[i]
+            img.raw_url = img.image_url
             if (img.image_url.startsWith(bucketUrl)) {
                 const key = img.image_url.replace(bucketUrl, '')
                 const command = new GetObjectCommand({
@@ -60,21 +61,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
 
     const body = await req.json()
-    const { status, cash_amount, card_amount, notes } = body
+    const { status, cash_amount, card_amount, notes, keptImageIds, newImageUrls } = body
 
     try {
         if (cash_amount !== undefined && card_amount !== undefined) {
-            // Admin is editing the actual amounts
-            const existingReport = await prisma.dailyReport.findUnique({ where: { id } })
+            // Admin is editing the actual amounts and images
+            const existingReport = await prisma.dailyReport.findUnique({
+                where: { id },
+                include: { images: true }
+            })
             if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
             const total = Number(cash_amount) + Number(card_amount)
 
-            const changes = {
+            let imagesChanged = false
+            const existingImageIds = existingReport.images.map((img: any) => img.id)
+
+            // Check if any old images were removed
+            if (keptImageIds) {
+                if (existingImageIds.length !== keptImageIds.length) imagesChanged = true
+            }
+
+            // Check if any new images were added
+            if (newImageUrls && newImageUrls.length > 0) {
+                imagesChanged = true
+            }
+
+            const changes: any = {
                 cash: { old: Number(existingReport.cash_amount), new: Number(cash_amount) },
                 card: { old: Number(existingReport.card_amount), new: Number(card_amount) },
                 total: { old: Number(existingReport.total_amount), new: total },
                 notes: { old: existingReport.notes, new: notes }
+            }
+
+            if (imagesChanged) {
+                changes.images = "Modified (Images Added/Removed)"
             }
 
             const updatedReport = await prisma.$transaction(async (tx: any) => {
@@ -88,6 +109,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         notes: notes || null
                     }
                 })
+
+                // Handle Image Deletions
+                if (keptImageIds) {
+                    await tx.reportImage.deleteMany({
+                        where: {
+                            report_id: id,
+                            id: { notIn: keptImageIds }
+                        }
+                    })
+                }
+
+                // Handle Image Additions
+                if (newImageUrls && newImageUrls.length > 0) {
+                    await tx.reportImage.createMany({
+                        data: newImageUrls.map((url: string) => ({
+                            report_id: id,
+                            image_url: url
+                        }))
+                    })
+                }
 
                 await tx.editLog.create({
                     data: {
