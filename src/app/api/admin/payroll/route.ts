@@ -28,6 +28,13 @@ export async function GET(req: Request) {
         }
     })
 
+    const currentMonthYear = new Date().toISOString().slice(0, 7)
+
+    // If it is a past/future month AND there are zero records generated for it, return empty.
+    if (records.length === 0 && monthYear !== currentMonthYear) {
+        return NextResponse.json([])
+    }
+
     const recordMap = new Map()
     records.forEach(r => recordMap.set(r.user_id, r))
 
