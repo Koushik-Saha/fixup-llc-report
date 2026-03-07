@@ -80,7 +80,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, expenses_amount, payouts_amount, notes } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes } = body
 
     // Calculate what changed
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
@@ -92,6 +92,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         expenses: { old: Number(existingReport.expenses_amount), new: Number(expenses_amount) || 0 },
         payouts: { old: Number(existingReport.payouts_amount), new: Number(payouts_amount) || 0 },
         total: { old: Number(existingReport.total_amount), new: total },
+        time_in: { old: (existingReport as any).time_in, new: time_in },
+        time_out: { old: (existingReport as any).time_out, new: time_out },
         notes: { old: existingReport.notes, new: notes }
     }
 
@@ -106,6 +108,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     expenses_amount: Number(expenses_amount) || 0,
                     payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
+                    time_in: time_in || null,
+                    time_out: time_out || null,
                     notes: notes || null,
                     staff_edit_count: { increment: 1 }
                 }

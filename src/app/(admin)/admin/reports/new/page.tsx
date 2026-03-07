@@ -1,11 +1,13 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
 export default function SubmitReportPage() {
     const router = useRouter()
+    const [storeId, setStoreId] = useState<string>("")
+    const [stores, setStores] = useState<any[]>([])
     const [cash, setCash] = useState<number | "">("")
     const [card, setCard] = useState<number | "">("")
     const [expenses, setExpenses] = useState<number | "">("")
@@ -21,6 +23,17 @@ export default function SubmitReportPage() {
 
     const netCash = (Number(cash) || 0) - (Number(expenses) || 0) - (Number(payouts) || 0)
     const total = netCash + (Number(card) || 0)
+
+    useEffect(() => {
+        fetch('/api/admin/stores')
+            .then(res => res.json())
+            .then(data => {
+                const activeStores = data.filter((s: any) => s.status === 'Active')
+                setStores(activeStores)
+                if (activeStores.length > 0) setStoreId(activeStores[0].id)
+            })
+            .catch(err => console.error("Failed to load stores", err))
+    }, [])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -71,11 +84,18 @@ export default function SubmitReportPage() {
         setError("")
 
         try {
+            if (!storeId) {
+                toast.error("Please select a valid store first.")
+                setUploading(false)
+                return
+            }
+
             // 1. Upload all images sequentially or in parallel
             const publicUrls = await Promise.all(files.map(uploadFileToS3))
 
             // 2. Submit the report payload
             const payload = {
+                store_id: storeId,
                 cash_amount: Number(cash),
                 card_amount: Number(card),
                 expenses_amount: Number(expenses),
@@ -87,7 +107,7 @@ export default function SubmitReportPage() {
                 imageUrls: publicUrls
             }
 
-            const res = await fetch("/api/staff/reports", {
+            const res = await fetch("/api/admin/reports", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -95,8 +115,8 @@ export default function SubmitReportPage() {
 
             if (res.ok) {
                 const reportData = await res.json()
-                toast.success("Report submitted successfully")
-                router.push(`/staff/report/${reportData.id}`)
+                toast.success("Manual Report created successfully")
+                router.push(`/admin/reports/${reportData.id}`)
                 router.refresh()
             } else {
                 const data = await res.json()
@@ -114,12 +134,27 @@ export default function SubmitReportPage() {
     }
 
     return (
-        <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Submit Daily Report</h2>
+        <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md mt-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Create Missing Report (Admin Override)</h2>
 
             {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-6">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Select Target Store</label>
+                    <select
+                        required
+                        className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        value={storeId}
+                        onChange={(e) => setStoreId(e.target.value)}
+                    >
+                        <option value="" disabled>Select a store</option>
+                        {stores.map((s: any) => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Cash Amount ($)</label>
                     <input
@@ -173,16 +208,15 @@ export default function SubmitReportPage() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Report Date</label>
+                    <label className="block text-sm font-medium text-gray-700">Target Report Date</label>
                     <input
                         type="date" required
-                        min={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
-                        max={new Date().toISOString().split('T')[0]}
+                        max={new Date().toISOString().split('T')[0]} // Allow today and anytime in the past
                         className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                         value={reportDate}
                         onChange={e => setReportDate(e.target.value)}
                     />
-                    <p className="text-xs text-gray-500 mt-1">You may only submit reports for Today or Yesterday.</p>
+                    <p className="text-xs text-gray-500 mt-1">Admins can create reports for any date in the past.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

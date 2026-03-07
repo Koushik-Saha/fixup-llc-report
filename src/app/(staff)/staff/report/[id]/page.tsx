@@ -54,6 +54,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                     <p className="text-lg font-bold">{new Date(report.report_date).toLocaleDateString()}</p>
                 </div>
                 <div>
+                    <p className="text-sm text-gray-500 font-medium">Shift Times</p>
+                    <p className="text-lg font-bold">{report.time_in ? `${report.time_in} - ${report.time_out}` : 'N/A'}</p>
+                </div>
+                <div>
                     <p className="text-sm text-gray-500 font-medium">Submitted By</p>
                     <p className="text-lg font-bold">{report.submitted_by.name}</p>
                 </div>

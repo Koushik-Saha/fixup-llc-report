@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, email: true, role: true, status: true }
+        select: { id: true, name: true, email: true, role: true, status: true, base_salary: true }
     })
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -26,9 +26,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const id = (await params).id
     const body = await req.json()
-    const { name, email, role, status, password } = body
+    const { name, email, role, status, password, base_salary } = body
 
     const updateData: any = { name, email, role, status }
+    if (base_salary !== undefined) {
+        updateData.base_salary = Number(base_salary)
+    }
 
     if (password) {
         updateData.password_hash = await bcrypt.hash(password, 10)

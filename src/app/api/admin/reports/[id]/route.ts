@@ -10,7 +10,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const id = (await params).id
 
     const report = await prisma.dailyReport.findUnique({
@@ -29,6 +31,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
 
     if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    if (session.user.role === 'Manager') {
+        const isMember = await prisma.storeMember.findFirst({
+            where: { store_id: report.store_id, user_id: session.user.id, status: 'Active' }
+        })
+        if (!isMember) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        }
+    }
 
     // Sign URLs for secure viewing if AWS is configured
     if (report.images && report.images.length > 0 && process.env.AWS_S3_BUCKET_NAME && process.env.AWS_ACCESS_KEY_ID) {
@@ -60,21 +71,30 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const id = (await params).id
 
     const body = await req.json()
-    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, notes, keptImageIds, newImageUrls } = body
+    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls } = body
 
     try {
+        const existingReport = await prisma.dailyReport.findUnique({
+            where: { id },
+            include: { images: true, store: true }
+        })
+        if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+        if (session.user.role === 'Manager') {
+            const isMember = await prisma.storeMember.findFirst({
+                where: { store_id: existingReport.store_id, user_id: session.user.id, status: 'Active' }
+            })
+            if (!isMember) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        }
+
         if (cash_amount !== undefined && card_amount !== undefined) {
             // Admin is editing the actual amounts and images
-            const existingReport = await prisma.dailyReport.findUnique({
-                where: { id },
-                include: { images: true, store: true }
-            })
-            if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
             const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
             const total = netCash + Number(card_amount)
 
@@ -97,6 +117,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 expenses: { old: Number(existingReport.expenses_amount), new: Number(expenses_amount) || 0 },
                 payouts: { old: Number(existingReport.payouts_amount), new: Number(payouts_amount) || 0 },
                 total: { old: Number(existingReport.total_amount), new: total },
+                time_in: { old: (existingReport as any).time_in, new: time_in },
+                time_out: { old: (existingReport as any).time_out, new: time_out },
                 notes: { old: existingReport.notes, new: notes }
             }
 
@@ -114,6 +136,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         expenses_amount: Number(expenses_amount) || 0,
                         payouts_amount: Number(payouts_amount) || 0,
                         total_amount: total,
+                        time_in: time_in || null,
+                        time_out: time_out || null,
                         notes: notes || null
                     }
                 })

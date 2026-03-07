@@ -44,13 +44,28 @@ export async function GET(req: Request) {
             report_date: true,
             cash_amount: true,
             card_amount: true,
-            total_amount: true
+            total_amount: true,
+            expenses_amount: true,
+            payouts_amount: true
         },
         orderBy: { report_date: 'asc' }
     })
 
     // Group by date to flatten all store reports for global trend
     const groupedData: Record<string, any> = {}
+
+    const storeExpensesQuery = await prisma.storeExpense.findMany({
+        where: { expense_date: { gte: start, lte: end } },
+        select: { amount: true }
+    })
+
+    const payrollPaymentsQuery = await prisma.payrollPayment.findMany({
+        where: { payment_date: { gte: start, lte: end } },
+        select: { amount: true }
+    })
+
+    let totalPettyCashExpenses = 0
+    let totalSales = 0
 
     reports.forEach((r: any) => {
         const dateStr = new Date(r.report_date).toISOString().split('T')[0]
@@ -65,7 +80,26 @@ export async function GET(req: Request) {
         groupedData[dateStr].cash += Number(r.cash_amount)
         groupedData[dateStr].card += Number(r.card_amount)
         groupedData[dateStr].total += Number(r.total_amount)
+
+        totalSales += Number(r.total_amount)
+        totalPettyCashExpenses += Number(r.expenses_amount) + Number(r.payouts_amount)
     })
 
-    return NextResponse.json(Object.values(groupedData))
+    const totalStoreExpenses = storeExpensesQuery.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0)
+    const totalPayroll = payrollPaymentsQuery.reduce((sum: number, pay: any) => sum + Number(pay.amount), 0)
+
+    const grossProfit = totalSales - totalPettyCashExpenses - totalStoreExpenses
+    const netProfit = grossProfit - totalPayroll
+
+    return NextResponse.json({
+        chartData: Object.values(groupedData),
+        summary: {
+            totalSales,
+            totalPettyCashExpenses,
+            totalStoreExpenses,
+            totalPayroll,
+            grossProfit,
+            netProfit
+        }
+    })
 }

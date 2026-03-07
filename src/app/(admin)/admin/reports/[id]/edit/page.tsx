@@ -15,6 +15,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
     const [card, setCard] = useState("")
     const [expenses, setExpenses] = useState("")
     const [payouts, setPayouts] = useState("")
+    const [timeIn, setTimeIn] = useState("")
+    const [timeOut, setTimeOut] = useState("")
     const [notes, setNotes] = useState("")
     const [existingImages, setExistingImages] = useState<any[]>([])
     const [files, setFiles] = useState<File[]>([])
@@ -29,6 +31,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     setCard(data.card_amount)
                     setExpenses(data.expenses_amount || 0)
                     setPayouts(data.payouts_amount || 0)
+                    setTimeIn(data.time_in || "")
+                    setTimeOut(data.time_out || "")
                     setNotes(data.notes || "")
                     setExistingImages(data.images || [])
                 }
@@ -95,6 +99,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     card_amount: card,
                     expenses_amount: expenses,
                     payouts_amount: payouts,
+                    time_in: timeIn,
+                    time_out: timeOut,
                     notes,
                     keptImageIds,
                     newImageUrls
@@ -177,6 +183,27 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 value={payouts}
                                 onChange={(e) => setPayouts(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Time In</label>
+                            <input
+                                type="time"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                value={timeIn}
+                                onChange={(e) => setTimeIn(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Time Out</label>
+                            <input
+                                type="time"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                value={timeOut}
+                                onChange={(e) => setTimeOut(e.target.value)}
                             />
                         </div>
                     </div>

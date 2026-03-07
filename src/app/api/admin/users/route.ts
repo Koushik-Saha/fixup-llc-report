@@ -18,7 +18,12 @@ export async function GET() {
             email: true,
             role: true,
             status: true,
-            createdAt: true
+            base_salary: true,
+            createdAt: true,
+            storeMembers: {
+                where: { status: 'Active' },
+                include: { store: { select: { name: true } } }
+            }
         }
     })
     return NextResponse.json(users)
@@ -29,7 +34,7 @@ export async function POST(req: Request) {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { name, email, password, role, status } = body
+    const { name, email, password, role, status, base_salary } = body
 
     if (!name || !email || !password) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -49,6 +54,7 @@ export async function POST(req: Request) {
             password_hash,
             role: role || 'Staff',
             status: status || 'Active',
+            base_salary: base_salary !== undefined ? Number(base_salary) : 0,
         }
     })
 
@@ -58,7 +64,7 @@ export async function POST(req: Request) {
             action: 'USER_CREATE',
             entity: 'User',
             entity_id: user.id,
-            details: JSON.stringify({ name: user.name, email: user.email, role: user.role })
+            details: JSON.stringify({ name: user.name, email: user.email, role: user.role, base_salary: Number(user.base_salary || 0) })
         }
     })
 

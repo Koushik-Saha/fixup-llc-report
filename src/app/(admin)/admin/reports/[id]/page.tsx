@@ -8,6 +8,8 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
     const { id } = use(params)
     const router = useRouter()
     const [report, setReport] = useState<any>(null)
+    const [notices, setNotices] = useState<any>(null)
+    const [lightboxImg, setLightboxImg] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const printRef = useRef<HTMLDivElement>(null)
 
@@ -63,7 +65,8 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                 <div className="flex justify-between items-start border-b pb-4">
                     <div>
                         <h3 className="text-xl font-bold text-gray-800">{new Date(report.report_date).toLocaleDateString()}</h3>
-                        <p className="text-gray-500 mt-1">Submitted by: {report.submitted_by.name} ({report.submitted_by.email})</p>
+                        <p className="text-gray-500 mt-1">Shift: {report.time_in ? <span className="font-semibold text-gray-700">{report.time_in} - {report.time_out}</span> : 'N/A'}</p>
+                        <p className="text-gray-500">Submitted by: <span className="font-medium text-gray-700">{report.submitted_by.name}</span> ({report.submitted_by.email})</p>
                     </div>
                     <div className="text-right space-y-2">
                         <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
@@ -119,9 +122,9 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                         <h3 className="text-lg font-semibold mb-4">Receipt Images ({report.images.length})</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             {report.images.map((img: any) => (
-                                <a key={img.id} href={img.image_url} target="_blank" rel="noopener noreferrer" className="block border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                                <button key={img.id} onClick={() => setLightboxImg(img.image_url)} className="block w-full border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition text-left">
                                     <img src={img.image_url} alt="Receipt" className="w-full h-48 object-cover" />
-                                </a>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -184,6 +187,24 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                     </div>
                 )}
             </div>
+
+            {/* Lightbox Modal */}
+            {lightboxImg && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4 cursor-zoom-out"
+                    onClick={() => setLightboxImg(null)}
+                >
+                    <button className="absolute top-6 right-6 text-white hover:text-gray-300">
+                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <img
+                        src={lightboxImg}
+                        className="max-w-full max-h-[90vh] object-contain cursor-default"
+                        alt="Receipt Fullscreen"
+                        onClick={(e) => e.stopPropagation()} // Let admins right-click the image safely
+                    />
+                </div>
+            )}
         </div>
     )
 }

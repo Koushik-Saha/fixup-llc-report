@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 type ReportSummary = {
     id: string
@@ -16,22 +17,30 @@ type ReportSummary = {
 
 export default function StaffReportsPage() {
     const [reports, setReports] = useState<ReportSummary[]>([])
+    const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(10)
 
     useEffect(() => {
-        fetch('/api/staff/reports')
+        setLoading(true)
+        fetch(`/api/staff/reports?page=${page}&limit=${limit}`)
             .then(res => res.json())
             .then(data => {
-                if (data.error) setError(data.error)
-                else setReports(data)
+                if (data.error) {
+                    setError(data.error)
+                } else {
+                    setReports(data.data)
+                    setPagination(data.pagination)
+                }
                 setLoading(false)
             })
             .catch(err => {
                 setError("Failed to load reports")
                 setLoading(false)
             })
-    }, [])
+    }, [page, limit])
 
     if (loading) return <div className="p-6 bg-white shadow rounded-lg max-w-4xl mx-auto"><SkeletonRow rows={5} /></div>
     if (error) return <div className="p-8 text-red-500 text-center">{error}</div>
@@ -78,7 +87,8 @@ export default function StaffReportsPage() {
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         ${report.status === 'Verified' ? 'bg-green-100 text-green-800' :
                                             report.status === 'CorrectionRequested' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'}`}>
+                                                report.status === 'Missing' ? 'bg-gray-100 text-gray-800' :
+                                                    'bg-yellow-100 text-yellow-800'}`}>
                                         {report.status}
                                     </span>
                                     {report.staff_edit_count > 0 && (
@@ -88,23 +98,34 @@ export default function StaffReportsPage() {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <Link
-                                        href={`/staff/report/${report.id}`}
-                                        className="text-blue-600 hover:text-blue-900 mr-4"
-                                    >
-                                        View
-                                    </Link>
-
-                                    {/* Edit Logic: Block if >= 2 edits */}
-                                    {report.staff_edit_count >= 2 ? (
-                                        <span className="text-gray-400 cursor-not-allowed" title="Maximum edits reached">Locked</span>
+                                    {report.status === 'Missing' ? (
+                                        // Is it today or yesterday?
+                                        new Date(report.report_date).getTime() >= new Date(new Date().setDate(new Date().getDate() - 1)).setHours(0, 0, 0, 0) ? (
+                                            <Link href="/staff/report/new" className="text-blue-600 hover:text-blue-900 font-bold">Submit</Link>
+                                        ) : (
+                                            <span className="text-gray-400">Locked</span>
+                                        )
                                     ) : (
-                                        <Link
-                                            href={`/staff/report/${report.id}/edit`}
-                                            className="text-orange-600 hover:text-orange-900"
-                                        >
-                                            Edit
-                                        </Link>
+                                        <>
+                                            <Link
+                                                href={`/staff/report/${report.id}`}
+                                                className="text-blue-600 hover:text-blue-900 mr-4"
+                                            >
+                                                View
+                                            </Link>
+
+                                            {/* Edit Logic: Block if >= 2 edits */}
+                                            {report.staff_edit_count >= 2 ? (
+                                                <span className="text-gray-400 cursor-not-allowed" title="Maximum edits reached">Locked</span>
+                                            ) : (
+                                                <Link
+                                                    href={`/staff/report/${report.id}/edit`}
+                                                    className="text-orange-600 hover:text-orange-900"
+                                                >
+                                                    Edit
+                                                </Link>
+                                            )}
+                                        </>
                                     )}
 
                                 </td>
@@ -112,6 +133,18 @@ export default function StaffReportsPage() {
                         ))}
                     </tbody>
                 </table>
+                <Pagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.total}
+                    onPageChange={setPage}
+                    label="calendar days"
+                    limit={limit}
+                    onLimitChange={(newLimit) => {
+                        setLimit(newLimit)
+                        setPage(1)
+                    }}
+                />
             </div>
         </div>
     )

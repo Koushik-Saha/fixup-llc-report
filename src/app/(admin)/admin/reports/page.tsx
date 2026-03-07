@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 export default function AdminReportsPage() {
     const [reports, setReports] = useState<any[]>([])
@@ -17,6 +18,7 @@ export default function AdminReportsPage() {
     const [endDate, setEndDate] = useState("")
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(10)
 
     useEffect(() => {
         // Fetch filter options (stores and users)
@@ -24,8 +26,8 @@ export default function AdminReportsPage() {
             fetch('/api/admin/stores').then(res => res.json()),
             fetch('/api/admin/users').then(res => res.json())
         ]).then(([storesData, usersData]) => {
-            setStores(storesData)
-            setUsers(usersData)
+            setStores(Array.isArray(storesData) ? storesData : [])
+            setUsers(Array.isArray(usersData) ? usersData : [])
         })
     }, [])
 
@@ -38,6 +40,7 @@ export default function AdminReportsPage() {
         if (endDate) params.append('endDate', endDate)
         if (search) params.append('search', search)
         params.append('page', page.toString())
+        params.append('limit', limit.toString())
 
         fetch(`/api/admin/reports?${params.toString()}`)
             .then(res => res.json())
@@ -50,7 +53,7 @@ export default function AdminReportsPage() {
 
     useEffect(() => {
         fetchReports()
-    }, [storeId, userId, startDate, endDate, search, page])
+    }, [storeId, userId, startDate, endDate, search, page, limit])
 
     const handleExportCSV = () => {
         // Simple client-side CSV export
@@ -78,11 +81,16 @@ export default function AdminReportsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                 <h2 className="text-2xl font-bold text-gray-800">All Reports</h2>
-                <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-medium">
-                    Export CSV
-                </button>
+                <div className="flex space-x-3">
+                    <Link href="/admin/reports/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded font-medium shadow-sm flex items-center">
+                        + Create Missing Report
+                    </Link>
+                    <button onClick={handleExportCSV} className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-medium shadow-sm">
+                        Export CSV
+                    </button>
+                </div>
             </div>
 
             {/* Filter Bar */}
@@ -150,13 +158,24 @@ export default function AdminReportsPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.card_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap font-bold">${Number(report.total_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            ${report.status === 'Verified' ? 'bg-green-100 text-green-800' :
+                                                report.status === 'CorrectionRequested' ? 'bg-red-100 text-red-800' :
+                                                    report.status === 'Missing' ? 'bg-gray-100 text-gray-800' :
+                                                        report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' :
+                                                            'bg-yellow-100 text-yellow-800'}`}>
                                             {report.status}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
-                                        <Link href={`/admin/reports/${report.id}/edit`} className="text-orange-600 hover:text-orange-900">Edit</Link>
+                                        {report.status === 'Missing' ? (
+                                            <Link href="/admin/reports/new" className="text-green-600 hover:text-green-900 font-bold">Create</Link>
+                                        ) : (
+                                            <>
+                                                <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
+                                                <Link href={`/admin/reports/${report.id}/edit`} className="text-orange-600 hover:text-orange-900">Edit</Link>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -168,28 +187,18 @@ export default function AdminReportsPage() {
                         </tbody>
                     </table>
 
-                    {/* Pagination Controls */}
-                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-                        <div className="text-sm text-gray-700">
-                            Showing page <span className="font-medium">{pagination.page}</span> of <span className="font-medium">{Math.max(1, pagination.totalPages)}</span> ({pagination.total} total reports)
-                        </div>
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={pagination.page <= 1}
-                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                                disabled={pagination.page >= pagination.totalPages}
-                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
+                    <Pagination
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        totalItems={pagination.total}
+                        onPageChange={setPage}
+                        label="reports"
+                        limit={limit}
+                        onLimitChange={(newLimit) => {
+                            setLimit(newLimit)
+                            setPage(1)
+                        }}
+                    />
                 </div>
             )}
         </div>

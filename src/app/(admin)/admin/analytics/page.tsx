@@ -5,6 +5,7 @@ import { SkeletonCard, Skeleton } from "@/components/Skeleton"
 
 export default function AnalyticsPage() {
     const [data, setData] = useState<any[]>([])
+    const [summary, setSummary] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [range, setRange] = useState("1m")
     const [customStart, setCustomStart] = useState("")
@@ -25,17 +26,16 @@ export default function AnalyticsPage() {
         fetch(url)
             .then(res => res.json())
             .then(d => {
-                setData(d)
+                setData(d.chartData || [])
+                setSummary(d.summary || null)
                 setLoading(false)
             })
     }, [range, customStart, customEnd])
 
-    const totalSalesInRange = data.reduce((acc, curr) => acc + curr.total, 0)
-
     return (
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-800">Sales Analytics</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Profitability Engine</h2>
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                     {/* Quick Ranges */}
@@ -72,10 +72,35 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500">
-                <h3 className="text-gray-500 font-medium">Total Revenue in Selected Range</h3>
-                <p className="text-3xl font-black text-indigo-700">${totalSalesInRange.toFixed(2)}</p>
-            </div>
+            {summary && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+                        <h3 className="text-gray-500 font-medium text-sm">Gross Sales (Revenue)</h3>
+                        <p className="text-2xl font-bold text-gray-900">${summary.totalSales.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-red-400">
+                        <h3 className="text-gray-500 font-medium text-sm">Petty Cash (Daily)</h3>
+                        <p className="text-2xl font-bold text-red-600">-${summary.totalPettyCashExpenses.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-orange-400">
+                        <h3 className="text-gray-500 font-medium text-sm">Store Expenses (Admin)</h3>
+                        <p className="text-2xl font-bold text-orange-600">-${summary.totalStoreExpenses.toFixed(2)}</p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500">
+                        <h3 className="text-gray-500 font-medium text-sm">Gross Profit</h3>
+                        <p className="text-2xl font-black text-indigo-700">${summary.grossProfit.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500">
+                        <h3 className="text-gray-500 font-medium text-sm">Staff Payroll Paid</h3>
+                        <p className="text-2xl font-bold text-yellow-600">-${summary.totalPayroll.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-gray-900 p-6 rounded-lg shadow border-l-4 border-green-500">
+                        <h3 className="text-gray-400 font-medium text-sm">Company Net Profit</h3>
+                        <p className="text-3xl font-black text-green-400">${summary.netProfit.toFixed(2)}</p>
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">

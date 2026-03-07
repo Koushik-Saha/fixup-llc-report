@@ -24,7 +24,7 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
             fetch('/api/admin/users').then(res => res.json())
         ]).then(([m, u]) => {
             setMembers(m)
-            setUsers(u.filter((user: any) => user.role === 'Staff' && user.status === 'Active'))
+            setUsers(u.filter((user: any) => (user.role === 'Staff' || user.role === 'Manager') && user.status === 'Active'))
             setLoading(false)
         })
     }, [id])
@@ -117,8 +117,8 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                         {members.map(member => (
                             <tr key={member.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-900">{member.user.name}</div>
-                                    <div className="text-sm text-gray-500">{member.user.email}</div>
+                                    <div className="text-sm font-medium text-gray-900">{member.user?.name || 'Deleted User'}</div>
+                                    <div className="text-sm text-gray-500">{member.user?.email || 'N/A'}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.is_reporter ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>

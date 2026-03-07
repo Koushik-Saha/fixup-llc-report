@@ -22,6 +22,7 @@ model Store {
 
   members     StoreMember[]
   reports     DailyReport[]
+  expenses    StoreExpense[]
 
   @@map("stores")
 }
@@ -33,6 +34,7 @@ model User {
   password_hash      String
   role               String        @default("Staff") // 'Admin' or 'Staff'
   status             String        @default("Active") // 'Active' or 'Inactive'
+  base_salary        Decimal       @default(0) @db.Decimal(10, 2)
   reset_token        String?
   reset_token_expiry DateTime?
   createdAt          DateTime      @default(now())
@@ -42,6 +44,8 @@ model User {
   reports            DailyReport[]
   edit_logs          EditLog[]
   system_logs        SystemLog[]
+  payroll_records    PayrollRecord[]
+  store_expenses     StoreExpense[]
 
   @@map("users")
 }
@@ -71,6 +75,8 @@ model DailyReport {
   expenses_amount      Decimal  @default(0) @db.Decimal(10, 2)
   payouts_amount       Decimal  @default(0) @db.Decimal(10, 2)
   total_amount         Decimal  @db.Decimal(10, 2)
+  time_in              String?  // Ex: "10:00 AM"
+  time_out             String?  // Ex: "08:00 PM"
   notes                String?
   status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'
   staff_edit_count     Int      @default(0)
@@ -124,3 +130,51 @@ model SystemLog {
 
   @@map("system_logs")
 }
+
+model PayrollRecord {
+  id          String   @id @default(cuid())
+  user_id     String
+  month_year  String   // "YYYY-MM"
+  base_salary Decimal  @db.Decimal(10, 2)
+  total_paid  Decimal  @default(0) @db.Decimal(10, 2)
+  status      String   @default("Pending") // 'Pending', 'Partial', 'Paid'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  payments    PayrollPayment[]
+
+  @@unique([user_id, month_year])
+  @@map("payroll_records")
+}
+
+model PayrollPayment {
+  id          String   @id @default(cuid())
+  record_id   String
+  amount      Decimal  @db.Decimal(10, 2)
+  payment_date DateTime @db.Date
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  record      PayrollRecord @relation(fields: [record_id], references: [id], onDelete: Cascade)
+
+  @@map("payroll_payments")
+}
+
+model StoreExpense {
+  id          String   @id @default(cuid())
+  store_id    String
+  user_id     String   // Admin who logged it
+  category    String   // e.g., 'Inventory', 'Rent', 'Utilities', 'Maintenance', 'Other'
+  amount      Decimal  @db.Decimal(10, 2)
+  expense_date DateTime @db.Date
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store       Store    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@map("store_expenses")
+}
+

@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(req.url)
     const storeId = searchParams.get('storeId')
@@ -18,6 +20,18 @@ export async function GET(req: Request) {
     const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
     const skip = (page - 1) * limit
     const search = searchParams.get('search')
+
+    let allowedStoreIds: string[] | null = null
+    if (session.user.role === 'Manager') {
+        const memberships = await prisma.storeMember.findMany({
+            where: { user_id: session.user.id, status: 'Active' },
+            select: { store_id: true }
+        })
+        allowedStoreIds = memberships.map(m => m.store_id)
+        if (allowedStoreIds.length === 0) {
+            return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
+        }
+    }
 
     // Build the where clause for the SystemLog query
     const where: any = {}
@@ -40,12 +54,20 @@ export async function GET(req: Request) {
     }
 
     // Filtering by store requires polymorphic mapping
+    let targetStoreIds = allowedStoreIds
     if (storeId) {
-        const storeReports = await prisma.dailyReport.findMany({ where: { store_id: storeId }, select: { id: true } })
-        const storeMembers = await prisma.storeMember.findMany({ where: { store_id: storeId }, select: { id: true } })
+        if (allowedStoreIds && !allowedStoreIds.includes(storeId)) {
+            return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
+        }
+        targetStoreIds = [storeId]
+    }
+
+    if (targetStoreIds) {
+        const storeReports = await prisma.dailyReport.findMany({ where: { store_id: { in: targetStoreIds } }, select: { id: true } })
+        const storeMembers = await prisma.storeMember.findMany({ where: { store_id: { in: targetStoreIds } }, select: { id: true } })
 
         where.OR = [
-            { entity: 'Store', entity_id: storeId },
+            { entity: 'Store', entity_id: { in: targetStoreIds } },
             { entity: 'DailyReport', entity_id: { in: storeReports.map((r: { id: string }) => r.id) } },
             { entity: 'StoreMember', entity_id: { in: storeMembers.map((m: { id: string }) => m.id) } }
         ]

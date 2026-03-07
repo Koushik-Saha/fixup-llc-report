@@ -32,13 +32,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Check limits
     const store = await prisma.store.findUnique({
         where: { id: store_id },
-        include: { _count: { select: { members: { where: { status: 'Active' } } } } }
+        include: { _count: { select: { members: { where: { status: 'Active', user: { role: 'Staff' } } } } } }
     })
 
     if (!store) return NextResponse.json({ error: 'Store not found' }, { status: 404 })
 
-    // If we are adding an active member, check the count
-    const activeCount = store._count.members
+    // If we are adding an active staff member, check the count
+    const activeStaffCount = store._count.members
+
+    const targetUser = await prisma.user.findUnique({ where: { id: user_id }, select: { role: true } })
+    if (!targetUser) return NextResponse.json({ error: 'Target user not found' }, { status: 404 })
+    const isTargetStaff = targetUser.role === 'Staff'
 
     // Check if member already exists (including inactive ones)
     const existing = await prisma.storeMember.findUnique({
@@ -49,14 +53,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ error: 'User is already an active member of this store' }, { status: 400 })
     }
 
-    if (activeCount >= store.max_members && !existing) {
-        return NextResponse.json({ error: `Cannot exceed maximum of ${store.max_members} active members` }, { status: 400 })
+    if (isTargetStaff && activeStaffCount >= store.max_members && !existing) {
+        return NextResponse.json({ error: `Cannot exceed maximum of ${store.max_members} active staff members` }, { status: 400 })
     }
 
     // If there's an existing inactive member, we reactivate it
     if (existing) {
-        if (activeCount >= store.max_members) {
-            return NextResponse.json({ error: `Cannot exceed maximum of ${store.max_members} active members` }, { status: 400 })
+        if (isTargetStaff && activeStaffCount >= store.max_members) {
+            return NextResponse.json({ error: `Cannot exceed maximum of ${store.max_members} active staff members` }, { status: 400 })
         }
         const updated = await prisma.storeMember.update({
             where: { id: existing.id },

@@ -1,10 +1,12 @@
 "use client"
 import Link from 'next/link'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const { data: session } = useSession()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const isAdmin = session?.user?.role === 'Admin'
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
@@ -23,10 +25,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <nav className="p-4 space-y-2">
                     <Link href="/admin/dashboard" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Dashboard</Link>
-                    <Link href="/admin/stores" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Stores</Link>
-                    <Link href="/admin/users" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Users</Link>
+                    {isAdmin && (
+                        <>
+                            <Link href="/admin/stores" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Stores</Link>
+                            <Link href="/admin/users" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Users</Link>
+                            <Link href="/admin/payroll" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition text-green-400 font-medium tracking-wide">Payroll</Link>
+                            <Link href="/admin/expenses" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition text-red-400 font-medium tracking-wide">Expenses</Link>
+                        </>
+                    )}
                     <Link href="/admin/reports" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Reports</Link>
-                    <Link href="/admin/analytics" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Analytics</Link>
+                    {isAdmin && (
+                        <Link href="/admin/analytics" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Analytics</Link>
+                    )}
                     <Link href="/admin/logs" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Activity Logs</Link>
                 </nav>
             </aside>

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 export default function AdminActivityLogsPage() {
     const [logs, setLogs] = useState<any[]>([])
@@ -17,6 +18,7 @@ export default function AdminActivityLogsPage() {
     const [endDate, setEndDate] = useState("")
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(10)
 
     useEffect(() => {
         // Fetch filter options (stores and users)
@@ -24,8 +26,8 @@ export default function AdminActivityLogsPage() {
             fetch('/api/admin/stores').then(res => res.json()),
             fetch('/api/admin/users').then(res => res.json())
         ]).then(([storesData, usersData]) => {
-            setStores(storesData)
-            setUsers(usersData)
+            setStores(Array.isArray(storesData) ? storesData : [])
+            setUsers(Array.isArray(usersData) ? usersData : [])
         })
     }, [])
 
@@ -38,6 +40,7 @@ export default function AdminActivityLogsPage() {
         if (endDate) params.append('endDate', endDate)
         if (search) params.append('search', search)
         params.append('page', page.toString())
+        params.append('limit', limit.toString())
 
         fetch(`/api/admin/logs?${params.toString()}`)
             .then(res => res.json())
@@ -50,7 +53,7 @@ export default function AdminActivityLogsPage() {
 
     useEffect(() => {
         fetchLogs()
-    }, [storeId, userId, startDate, endDate, search, page])
+    }, [storeId, userId, startDate, endDate, search, page, limit])
 
     return (
         <div className="space-y-6">
@@ -182,28 +185,18 @@ export default function AdminActivityLogsPage() {
                         </tbody>
                     </table>
 
-                    {/* Pagination Controls */}
-                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-                        <div className="text-sm text-gray-700">
-                            Showing page <span className="font-medium">{pagination.page}</span> of <span className="font-medium">{Math.max(1, pagination.totalPages)}</span> ({pagination.total} total logs)
-                        </div>
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={pagination.page <= 1}
-                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                                disabled={pagination.page >= pagination.totalPages}
-                                className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
+                    <Pagination
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        totalItems={pagination.total}
+                        onPageChange={setPage}
+                        label="logs"
+                        limit={limit}
+                        onLimitChange={(newLimit) => {
+                            setLimit(newLimit)
+                            setPage(1)
+                        }}
+                    />
                 </div>
             )}
         </div>

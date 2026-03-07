@@ -35,7 +35,7 @@ export default function StoresPage() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Names</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Members</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -53,8 +53,14 @@ export default function StoresPage() {
                                     <div className="text-sm font-medium text-gray-900">{store._count.members} / {store.max_members}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500">
-                                        {store.members?.map((m: any) => m.user.name).join(', ') || 'None'}
+                                    <div className="text-sm text-gray-500 flex flex-wrap gap-2">
+                                        {store.members?.length > 0
+                                            ? store.members.map((m: any) => (
+                                                <span key={m.user.name} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {m.user.name} {m.user.role === 'Manager' && <span className="ml-1 text-purple-600 font-bold">(M)</span>}
+                                                </span>
+                                            ))
+                                            : <span className="italic text-gray-400">None</span>}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">

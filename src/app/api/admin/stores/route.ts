@@ -7,9 +7,23 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const where: any = {}
+    if (session.user.role === 'Manager') {
+        const memberships = await prisma.storeMember.findMany({
+            where: { user_id: session.user.id, status: 'Active' },
+            select: { store_id: true }
+        })
+        const allowed = memberships.map(m => m.store_id)
+        if (allowed.length === 0) return NextResponse.json([])
+        where.id = { in: allowed }
+    }
 
     const stores = await prisma.store.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         include: {
             _count: {
@@ -18,7 +32,7 @@ export async function GET() {
             members: {
                 where: { status: 'Active' },
                 include: {
-                    user: { select: { name: true } }
+                    user: { select: { name: true, role: true } }
                 }
             }
         }

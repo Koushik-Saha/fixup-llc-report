@@ -33,7 +33,9 @@ export default function UsersPage() {
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary ($)</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Stores</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -43,7 +45,15 @@ export default function UsersPage() {
                             <tr key={user.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">${Number(user.base_salary || 0).toFixed(2)}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-500 whitespace-pre-wrap">
+                                        {user.storeMembers?.length > 0
+                                            ? user.storeMembers.map((m: any) => m.store.name).join(', ')
+                                            : <span className="text-gray-400 italic">Unassigned</span>}
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                         {user.status}
@@ -56,7 +66,7 @@ export default function UsersPage() {
                         ))}
                         {users.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No users found.</td>
+                                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">No users found.</td>
                             </tr>
                         )}
                     </tbody>

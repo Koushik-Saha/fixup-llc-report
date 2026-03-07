@@ -8,7 +8,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     const router = useRouter()
     const { id } = use(params)
 
-    const [formData, setFormData] = useState({ name: "", email: "", role: "Staff", status: "Active", password: "" })
+    const [formData, setFormData] = useState({ name: "", email: "", role: "Staff", status: "Active", password: "", base_salary: 0 })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState("")
@@ -17,7 +17,8 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         fetch(`/api/admin/users/${id}`)
             .then(res => res.json())
             .then(data => {
-                setFormData({ ...data, password: "" }) // Don't populate password
+                // Cast base_salary to handle Prisma Decimal format (often returned as string)
+                setFormData({ ...data, password: "", base_salary: Number(data.base_salary || 0) })
                 setLoading(false)
             })
     }, [id])
@@ -69,11 +70,16 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                     <label className="block text-sm font-medium text-gray-700">New Password (leave blank to keep current)</label>
                     <input type="password" minLength={6} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
                 </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Monthly Base Salary ($)</label>
+                    <input type="number" min="0" step="0.01" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.base_salary} onChange={e => setFormData({ ...formData, base_salary: Number(e.target.value) })} />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Role</label>
                         <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
                             <option value="Staff">Staff</option>
+                            <option value="Manager">Manager</option>
                             <option value="Admin">Admin</option>
                         </select>
                     </div>
