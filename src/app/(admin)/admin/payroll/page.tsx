@@ -19,6 +19,9 @@ export default function PayrollDashboard() {
     const [monthYear, setMonthYear] = useState(new Date().toISOString().slice(0, 7))
     const [payroll, setPayroll] = useState<PayrollData[]>([])
     const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [roleFilter, setRoleFilter] = useState("All")
+    const [statusFilter, setStatusFilter] = useState("All")
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<PayrollData | null>(null)
@@ -94,15 +97,44 @@ export default function PayrollDashboard() {
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Staff Payroll</h1>
-                <div className="flex items-center gap-2 bg-white px-4 py-2 border border-gray-300 rounded shadow-sm">
-                    <label className="text-sm font-medium text-gray-700">Month:</label>
+                <h1 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Staff Payroll</h1>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <input
-                        type="month"
-                        value={monthYear}
-                        onChange={(e) => setMonthYear(e.target.value)}
-                        className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-semibold"
+                        type="text"
+                        placeholder="Search by name..."
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <select
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                    >
+                        <option value="All">All Roles</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Staff">Staff</option>
+                    </select>
+                    <select
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="All">All Statuses</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                    <div className="flex items-center gap-2 bg-white px-4 py-2 border border-gray-300 rounded shadow-sm shrink-0">
+                        <label className="text-sm font-medium text-gray-700">Month:</label>
+                        <input
+                            type="month"
+                            value={monthYear}
+                            onChange={(e) => setMonthYear(e.target.value)}
+                            className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-semibold"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -122,7 +154,13 @@ export default function PayrollDashboard() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {payroll.map((p) => (
+                            {payroll.filter(p => {
+                                const term = searchTerm.toLowerCase();
+                                const matchesSearch = p.name.toLowerCase().includes(term);
+                                const matchesRole = roleFilter === "All" || p.role === roleFilter;
+                                const matchesStatus = statusFilter === "All" || p.status === statusFilter;
+                                return matchesSearch && matchesRole && matchesStatus;
+                            }).map((p) => (
                                 <tr key={p.user_id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">{p.name}</div>
@@ -155,13 +193,19 @@ export default function PayrollDashboard() {
                                     </td>
                                 </tr>
                             ))}
-                            {payroll.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                                        No active staff found.
-                                    </td>
-                                </tr>
-                            )}
+                            {payroll.filter(p => {
+                                const term = searchTerm.toLowerCase();
+                                const matchesSearch = p.name.toLowerCase().includes(term);
+                                const matchesRole = roleFilter === "All" || p.role === roleFilter;
+                                const matchesStatus = statusFilter === "All" || p.status === statusFilter;
+                                return matchesSearch && matchesRole && matchesStatus;
+                            }).length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                                            No active staff found matching criteria.
+                                        </td>
+                                    </tr>
+                                )}
                         </tbody>
                     </table>
                 </div>

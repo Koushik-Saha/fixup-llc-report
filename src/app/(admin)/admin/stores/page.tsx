@@ -6,6 +6,8 @@ import { SkeletonRow } from "@/components/Skeleton"
 export default function StoresPage() {
     const [stores, setStores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [statusFilter, setStatusFilter] = useState("All")
 
     useEffect(() => {
         fetch('/api/admin/stores')
@@ -20,11 +22,29 @@ export default function StoresPage() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Stores</h2>
-                <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
-                    Create Store
-                </Link>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <input
+                        type="text"
+                        placeholder="Search by name, city, or zip..."
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <select
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                        <option value="All">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                    <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap">
+                        Create Store
+                    </Link>
+                </div>
             </div>
 
             <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
@@ -40,7 +60,14 @@ export default function StoresPage() {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {stores.map(store => (
+                        {stores.filter(store => {
+                            const term = searchTerm.toLowerCase();
+                            const matchesSearch = store.name.toLowerCase().includes(term) ||
+                                store.city?.toLowerCase().includes(term) ||
+                                store.zip_code?.toLowerCase().includes(term);
+                            const matchesStatus = statusFilter === "All" || store.status === statusFilter;
+                            return matchesSearch && matchesStatus;
+                        }).map(store => (
                             <tr key={store.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">{store.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{store.city}, {store.state}</td>
@@ -69,11 +96,18 @@ export default function StoresPage() {
                                 </td>
                             </tr>
                         ))}
-                        {stores.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No stores found.</td>
-                            </tr>
-                        )}
+                        {stores.filter(store => {
+                            const term = searchTerm.toLowerCase();
+                            const matchesSearch = store.name.toLowerCase().includes(term) ||
+                                store.city?.toLowerCase().includes(term) ||
+                                store.zip_code?.toLowerCase().includes(term);
+                            const matchesStatus = statusFilter === "All" || store.status === statusFilter;
+                            return matchesSearch && matchesStatus;
+                        }).length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No stores found matching criteria.</td>
+                                </tr>
+                            )}
                     </tbody>
                 </table>
             </div>
