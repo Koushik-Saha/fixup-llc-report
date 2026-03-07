@@ -30,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <Link href="/admin/stores" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Stores</Link>
                             <Link href="/admin/users" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition">Users</Link>
                             <Link href="/admin/payroll" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition text-green-400 font-medium tracking-wide">Payroll</Link>
+                            <Link href="/admin/work-hours" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition text-blue-400 font-medium tracking-wide">Work Hours</Link>
                             <Link href="/admin/expenses" onClick={() => setIsSidebarOpen(false)} className="block py-2 px-4 rounded hover:bg-gray-800 transition text-red-400 font-medium tracking-wide">Expenses</Link>
                         </>
                     )}

@@ -8,6 +8,8 @@ export default function SubmitReportPage() {
     const router = useRouter()
     const [storeId, setStoreId] = useState<string>("")
     const [stores, setStores] = useState<any[]>([])
+    const [staffId, setStaffId] = useState<string>("")
+    const [storeMembers, setStoreMembers] = useState<any[]>([])
     const [cash, setCash] = useState<number | "">("")
     const [card, setCard] = useState<number | "">("")
     const [expenses, setExpenses] = useState<number | "">("")
@@ -34,6 +36,22 @@ export default function SubmitReportPage() {
             })
             .catch(err => console.error("Failed to load stores", err))
     }, [])
+
+    useEffect(() => {
+        if (!storeId) return
+        setStoreMembers([])
+        setStaffId("")
+        fetch(`/api/admin/stores/${storeId}/members`)
+            .then(res => res.json())
+            .then(data => {
+                // data is array of memberships. Ensure we pull the user object inside.
+                // It might contain Admin/Manager/Staff. Let's show all active.
+                if (Array.isArray(data)) {
+                    setStoreMembers(data.filter((m: any) => m.status === 'Active' && m.user))
+                }
+            })
+            .catch(err => console.error("Failed to load store members", err))
+    }, [storeId])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -96,6 +114,7 @@ export default function SubmitReportPage() {
             // 2. Submit the report payload
             const payload = {
                 store_id: storeId,
+                staff_id: staffId || undefined,
                 cash_amount: Number(cash),
                 card_amount: Number(card),
                 expenses_amount: Number(expenses),
@@ -154,6 +173,23 @@ export default function SubmitReportPage() {
                         ))}
                     </select>
                 </div>
+
+                {storeId && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Staff Member Worked (Optional - defaults to you)</label>
+                        <select
+                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
+                            value={staffId}
+                            onChange={(e) => setStaffId(e.target.value)}
+                        >
+                            <option value="">Select Staff Member (or leave blank)</option>
+                            {storeMembers.map((m: any) => (
+                                <option key={m.user_id} value={m.user_id}>{m.user.name} ({m.user.role})</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">If a specific staff member worked this shift, select them so this report links to their hours.</p>
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Cash Amount ($)</label>
