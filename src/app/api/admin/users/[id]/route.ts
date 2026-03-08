@@ -58,3 +58,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ error: 'Update failed' }, { status: 400 })
     }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const id = (await params).id
+
+    try {
+        const user = await prisma.user.update({
+            where: { id },
+            data: { status: 'Inactive' }
+        })
+
+        await prisma.systemLog.create({
+            data: {
+                user_id: session.user.id,
+                action: 'USER_DEACTIVATE',
+                entity: 'User',
+                entity_id: user.id,
+                details: 'User soft deleted (deactivated)'
+            }
+        })
+
+        return NextResponse.json({ success: true })
+    } catch (err: any) {
+        return NextResponse.json({ error: 'Deactivation failed' }, { status: 400 })
+    }
+}

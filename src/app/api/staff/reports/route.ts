@@ -148,12 +148,15 @@ export async function GET(req: Request) {
     }
 
     const now = new Date()
+    const SYSTEM_EPOCH = new Date('2026-03-01T00:00:00.000Z')
+
     // Default to at least 30 days if store.createdAt is missing or weird, 
     // otherwise calculate days from when the store was created.
     const storeCreatedAt = store.createdAt ? new Date(store.createdAt) : new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
+    const effectiveStart = storeCreatedAt > SYSTEM_EPOCH ? storeCreatedAt : SYSTEM_EPOCH
+
     const msPerDay = 1000 * 60 * 60 * 24;
-    // Force a minimum of 30 days so pagination works comfortably for brand new stores
-    const totalDays = Math.max(30, Math.ceil((now.getTime() - storeCreatedAt.getTime()) / msPerDay));
+    const totalDays = Math.max(1, Math.ceil((now.getTime() - effectiveStart.getTime()) / msPerDay));
     const totalPages = Math.ceil(totalDays / limit)
 
     // Generate dates based on page offset
@@ -164,7 +167,19 @@ export async function GET(req: Request) {
 
     const dates: string[] = []
     for (let d = new Date(end); d >= start; d.setDate(d.getDate() - 1)) {
+        if (d < SYSTEM_EPOCH) break;
         dates.push(d.toISOString().split('T')[0])
+    }
+
+    if (dates.length === 0) {
+        return NextResponse.json({
+            data: [],
+            pagination: {
+                total: totalDays,
+                page,
+                totalPages: Math.max(1, totalPages)
+            }
+        })
     }
 
     const reports = await prisma.dailyReport.findMany({

@@ -52,3 +52,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     return NextResponse.json(store)
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const id = (await params).id
+
+    try {
+        const store = await prisma.store.update({
+            where: { id },
+            data: { status: 'Inactive' }
+        })
+
+        await prisma.systemLog.create({
+            data: {
+                user_id: session.user.id,
+                action: 'STORE_DEACTIVATE',
+                entity: 'Store',
+                entity_id: store.id,
+                details: 'Store soft deleted (deactivated)'
+            }
+        })
+
+        return NextResponse.json({ success: true })
+    } catch (err: any) {
+        return NextResponse.json({ error: 'Deactivation failed' }, { status: 400 })
+    }
+}

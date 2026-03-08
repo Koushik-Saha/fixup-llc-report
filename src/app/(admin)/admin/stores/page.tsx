@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import toast from "react-hot-toast"
 
 export default function StoresPage() {
     const [stores, setStores] = useState<any[]>([])
@@ -17,6 +18,22 @@ export default function StoresPage() {
                 setLoading(false)
             })
     }, [])
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to deactivate this store?")) return;
+
+        try {
+            const res = await fetch(`/api/admin/stores/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success('Store deactivated successfully');
+                setStores(stores.map(s => s.id === id ? { ...s, status: 'Inactive' } : s));
+            } else {
+                toast.error('Failed to deactivate store');
+            }
+        } catch (e) {
+            toast.error('Error occurred');
+        }
+    }
 
     if (loading) return <div className="p-6 bg-white shadow rounded-lg w-full"><SkeletonRow rows={5} /></div>
 
@@ -93,6 +110,9 @@ export default function StoresPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <Link href={`/admin/stores/${store.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
                                     <Link href={`/admin/stores/${store.id}/members`} className="text-indigo-600 hover:text-indigo-900">Members</Link>
+                                    {store.status === 'Active' && (
+                                        <button onClick={() => handleDelete(store.id)} className="text-red-600 hover:text-red-900">Deactivate</button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

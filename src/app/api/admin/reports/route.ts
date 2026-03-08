@@ -216,11 +216,17 @@ export async function GET(req: Request) {
     }
 
     // Otherwise, Generate Cross Product of Dates x Stores to reveal MISSING reports
+    const SYSTEM_EPOCH = new Date('2026-03-01T00:00:00.000Z')
     const end = endDateStr ? new Date(endDateStr) : new Date()
-    const start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000)
+    let start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000)
+
+    if (start < SYSTEM_EPOCH) {
+        start = SYSTEM_EPOCH
+    }
 
     const days: string[] = [];
     for (let d = new Date(end); d >= start; d.setDate(d.getDate() - 1)) {
+        if (d < SYSTEM_EPOCH) break;
         days.push(d.toISOString().split('T')[0]);
     }
 

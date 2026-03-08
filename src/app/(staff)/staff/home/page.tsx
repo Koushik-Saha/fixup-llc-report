@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import prisma from "@/lib/prisma"
 import Link from "next/link"
+import ChangePasswordWrapper from "@/components/ChangePasswordWrapper"
 
 export default async function StaffHomePage() {
     const session = await getServerSession(authOptions)
@@ -52,8 +53,13 @@ export default async function StaffHomePage() {
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-                <h2 className="text-2xl font-bold text-gray-800">{store?.name}</h2>
-                <p className="text-gray-600">{store?.city}, {store?.state}</p>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">{store?.name}</h2>
+                        <p className="text-gray-600">{store?.city}, {store?.state}</p>
+                    </div>
+                    <ChangePasswordWrapper />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import prisma from "@/lib/prisma"
+import ChangePasswordWrapper from "@/components/ChangePasswordWrapper"
 
 export default async function AdminDashboardPage() {
     const session = await getServerSession(authOptions)
@@ -37,7 +38,10 @@ export default async function AdminDashboardPage() {
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-800">Admin Dashboard</h2>
-            <p>Welcome, {session?.user?.name}</p>
+            <div className="flex justify-between items-center">
+                <p>Welcome, {session?.user?.name}</p>
+                <ChangePasswordWrapper />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow">

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import toast from "react-hot-toast"
 
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([])
@@ -18,6 +19,22 @@ export default function UsersPage() {
                 setLoading(false)
             })
     }, [])
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to deactivate this user?")) return;
+
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                toast.success('User deactivated successfully');
+                setUsers(users.map(u => u.id === id ? { ...u, status: 'Inactive' } : u));
+            } else {
+                toast.error('Failed to deactivate user');
+            }
+        } catch (e) {
+            toast.error('Error occurred');
+        }
+    }
 
     if (loading) return <div className="p-6 bg-white shadow rounded-lg w-full"><SkeletonRow rows={5} /></div>
 
@@ -97,8 +114,11 @@ export default function UsersPage() {
                                         {user.status}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <Link href={`/admin/users/${user.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
+                                    {user.status === 'Active' && (
+                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

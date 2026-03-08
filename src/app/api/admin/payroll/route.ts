@@ -12,9 +12,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const monthYear = searchParams.get('month') || new Date().toISOString().slice(0, 7) // "YYYY-MM"
 
-    // Fetch all active staff/users
+    // Fetch all active staff/users except the ghost admin
     const users = await prisma.user.findMany({
-        where: { status: 'Active' },
+        where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' } },
         select: { id: true, name: true, email: true, role: true, base_salary: true }
     })
 

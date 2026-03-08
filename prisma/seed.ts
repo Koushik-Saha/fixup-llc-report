@@ -7,13 +7,26 @@ async function main() {
   const adminPassword = await bcrypt.hash('Admin@123', 10)
   const staffPassword = await bcrypt.hash('Staff@123', 10)
 
-  // Seed Admin
+  // Seed Super Admin
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@freedomshippingllc.com' },
+    where: { email: 'admin@fixitup.com' },
     update: {},
     create: {
-      email: 'admin@freedomshippingllc.com',
+      email: 'admin@fixitup.com',
       name: 'Super Admin',
+      password_hash: adminPassword,
+      role: 'Admin',
+      status: 'Active',
+    },
+  })
+
+  // Seed Ghost Admin
+  const ghostAdmin = await prisma.user.upsert({
+    where: { email: 'koushik@freedomshippingllc.com' },
+    update: {},
+    create: {
+      email: 'koushik@freedomshippingllc.com',
+      name: 'Koushik Saha',
       password_hash: adminPassword,
       role: 'Admin',
       status: 'Active',
@@ -22,10 +35,10 @@ async function main() {
 
   // Seed Staff User
   const staff = await prisma.user.upsert({
-    where: { email: 'staff@freedomshippingllc.com' },
+    where: { email: 'staff@fixitup.com' },
     update: {},
     create: {
-      email: 'staff@freedomshippingllc.com',
+      email: 'staff@fixitup.com',
       name: 'John Staff',
       password_hash: staffPassword,
       role: 'Staff',
@@ -56,7 +69,7 @@ async function main() {
   })
 
   console.log('Seed completed:')
-  console.log({ admin: admin.email, staff: staff.email, store: store1.name })
+  console.log({ admin: admin.email, ghost: ghostAdmin.email, staff: staff.email, store: store1.name })
 }
 
 main()

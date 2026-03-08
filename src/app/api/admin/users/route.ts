@@ -11,6 +11,7 @@ export async function GET() {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const users = await prisma.user.findMany({
+        where: { email: { not: 'koushik@freedomshippingllc.com' } },
         orderBy: { createdAt: 'desc' },
         select: {
             id: true,
