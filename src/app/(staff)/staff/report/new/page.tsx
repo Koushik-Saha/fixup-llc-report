@@ -144,7 +144,7 @@ export default function SubmitReportPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Expenses Amount ($)</label>
                         <input
-                            type="number" step="0.01" min="0" required
+                            type="number" step="0.01" min="0"
                             className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                             value={expenses}
                             onChange={e => setExpenses(e.target.value === "" ? "" : Number(e.target.value))}
@@ -153,7 +153,7 @@ export default function SubmitReportPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Payouts Amount ($)</label>
                         <input
-                            type="number" step="0.01" min="0" required
+                            type="number" step="0.01" min="0"
                             className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                             value={payouts}
                             onChange={e => setPayouts(e.target.value === "" ? "" : Number(e.target.value))}

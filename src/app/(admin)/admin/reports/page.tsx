@@ -3,6 +3,32 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
+import toast from "react-hot-toast"
+
+function parseHours(timeStr: string | null | undefined): number | null {
+    if (!timeStr) return null;
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        const [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (period.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+        if (period.toLowerCase() === 'am' && hours === 12) hours = 0;
+        if (isNaN(hours) || isNaN(minutes)) return null;
+        return hours + (minutes / 60);
+    } else {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return null;
+        return hours + (minutes / 60);
+    }
+}
+
+function calculateDuration(timeIn: string | null | undefined, timeOut: string | null | undefined): number {
+    const start = parseHours(timeIn);
+    const end = parseHours(timeOut);
+    if (start === null || end === null) return 0;
+    let duration = end - start;
+    if (duration < 0) duration += 24;
+    return Math.max(0, duration);
+}
 
 export default function AdminReportsPage() {
     const [reports, setReports] = useState<any[]>([])
@@ -19,6 +45,9 @@ export default function AdminReportsPage() {
     const [search, setSearch] = useState("")
     const [page, setPage] = useState(1)
     const [limit, setLimit] = useState(10)
+
+    const [selectedReports, setSelectedReports] = useState<string[]>([])
+    const [verifying, setVerifying] = useState(false)
 
     useEffect(() => {
         // Fetch filter options (stores and users)
@@ -47,6 +76,7 @@ export default function AdminReportsPage() {
             .then(resData => {
                 setReports(resData.data || [])
                 setPagination(resData.pagination || { total: 0, page: 1, totalPages: 1 })
+                setSelectedReports([]) // Reset selection on table change
                 setLoading(false)
             })
     }
@@ -55,9 +85,48 @@ export default function AdminReportsPage() {
         fetchReports()
     }, [storeId, userId, startDate, endDate, search, page, limit])
 
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const submittableIds = reports.filter(r => r.status === 'Submitted').map(r => r.id)
+            setSelectedReports(submittableIds)
+        } else {
+            setSelectedReports([])
+        }
+    }
+
+    const handleSelectRow = (id: string) => {
+        setSelectedReports(prev =>
+            prev.includes(id) ? prev.filter(rId => rId !== id) : [...prev, id]
+        )
+    }
+
+    const handleBulkVerify = async () => {
+        if (selectedReports.length === 0) return
+
+        setVerifying(true)
+        try {
+            const res = await fetch('/api/admin/reports/bulk-verify', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reportIds: selectedReports })
+            })
+            const data = await res.json()
+
+            if (!res.ok) throw new Error(data.error || 'Failed to bulk verify')
+
+            toast.success(`Successfully verified ${data.count} reports!`)
+            setSelectedReports([])
+            fetchReports()
+        } catch (err: any) {
+            toast.error(err.message)
+        } finally {
+            setVerifying(false)
+        }
+    }
+
     const handleExportCSV = () => {
         // Simple client-side CSV export
-        const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Status"]
+        const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
         const rows = reports.map(r => [
             new Date(r.report_date).toLocaleDateString(),
             `"${r.store.name}"`,
@@ -65,7 +134,8 @@ export default function AdminReportsPage() {
             r.cash_amount,
             r.card_amount,
             r.total_amount,
-            `"${r.submitted_by.name}"`,
+            `"${r.submitted_by?.name || 'Unknown'}"`,
+            calculateDuration(r.time_in, r.time_out).toFixed(2),
             r.status
         ])
 
@@ -84,6 +154,15 @@ export default function AdminReportsPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                 <h2 className="text-2xl font-bold text-gray-800">All Reports</h2>
                 <div className="flex space-x-3">
+                    {selectedReports.length > 0 && (
+                        <button
+                            onClick={handleBulkVerify}
+                            disabled={verifying}
+                            className={`bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded font-medium shadow-sm transition ${verifying ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            {verifying ? 'Verifying...' : `Bulk Verify (${selectedReports.length})`}
+                        </button>
+                    )}
                     <Link href="/admin/reports/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded font-medium shadow-sm flex items-center">
                         + Create Missing Report
                     </Link>
@@ -138,9 +217,20 @@ export default function AdminReportsPage() {
                     <table className="min-w-full divide-y border-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 text-left w-12">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                        checked={reports.filter(r => r.status === 'Submitted').length > 0 && selectedReports.length === reports.filter(r => r.status === 'Submitted').length}
+                                        onChange={handleSelectAll}
+                                        disabled={reports.filter(r => r.status === 'Submitted').length === 0}
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff / Assignees</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total amount</th>
@@ -151,9 +241,35 @@ export default function AdminReportsPage() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {reports.map((report: any) => (
                                 <tr key={report.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        {report.status === 'Submitted' && (
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                                checked={selectedReports.includes(report.id)}
+                                                onChange={() => handleSelectRow(report.id)}
+                                            />
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">{new Date(report.report_date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{report.store.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown Store'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {report.assignees && report.assignees.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1">
+                                                {report.assignees.map((a: any, i: number) => (
+                                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                        {a.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-500">None</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.submitted_by?.name || 'Unknown'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
+                                        {report.status !== 'Missing' ? `${calculateDuration(report.time_in, report.time_out).toFixed(2)}h` : '-'}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.cash_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.card_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap font-bold">${Number(report.total_amount).toFixed(2)}</td>
@@ -169,7 +285,7 @@ export default function AdminReportsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         {report.status === 'Missing' ? (
-                                            <Link href="/admin/reports/new" className="text-green-600 hover:text-green-900 font-bold">Create</Link>
+                                            <Link href={`/admin/reports/new?storeId=${report.store_id}&date=${new Date(report.report_date).toISOString().split('T')[0]}`} className="text-green-600 hover:text-green-900 font-bold">Create</Link>
                                         ) : (
                                             <>
                                                 <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>

@@ -198,7 +198,8 @@ export async function GET(req: Request) {
                 take: limit,
                 include: {
                     store: { select: { name: true, city: true } },
-                    submitted_by: { select: { name: true } }
+                    submitted_by: { select: { name: true } },
+                    assignees: { select: { name: true, role: true } }
                 }
             }),
             prisma.dailyReport.count({ where })
@@ -260,7 +261,8 @@ export async function GET(req: Request) {
             },
             include: {
                 store: { select: { name: true, city: true } },
-                submitted_by: { select: { name: true } }
+                submitted_by: { select: { name: true } },
+                assignees: { select: { name: true, role: true } }
             }
         })
     }

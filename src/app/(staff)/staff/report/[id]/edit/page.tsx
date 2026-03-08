@@ -139,7 +139,6 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
                             <input
                                 type="number"
                                 step="0.01"
-                                required
                                 min="0"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 value={expenses}
@@ -151,7 +150,6 @@ export default function StaffEditReportPage({ params }: { params: Promise<{ id: 
                             <input
                                 type="number"
                                 step="0.01"
-                                required
                                 min="0"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                 value={payouts}

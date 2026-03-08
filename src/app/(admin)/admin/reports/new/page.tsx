@@ -1,12 +1,18 @@
 "use client"
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
-export default function SubmitReportPage() {
+function SubmitReportForm() {
     const router = useRouter()
-    const [storeId, setStoreId] = useState<string>("")
+    const searchParams = useSearchParams()
+
+    // Extract pre-fill data from URL
+    const paramStoreId = searchParams.get('storeId') || ""
+    const paramDate = searchParams.get('date') || new Date().toISOString().split('T')[0]
+
+    const [storeId, setStoreId] = useState<string>(paramStoreId)
     const [stores, setStores] = useState<any[]>([])
     const [staffIds, setStaffIds] = useState<string[]>([])
     const [storeMembers, setStoreMembers] = useState<any[]>([])
@@ -16,7 +22,7 @@ export default function SubmitReportPage() {
     const [payouts, setPayouts] = useState<number | "">("")
     const [timeIn, setTimeIn] = useState<string>("")
     const [timeOut, setTimeOut] = useState<string>("")
-    const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [reportDate, setReportDate] = useState<string>(paramDate)
     const [notes, setNotes] = useState("")
     const [files, setFiles] = useState<File[]>([])
 
@@ -32,10 +38,10 @@ export default function SubmitReportPage() {
             .then(data => {
                 const activeStores = data.filter((s: any) => s.status === 'Active')
                 setStores(activeStores)
-                if (activeStores.length > 0) setStoreId(activeStores[0].id)
+                if (activeStores.length > 0 && !paramStoreId) setStoreId(activeStores[0].id)
             })
             .catch(err => console.error("Failed to load stores", err))
-    }, [])
+    }, [paramStoreId])
 
     useEffect(() => {
         if (!storeId) return
@@ -45,7 +51,10 @@ export default function SubmitReportPage() {
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
-                    setStoreMembers(data.filter((m: any) => m.status === 'Active' && m.user))
+                    const activeMembers = data.filter((m: any) => m.status === 'Active' && m.user)
+                    setStoreMembers(activeMembers)
+                    // Auto-select all staff members for convenience
+                    setStaffIds(activeMembers.map(m => m.user_id))
                 }
             })
             .catch(err => console.error("Failed to load store members", err))
@@ -232,7 +241,7 @@ export default function SubmitReportPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Expenses Amount ($)</label>
                         <input
-                            type="number" step="0.01" min="0" required
+                            type="number" step="0.01" min="0"
                             className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                             value={expenses}
                             onChange={e => setExpenses(e.target.value === "" ? "" : Number(e.target.value))}
@@ -241,7 +250,7 @@ export default function SubmitReportPage() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Payouts Amount ($)</label>
                         <input
-                            type="number" step="0.01" min="0" required
+                            type="number" step="0.01" min="0"
                             className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                             value={payouts}
                             onChange={e => setPayouts(e.target.value === "" ? "" : Number(e.target.value))}
@@ -331,5 +340,13 @@ export default function SubmitReportPage() {
                 </button>
             </form>
         </div>
+    )
+}
+
+export default function SubmitReportPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading form...</div>}>
+            <SubmitReportForm />
+        </Suspense>
     )
 }

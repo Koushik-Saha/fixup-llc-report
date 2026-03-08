@@ -63,10 +63,13 @@ export async function GET(req: Request) {
         }
     }
 
+    const endBuffer = new Date(`${endDateStr}T23:59:59.999Z`);
+    endBuffer.setHours(endBuffer.getHours() + 24); // Add 24h buffer for UTC-forward dates
+
     const where: any = {
         report_date: {
-            gte: new Date(startDateStr),
-            lte: new Date(endDateStr)
+            gte: new Date(`${startDateStr}T00:00:00.000Z`),
+            lte: endBuffer
         },
         status: { in: ['Submitted', 'Verified'] } // Count valid reports
     }
