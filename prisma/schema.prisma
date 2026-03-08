@@ -46,6 +46,7 @@ model User {
   system_logs        SystemLog[]
   payroll_records    PayrollRecord[]
   store_expenses     StoreExpense[]
+  assigned_reports   DailyReport[] @relation("ReportAssignees")
 
   @@map("users")
 }
@@ -87,6 +88,7 @@ model DailyReport {
   submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id])
   images               ReportImage[]
   edit_logs            EditLog[]
+  assignees            User[]        @relation("ReportAssignees")
 
   @@unique([store_id, report_date])
   @@map("daily_reports")

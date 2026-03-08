@@ -8,7 +8,7 @@ export default function SubmitReportPage() {
     const router = useRouter()
     const [storeId, setStoreId] = useState<string>("")
     const [stores, setStores] = useState<any[]>([])
-    const [staffId, setStaffId] = useState<string>("")
+    const [staffIds, setStaffIds] = useState<string[]>([])
     const [storeMembers, setStoreMembers] = useState<any[]>([])
     const [cash, setCash] = useState<number | "">("")
     const [card, setCard] = useState<number | "">("")
@@ -40,18 +40,24 @@ export default function SubmitReportPage() {
     useEffect(() => {
         if (!storeId) return
         setStoreMembers([])
-        setStaffId("")
+        setStaffIds([])
         fetch(`/api/admin/stores/${storeId}/members`)
             .then(res => res.json())
             .then(data => {
-                // data is array of memberships. Ensure we pull the user object inside.
-                // It might contain Admin/Manager/Staff. Let's show all active.
                 if (Array.isArray(data)) {
                     setStoreMembers(data.filter((m: any) => m.status === 'Active' && m.user))
                 }
             })
             .catch(err => console.error("Failed to load store members", err))
     }, [storeId])
+
+    const handleStaffCheckbox = (userId: string) => {
+        setStaffIds(prev =>
+            prev.includes(userId)
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        )
+    }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -108,13 +114,19 @@ export default function SubmitReportPage() {
                 return
             }
 
+            if (staffIds.length === 0) {
+                toast.error("You must assign at least one staff member to this report.")
+                setUploading(false)
+                return
+            }
+
             // 1. Upload all images sequentially or in parallel
             const publicUrls = await Promise.all(files.map(uploadFileToS3))
 
             // 2. Submit the report payload
             const payload = {
                 store_id: storeId,
-                staff_id: staffId || undefined,
+                staff_ids: staffIds,
                 cash_amount: Number(cash),
                 card_amount: Number(card),
                 expenses_amount: Number(expenses),
@@ -174,20 +186,25 @@ export default function SubmitReportPage() {
                     </select>
                 </div>
 
-                {storeId && (
+                {storeId && storeMembers.length > 0 && (
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Staff Member Worked (Optional - defaults to you)</label>
-                        <select
-                            className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
-                            value={staffId}
-                            onChange={(e) => setStaffId(e.target.value)}
-                        >
-                            <option value="">Select Staff Member (or leave blank)</option>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">Staff Members Assigned (Required)</label>
+                        <div className="space-y-2 bg-gray-50 border border-gray-300 rounded-lg p-4">
                             {storeMembers.map((m: any) => (
-                                <option key={m.user_id} value={m.user_id}>{m.user.name} ({m.user.role})</option>
+                                <label key={m.user_id} className="flex items-center space-x-3 p-2 hover:bg-white rounded transition cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        checked={staffIds.includes(m.user_id)}
+                                        onChange={() => handleStaffCheckbox(m.user_id)}
+                                    />
+                                    <span className="text-gray-800 font-medium">
+                                        {m.user.name} <span className="text-gray-500 text-sm">({m.user.role})</span>
+                                    </span>
+                                </label>
                             ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">If a specific staff member worked this shift, select them so this report links to their hours.</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Check all staff members who worked this shift so they receive Work Hours credit.</p>
                     </div>
                 )}
 

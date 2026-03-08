@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     const reports = await prisma.dailyReport.findMany({
         where,
         include: {
-            submitted_by: { select: { id: true, name: true, role: true, base_salary: true } },
+            assignees: { select: { id: true, name: true, role: true, base_salary: true } },
             store: { select: { name: true } }
         }
     }) as any[]
@@ -87,34 +87,36 @@ export async function GET(req: Request) {
     const userAggregates = new Map<string, any>()
 
     for (const report of reports) {
-        const user = report.submitted_by;
-        if (!user) continue;
+        if (!report.assignees || !Array.isArray(report.assignees)) continue;
 
-        if (!userAggregates.has(user.id)) {
-            userAggregates.set(user.id, {
-                user_id: user.id,
-                name: user.name,
-                role: user.role,
-                base_salary: Number(user.base_salary),
-                shifts_count: 0,
-                total_hours: 0,
-                report_details: [] // Optional debug trail
-            })
-        }
-
-        const agg = userAggregates.get(user.id)
         const duration = calculateDuration(report.time_in, report.time_out)
 
-        agg.shifts_count += 1
-        agg.total_hours += duration
+        for (const user of report.assignees) {
+            if (!userAggregates.has(user.id)) {
+                userAggregates.set(user.id, {
+                    user_id: user.id,
+                    name: user.name,
+                    role: user.role,
+                    base_salary: Number(user.base_salary),
+                    shifts_count: 0,
+                    total_hours: 0,
+                    report_details: [] // Optional debug trail
+                })
+            }
 
-        agg.report_details.push({
-            date: report.report_date.toISOString().split('T')[0],
-            store: report.store.name,
-            time_in: report.time_in,
-            time_out: report.time_out,
-            duration: duration
-        })
+            const agg = userAggregates.get(user.id)
+
+            agg.shifts_count += 1
+            agg.total_hours += duration
+
+            agg.report_details.push({
+                date: report.report_date.toISOString().split('T')[0],
+                store: report.store.name,
+                time_in: report.time_in,
+                time_out: report.time_out,
+                duration: duration
+            })
+        }
     }
 
     const result = Array.from(userAggregates.values()).sort((a, b) => b.total_hours - a.total_hours)

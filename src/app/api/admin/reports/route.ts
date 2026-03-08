@@ -13,10 +13,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { store_id, staff_id, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
+    const { store_id, staff_ids, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
 
     if (!store_id) {
         return NextResponse.json({ error: 'Store ID is required' }, { status: 400 })
+    }
+
+    if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length === 0) {
+        return NextResponse.json({ error: 'At least one staff member must be assigned to the report' }, { status: 400 })
     }
 
     if (session.user.role === 'Manager') {
@@ -66,7 +70,10 @@ export async function POST(req: Request) {
                 data: {
                     store_id: store_id,
                     report_date: reportDateObj,
-                    submitted_by_user_id: staff_id || session.user.id,
+                    submitted_by_user_id: session.user.id, // Primary record keeper
+                    assignees: {
+                        connect: staff_ids.map((id: string) => ({ id }))
+                    },
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,

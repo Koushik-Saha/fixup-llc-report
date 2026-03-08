@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const members = await prisma.storeMember.findMany({
         where: { store_id },
         include: {
-            user: { select: { name: true, email: true, status: true } }
+            user: { select: { name: true, email: true, status: true, role: true } }
         },
         orderBy: { assigned_at: 'desc' }
     })

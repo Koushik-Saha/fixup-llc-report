@@ -69,6 +69,9 @@ export async function POST(req: Request) {
                     store_id: storeId,
                     report_date: reportDateObj,
                     submitted_by_user_id: session.user.id,
+                    assignees: {
+                        connect: { id: session.user.id }
+                    },
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
