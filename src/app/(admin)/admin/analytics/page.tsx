@@ -39,17 +39,22 @@ export default function AnalyticsPage() {
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                     {/* Quick Ranges */}
-                    <div className="flex flex-wrap gap-2">
-                        {['1d', '3d', '1w', '15d', '1m', '3m', '6m', '1y', '2y', 'custom'].map(r => (
-                            <button
-                                key={r}
-                                onClick={() => setRange(r)}
-                                className={`px-3 py-1.5 rounded text-sm font-medium transition ${range === r ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border'}`}
-                            >
-                                {r.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
+                    <select
+                        value={range}
+                        onChange={(e) => setRange(e.target.value)}
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white min-w-[140px]"
+                    >
+                        <option value="1d">1 Day (1D)</option>
+                        <option value="3d">3 Days (3D)</option>
+                        <option value="1w">1 Week (1W)</option>
+                        <option value="15d">15 Days (15D)</option>
+                        <option value="1m">1 Month (1M)</option>
+                        <option value="3m">3 Months (3M)</option>
+                        <option value="6m">6 Months (6M)</option>
+                        <option value="1y">1 Year (1Y)</option>
+                        <option value="2y">2 Years (2Y)</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
 
                     {/* Custom Date Picker */}
                     {range === 'custom' && (

@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Freedom Shipping LLC - Multi-Store Daily Reporting",
-  description: "A comprehensive daily reporting system for multiple stores.",
+  title: "FixItUp - Multi-Store Daily Reporting",
+  description: "A comprehensive daily reporting system for multiple repair stores.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Freedom Shipping LLC",
+    title: "FixItUp",
   },
 };
 

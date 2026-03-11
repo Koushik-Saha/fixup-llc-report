@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Freedom Shipping LLC',
-        short_name: 'Freedom Shipping',
-        description: 'Multi-Store Daily Reporting System',
+        name: 'FixItUp',
+        short_name: 'FixItUp',
+        description: 'Multi-Store Device Repair Reporting System',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

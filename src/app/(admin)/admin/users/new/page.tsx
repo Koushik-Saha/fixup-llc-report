@@ -6,7 +6,7 @@ import toast from "react-hot-toast"
 
 export default function CreateUserPage() {
     const router = useRouter()
-    const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "Staff", status: "Active", base_salary: 0 })
+    const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "Staff", status: "Active", pay_type: "MONTHLY", base_salary: 0 })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
@@ -50,9 +50,20 @@ export default function CreateUserPage() {
                     <label className="block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" required minLength={6} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Monthly Base Salary ($)</label>
-                    <input type="number" min="0" step="0.01" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.base_salary} onChange={e => setFormData({ ...formData, base_salary: Number(e.target.value) })} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Pay Type</label>
+                        <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.pay_type} onChange={e => setFormData({ ...formData, pay_type: e.target.value })}>
+                            <option value="MONTHLY">Monthly Salary</option>
+                            <option value="HOURLY">Hourly Wage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            {formData.pay_type === 'HOURLY' ? 'Hourly Rate ($/hr)' : 'Monthly Base Salary ($)'}
+                        </label>
+                        <input type="number" min="0" step="0.01" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.base_salary} onChange={e => setFormData({ ...formData, base_salary: Number(e.target.value) })} />
+                    </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>

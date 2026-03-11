@@ -81,7 +81,7 @@ export async function GET(req: Request) {
     const reports = await prisma.dailyReport.findMany({
         where,
         include: {
-            assignees: { select: { id: true, name: true, role: true, base_salary: true } },
+            assignees: { select: { id: true, name: true, role: true, pay_type: true, base_salary: true } },
             store: { select: { name: true } }
         }
     }) as any[]
@@ -100,6 +100,7 @@ export async function GET(req: Request) {
                     user_id: user.id,
                     name: user.name,
                     role: user.role,
+                    pay_type: user.pay_type,
                     base_salary: Number(user.base_salary),
                     shifts_count: 0,
                     total_hours: 0,
@@ -122,7 +123,10 @@ export async function GET(req: Request) {
         }
     }
 
-    const result = Array.from(userAggregates.values()).sort((a, b) => b.total_hours - a.total_hours)
+    const result = Array.from(userAggregates.values()).map(u => ({
+        ...u,
+        total_earned: u.pay_type === 'HOURLY' ? u.total_hours * u.base_salary : u.base_salary
+    })).sort((a, b) => b.total_hours - a.total_hours)
 
     return NextResponse.json(result)
 }

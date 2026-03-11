@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import { ConfirmModal } from "@/components/ConfirmModal"
+import { InfoModal } from "@/components/InfoModal"
 import toast from "react-hot-toast"
 
 export default function UsersPage() {
@@ -10,6 +12,12 @@ export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState("All")
     const [roleFilter, setRoleFilter] = useState("All")
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [userToDelete, setUserToDelete] = useState<string | null>(null)
+
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
+    const [infoModalData, setInfoModalData] = useState<{ title: string, items: string[] }>({ title: '', items: [] })
 
     useEffect(() => {
         fetch('/api/admin/users')
@@ -20,20 +28,36 @@ export default function UsersPage() {
             })
     }, [])
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to deactivate this user?")) return;
+    const requestDelete = (id: string) => {
+        setUserToDelete(id)
+        setIsDeleteModalOpen(true)
+    }
+
+    const confirmDelete = async () => {
+        if (!userToDelete) return;
+        setIsDeleteModalOpen(false);
 
         try {
-            const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/admin/users/${userToDelete}`, { method: 'DELETE' });
             if (res.ok) {
                 toast.success('User deactivated successfully');
-                setUsers(users.map(u => u.id === id ? { ...u, status: 'Inactive' } : u));
+                setUsers(users.map(u => u.id === userToDelete ? { ...u, status: 'Inactive' } : u));
             } else {
                 toast.error('Failed to deactivate user');
             }
         } catch (e) {
             toast.error('Error occurred');
+        } finally {
+            setUserToDelete(null);
         }
+    }
+
+    const openStoreDetails = (user: any) => {
+        setInfoModalData({
+            title: `Stores Assigned to ${user.name}`,
+            items: user.storeMembers.map((m: any) => m.store.name)
+        })
+        setIsInfoModalOpen(true)
     }
 
     if (loading) return <div className="p-6 bg-white shadow rounded-lg w-full"><SkeletonRow rows={5} /></div>
@@ -100,13 +124,30 @@ export default function UsersPage() {
                             <tr key={user.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">${Number(user.base_salary || 0).toFixed(2)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500 whitespace-pre-wrap">
-                                        {user.storeMembers?.length > 0
-                                            ? user.storeMembers.map((m: any) => m.store.name).join(', ')
-                                            : <span className="text-gray-400 italic">Unassigned</span>}
+                                    ${Number(user.base_salary || 0).toFixed(2)}
+                                    <span className="text-gray-500 text-xs ml-1">{user.pay_type === 'HOURLY' ? '/hr' : '/mo'}</span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
+                                        {user.storeMembers?.length > 0 ? (
+                                            <>
+                                                <span>
+                                                    {user.storeMembers.slice(0, 2).map((m: any) => m.store.name).join(', ')}
+                                                </span>
+                                                {user.storeMembers.length > 2 && (
+                                                    <button
+                                                        onClick={() => openStoreDetails(user)}
+                                                        className="text-blue-600 hover:text-blue-800 hover:underline text-xs font-medium ml-1 cursor-pointer"
+                                                    >
+                                                        + {user.storeMembers.length - 2} more
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="text-gray-400 italic text-sm">Unassigned</span>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -117,7 +158,7 @@ export default function UsersPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <Link href={`/admin/users/${user.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
                                     {user.status === 'Active' && (
-                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>
+                                        <button onClick={() => requestDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>
                                     )}
                                 </td>
                             </tr>
@@ -137,6 +178,23 @@ export default function UsersPage() {
                     </tbody>
                 </table>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Deactivate User"
+                message="Are you sure you want to deactivate this user? They will no longer be able to log in or be assigned to reports."
+                confirmText="Deactivate"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                onCancel={() => setIsDeleteModalOpen(false)}
+            />
+
+            <InfoModal
+                isOpen={isInfoModalOpen}
+                title={infoModalData.title}
+                items={infoModalData.items}
+                onClose={() => setIsInfoModalOpen(false)}
+            />
         </div>
     )
 }

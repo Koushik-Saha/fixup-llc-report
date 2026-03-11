@@ -27,6 +27,8 @@ export default async function StaffHomePage() {
         }
     })
 
+    const userRec = await prisma.user.findUnique({ where: { id: session?.user?.id as string } })
+
     const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
     const payrollRecord = await (prisma as any).payrollRecord.findUnique({
         where: {
@@ -40,23 +42,28 @@ export default async function StaffHomePage() {
         }
     })
 
-    let userBaseSalary = 0
-    if (!payrollRecord) {
-        const userRec = await prisma.user.findUnique({ where: { id: session?.user?.id as string } })
-        userBaseSalary = Number((userRec as any)?.base_salary || 0)
-    }
-
-    const baseSalary = Number(payrollRecord?.base_salary || userBaseSalary)
+    const baseSalary = 0
     const totalPaid = Number(payrollRecord?.total_paid || 0)
     const balance = Math.max(0, baseSalary - totalPaid)
 
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800">{store?.name}</h2>
-                        <p className="text-gray-600">{store?.city}, {store?.state}</p>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+                    <div className="flex flex-col gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800">{userRec?.name}</h2>
+                            <p className="text-gray-600 font-medium flex items-center gap-2 mt-1">
+                                <span>{userRec?.email}</span>
+                                <span className="text-gray-300">|</span>
+                                <span>{(userRec as any)?.phone || 'No Phone Number'}</span>
+                            </p>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded-lg inline-block border border-blue-100">
+                            <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Assigned Store</h3>
+                            <p className="text-gray-800 font-medium">{store?.name}</p>
+                            <p className="text-gray-600 text-sm">{store?.city}, {store?.state}</p>
+                        </div>
                     </div>
                     <ChangePasswordWrapper />
                 </div>

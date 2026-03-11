@@ -5,6 +5,31 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export const dynamic = 'force-dynamic'
 
+function parseHours(timeStr: string | null | undefined): number | null {
+    if (!timeStr) return null;
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        const [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (period.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+        if (period.toLowerCase() === 'am' && hours === 12) hours = 0;
+        if (isNaN(hours) || isNaN(minutes)) return null;
+        return hours + (minutes / 60);
+    } else {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return null;
+        return hours + (minutes / 60);
+    }
+}
+
+function calculateDuration(timeIn: string | null | undefined, timeOut: string | null | undefined): number {
+    const start = parseHours(timeIn);
+    const end = parseHours(timeOut);
+    if (start === null || end === null) return 0;
+    let duration = end - start;
+    if (duration < 0) duration += 24;
+    return Math.max(0, duration);
+}
+
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,8 +40,33 @@ export async function GET(req: Request) {
     // Fetch all active staff/users except the ghost admin
     const users = await prisma.user.findMany({
         where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' } },
-        select: { id: true, name: true, email: true, role: true, base_salary: true }
+        select: { id: true, name: true, email: true, role: true, pay_type: true, base_salary: true }
     })
+
+    // Calculate hourly totals if any HOURLY users exist
+    const hourlyUsers = users.filter(u => u.pay_type === 'HOURLY')
+    const hourlyTotals = new Map<string, number>()
+
+    if (hourlyUsers.length > 0) {
+        const startDate = new Date(`${monthYear}-01T00:00:00.000Z`)
+        const endDate = new Date(startDate)
+        endDate.setMonth(endDate.getMonth() + 1)
+        
+        const reports = await prisma.dailyReport.findMany({
+            where: {
+                report_date: { gte: startDate, lt: endDate },
+                status: { in: ['Submitted', 'Verified'] }
+            },
+            select: { time_in: true, time_out: true, assignees: { select: { id: true } } }
+        })
+
+        for (const report of reports) {
+            const duration = calculateDuration(report.time_in, report.time_out)
+            for (const assignee of report.assignees) {
+                hourlyTotals.set(assignee.id, (hourlyTotals.get(assignee.id) || 0) + duration)
+            }
+        }
+    }
 
     // Fetch existing payroll records for this month
     const records = await prisma.payrollRecord.findMany({
@@ -40,12 +90,21 @@ export async function GET(req: Request) {
 
     const data = users.map(user => {
         const record = recordMap.get(user.id)
+        
+        // Calculate the accurate Gross Pay for the month
+        let grossDue = Number(user.base_salary)
+        if (user.pay_type === 'HOURLY') {
+            const hours = hourlyTotals.get(user.id) || 0
+            grossDue = hours * Number(user.base_salary)
+        }
+
         if (record) {
             return {
                 user_id: user.id,
                 name: user.name,
                 role: user.role,
-                base_salary: Number(user.base_salary),
+                pay_type: user.pay_type || 'MONTHLY',
+                base_salary: grossDue, // Show dynamic calculated gross
                 record_id: record.id,
                 total_paid: Number(record.total_paid),
                 status: record.status,
@@ -61,7 +120,8 @@ export async function GET(req: Request) {
                 user_id: user.id,
                 name: user.name,
                 role: user.role,
-                base_salary: Number(user.base_salary),
+                pay_type: user.pay_type || 'MONTHLY',
+                base_salary: grossDue,
                 record_id: null,
                 total_paid: 0,
                 status: 'Pending',
@@ -78,7 +138,7 @@ export async function POST(req: Request) {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { user_id, month_year, amount, notes, payment_date } = body
+    const { user_id, month_year, amount, notes, payment_date, base_salary } = body
 
     if (!user_id || !month_year || amount === undefined) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -95,7 +155,7 @@ export async function POST(req: Request) {
             const user = await tx.user.findUnique({ where: { id: user_id } })
             if (!user) throw new Error('User not found')
 
-            const baseSalary = Number(user.base_salary)
+            const baseSalaryToUse = base_salary !== undefined ? Number(base_salary) : Number(user.base_salary)
 
             // Find or create record
             let record = await tx.payrollRecord.findUnique({
@@ -107,11 +167,18 @@ export async function POST(req: Request) {
                     data: {
                         user_id,
                         month_year,
-                        base_salary: baseSalary,
+                        base_salary: baseSalaryToUse,
                         total_paid: 0,
                         status: 'Pending'
                     }
                 })
+            } else if (base_salary !== undefined && Number(record.base_salary) !== baseSalaryToUse) {
+                // Keep record sync'd if their hourly projection changed
+                await tx.payrollRecord.update({
+                    where: { id: record.id },
+                    data: { base_salary: baseSalaryToUse }
+                })
+                record.base_salary = baseSalaryToUse
             }
 
             // Create payment

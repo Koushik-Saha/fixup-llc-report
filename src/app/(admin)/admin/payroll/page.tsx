@@ -71,7 +71,8 @@ export default function PayrollDashboard() {
                 month_year: monthYear,
                 amount: Number(paymentAmount),
                 payment_date: paymentDate,
-                notes: paymentNotes
+                notes: paymentNotes,
+                base_salary: selectedUser.base_salary
             })
         })
 

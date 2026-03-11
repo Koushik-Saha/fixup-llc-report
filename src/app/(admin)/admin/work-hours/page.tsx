@@ -6,9 +6,11 @@ type WorkHourData = {
     user_id: string
     name: string
     role: string
+    pay_type: string
     base_salary: number
     shifts_count: number
     total_hours: number
+    total_earned: number
     report_details: any[]
 }
 
@@ -99,17 +101,16 @@ export default function WorkHoursPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
 
-                    <div className="flex bg-white shadow-sm border border-gray-300 rounded overflow-hidden">
-                        {['This Week', 'Last 15 Days', 'This Month', 'Custom'].map(p => (
-                            <button
-                                key={p}
-                                onClick={() => handlePresetChange(p)}
-                                className={`px-4 py-2 text-sm font-medium border-r border-gray-200 last:border-r-0 transition ${preset === p ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
-                            >
-                                {p}
-                            </button>
-                        ))}
-                    </div>
+                    <select
+                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white min-w-[140px]"
+                        value={preset}
+                        onChange={(e) => handlePresetChange(e.target.value)}
+                    >
+                        <option value="This Week">This Week</option>
+                        <option value="Last 15 Days">Last 15 Days</option>
+                        <option value="This Month">This Month</option>
+                        <option value="Custom">Custom Range</option>
+                    </select>
 
                     {preset === 'Custom' && (
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-gray-300 rounded shadow-sm">
@@ -142,6 +143,7 @@ export default function WorkHoursPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shifts</th>
                                 <th className="px-6 py-3 text-center text-xs font-bold text-blue-600 uppercase tracking-wider">Total Hours</th>
+                                <th className="px-6 py-3 text-right text-xs font-bold text-green-600 uppercase tracking-wider">Est. Gross Pay</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -160,6 +162,9 @@ export default function WorkHoursPage() {
                                         <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-bold bg-blue-100 text-blue-800">
                                             {d.total_hours.toFixed(2)} hrs
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-green-700">
+                                        ${d.total_earned.toFixed(2)}
                                     </td>
                                 </tr>
                             ))}
