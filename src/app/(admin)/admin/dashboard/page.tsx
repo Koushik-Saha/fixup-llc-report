@@ -31,9 +31,10 @@ export default async function AdminDashboardPage() {
     const totalCard = todaysReports.reduce((acc: number, r: any) => acc + Number(r.card_amount), 0)
     const totalSales = totalCash + totalCard
 
-    // Missing Reports logic
+    // Missing & Submitted Reports logic
     const reportedStoreIds = new Set(todaysReports.map((r: any) => r.store_id))
     const missingStores = activeStores.filter((s: any) => !reportedStoreIds.has(s.id))
+    const submittedStores = activeStores.filter((s: any) => reportedStoreIds.has(s.id))
 
     return (
         <div className="space-y-6">
@@ -70,6 +71,21 @@ export default async function AdminDashboardPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {missingStores.map((store: any) => (
                             <div key={store.id} className="bg-red-50 text-red-800 px-3 py-2 rounded-md font-medium text-sm">
+                                {store.name}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                <h3 className="text-lg font-bold text-green-700 mb-4">Submitted Reports Today ({submittedStores.length})</h3>
+                {submittedStores.length === 0 ? (
+                    <p className="text-gray-500 italic font-medium">No stores have submitted their report yet today.</p>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {submittedStores.map((store: any) => (
+                            <div key={store.id} className="bg-green-50 text-green-800 px-3 py-2 rounded-md font-medium text-sm border border-green-100">
                                 {store.name}
                             </div>
                         ))}
