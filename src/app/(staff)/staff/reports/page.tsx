@@ -75,7 +75,8 @@ export default function StaffReportsPage() {
                         ) : reports.map((report) => (
                             <tr key={report.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {new Date(report.report_date).toLocaleDateString()}
+                                    {/* Strict UTC parsing to prevent local timezone regression bug */}
+                                    {new Date(report.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {report.store.name}
@@ -99,8 +100,8 @@ export default function StaffReportsPage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     {report.status === 'Missing' ? (
-                                        // Is it today or yesterday?
-                                        new Date(report.report_date).getTime() >= new Date(new Date().setDate(new Date().getDate() - 1)).setHours(0, 0, 0, 0) ? (
+                                        // Is it today or yesterday? Strict UTC evaluation
+                                        new Date(report.report_date).getTime() >= new Date(new Date().setUTCHours(0, 0, 0, 0) - 86400000).getTime() ? (
                                             <Link href="/staff/report/new" className="text-blue-600 hover:text-blue-900 font-bold">Submit</Link>
                                         ) : (
                                             <span className="text-gray-400">Locked</span>

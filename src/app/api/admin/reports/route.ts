@@ -108,7 +108,7 @@ export async function POST(req: Request) {
             const store = await tx.store.findUnique({ where: { id: store_id } })
             sendDailySummary({
                 storeName: store?.name || 'Unknown Store',
-                reportDate: reportDateObj.toLocaleDateString(),
+                reportDate: reportDateObj.toLocaleDateString('en-US', { timeZone: 'UTC' }),
                 netCash,
                 cardAmount: Number(card_amount),
                 totalDeposit: total,

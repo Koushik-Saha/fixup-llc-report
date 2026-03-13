@@ -128,7 +128,7 @@ export default function AdminReportsPage() {
         // Simple client-side CSV export
         const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
         const rows = reports.map(r => [
-            new Date(r.report_date).toLocaleDateString(),
+            new Date(r.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' }),
             `"${r.store.name}"`,
             `"${r.store.city}"`,
             r.cash_amount,
@@ -251,7 +251,7 @@ export default function AdminReportsPage() {
                                             />
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(report.report_date).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(report.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown Store'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {report.assignees && report.assignees.length > 0 ? (

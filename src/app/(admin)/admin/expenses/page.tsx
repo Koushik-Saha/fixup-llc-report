@@ -161,7 +161,7 @@ export default function ExpensesDashboard() {
                             {expenses.map((exp) => (
                                 <tr key={exp.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(exp.expense_date).toLocaleDateString()}
+                                        {new Date(exp.expense_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                                         {exp.store.name}

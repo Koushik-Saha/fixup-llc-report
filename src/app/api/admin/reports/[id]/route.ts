@@ -184,7 +184,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
             sendIrregularEditAlert({
                 storeName: existingReport.store.name,
-                reportDate: existingReport.report_date.toLocaleDateString(),
+                reportDate: existingReport.report_date.toLocaleDateString('en-US', { timeZone: 'UTC' }),
                 editorName: session.user.name || session.user.email || "Admin User",
                 changesText: JSON.stringify(changes, null, 2)
             })
