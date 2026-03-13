@@ -1,5 +1,5 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
@@ -18,6 +18,15 @@ export default function SubmitReportPage() {
 
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState("")
+
+    useEffect(() => {
+        // Hydrate default target date if navigating from a missing report link
+        const params = new URLSearchParams(window.location.search)
+        const dateParam = params.get("date")
+        if (dateParam) {
+            setReportDate(dateParam)
+        }
+    }, [])
 
     const netCash = (Number(cash) || 0) - (Number(expenses) || 0) - (Number(payouts) || 0)
     const total = netCash + (Number(card) || 0)

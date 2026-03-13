@@ -102,7 +102,7 @@ export default function StaffReportsPage() {
                                     {report.status === 'Missing' ? (
                                         // Is it today or yesterday? Strict UTC evaluation
                                         new Date(report.report_date).getTime() >= new Date(new Date().setUTCHours(0, 0, 0, 0) - 86400000).getTime() ? (
-                                            <Link href="/staff/report/new" className="text-blue-600 hover:text-blue-900 font-bold">Submit</Link>
+                                            <Link href={`/staff/report/new?date=${new Date(report.report_date).toISOString().split('T')[0]}`} className="text-blue-600 hover:text-blue-900 font-bold">Submit</Link>
                                         ) : (
                                             <span className="text-gray-400">Locked</span>
                                         )
