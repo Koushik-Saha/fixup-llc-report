@@ -3,6 +3,14 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendDailySummary } from '@/lib/email'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,13 +47,9 @@ export async function POST(req: Request) {
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
     const total = netCash + Number(card_amount)
 
-    const targetDate = report_date ? new Date(report_date) : new Date()
-    // Align dates to local 00:00:00 without time zone shifts causing bugs
-    // Next.js runtime is usually UTC, so we must be careful. For simplicity, we use the string prefix.
-    const dateString = targetDate.toISOString().split('T')[0]
-
-    // Explicitly construct purely local Date object at midnight to avoid timezone shifting
-    const reportDateObj = new Date(`${dateString}T00:00:00`)
+    const targetDateStr = report_date ? String(report_date).split('T')[0] : dayjs().tz(TIMEZONE).format('YYYY-MM-DD')
+    const dateString = targetDateStr
+    const reportDateObj = new Date(`${targetDateStr}T00:00:00`)
 
     // Admin has NO Policy Check. They can backdate endlessly.
 
@@ -216,18 +220,20 @@ export async function GET(req: Request) {
     }
 
     // Otherwise, Generate Cross Product of Dates x Stores to reveal MISSING reports
-    const SYSTEM_EPOCH = new Date('2026-03-01T00:00:00.000Z')
-    const end = endDateStr ? new Date(endDateStr) : new Date()
-    let start = startDateStr ? new Date(startDateStr) : new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000)
+    const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
+    const nowTz = dayjs().tz(TIMEZONE)
+    
+    const end = endDateStr ? dayjs.tz(`${endDateStr}T00:00:00`, TIMEZONE) : nowTz.startOf('day')
+    let start = startDateStr ? dayjs.tz(`${startDateStr}T00:00:00`, TIMEZONE) : end.clone().subtract(29, 'day').startOf('day')
 
-    if (start < SYSTEM_EPOCH) {
+    if (start.isBefore(SYSTEM_EPOCH)) {
         start = SYSTEM_EPOCH
     }
 
     const days: string[] = [];
-    for (let d = new Date(end); d >= start; d.setDate(d.getDate() - 1)) {
-        if (d < SYSTEM_EPOCH) break;
-        days.push(d.toISOString().split('T')[0]);
+    for (let d = end; d.isAfter(start) || d.isSame(start, 'day'); d = d.subtract(1, 'day')) {
+        if (d.isBefore(SYSTEM_EPOCH, 'day')) break;
+        days.push(d.format('YYYY-MM-DD'));
     }
 
     const storesQuery: any = { status: 'Active' }

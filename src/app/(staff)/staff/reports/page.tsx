@@ -1,6 +1,14 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
 
@@ -100,8 +108,9 @@ export default function StaffReportsPage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     {report.status === 'Missing' ? (
-                                        // Is it today or yesterday? Strict UTC evaluation
-                                        new Date(report.report_date).getTime() >= new Date(new Date().setUTCHours(0, 0, 0, 0) - 86400000).getTime() ? (
+                                        // Is it today or yesterday? Strict string matching based on PST timeline
+                                        (new Date(report.report_date).toISOString().split('T')[0] === dayjs().tz(TIMEZONE).format('YYYY-MM-DD') || 
+                                         new Date(report.report_date).toISOString().split('T')[0] === dayjs().tz(TIMEZONE).subtract(1, 'day').format('YYYY-MM-DD')) ? (
                                             <Link href={`/staff/report/new?date=${new Date(report.report_date).toISOString().split('T')[0]}`} className="text-blue-600 hover:text-blue-900 font-bold">Submit</Link>
                                         ) : (
                                             <span className="text-gray-400">Locked</span>

@@ -1,6 +1,14 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -12,7 +20,11 @@ export default function SubmitReportPage() {
     const [payouts, setPayouts] = useState<number | "">("")
     const [timeIn, setTimeIn] = useState<string>("")
     const [timeOut, setTimeOut] = useState<string>("")
-    const [reportDate, setReportDate] = useState<string>(new Date().toISOString().split('T')[0])
+    function getLosAngelesToday() {
+        return dayjs().tz(TIMEZONE).format("YYYY-MM-DD")
+    }
+
+    const [reportDate, setReportDate] = useState<string>(getLosAngelesToday())
     const [notes, setNotes] = useState("")
     const [files, setFiles] = useState<File[]>([])
 
@@ -185,8 +197,8 @@ export default function SubmitReportPage() {
                     <label className="block text-sm font-medium text-gray-700">Report Date</label>
                     <input
                         type="date" required
-                        min={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
-                        max={new Date().toISOString().split('T')[0]}
+                        min={dayjs().tz(TIMEZONE).subtract(1, 'day').format('YYYY-MM-DD')}
+                        max={dayjs().tz(TIMEZONE).format('YYYY-MM-DD')}
                         className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                         value={reportDate}
                         onChange={e => setReportDate(e.target.value)}

@@ -14,6 +14,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1001.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
+    "dayjs": "^1.11.20",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "react": "19.2.3",

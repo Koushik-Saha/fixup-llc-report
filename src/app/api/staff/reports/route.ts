@@ -3,6 +3,14 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendDailySummary } from '@/lib/email'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,25 +35,22 @@ export async function POST(req: Request) {
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
     const total = netCash + Number(card_amount)
 
-    const targetDate = report_date ? new Date(report_date) : new Date()
-    // Align dates to local 00:00:00 without time zone shifts causing bugs
-    // Next.js runtime is usually UTC, so we must be careful. For simplicity, we use the string prefix.
-    const dateString = targetDate.toISOString().split('T')[0]
+    const nowTz = dayjs().tz(TIMEZONE)
+    const todayStr = nowTz.format('YYYY-MM-DD')
+    const yesterdayStr = nowTz.subtract(1, 'day').format('YYYY-MM-DD')
 
+    const targetDateStr = report_date ? String(report_date).split('T')[0] : todayStr
+    
     // Explicitly construct purely local Date object at midnight to avoid timezone shifting
     // E.g., Date("2026-03-07T00:00:00") aligns nicely with Prisma db.Date insertions
-    const reportDateObj = new Date(`${dateString}T00:00:00`)
+    const reportDateObj = new Date(`${targetDateStr}T00:00:00`)
 
-    // Policy Check: Report date must be Today or Yesterday
-    const now = new Date()
-    const todayStr = now.toISOString().split('T')[0]
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-    if (dateString !== todayStr && dateString !== yesterdayStr) {
+    if (targetDateStr !== todayStr && targetDateStr !== yesterdayStr) {
         return NextResponse.json({ error: 'You may only submit reports for Today or Yesterday. Please contact an Administrator.' }, { status: 400 })
     }
+
+    // Use targetDateStr for messaging
+    const dateString = targetDateStr
 
     // Check if report already exists for the specific target date
     const existingReport = await prisma.dailyReport.findUnique({
@@ -147,28 +152,24 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
     }
 
-    const now = new Date()
-    const SYSTEM_EPOCH = new Date('2026-03-01T00:00:00.000Z')
+    const nowTz = dayjs().tz(TIMEZONE)
+    const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
 
-    // Default to at least 30 days if store.createdAt is missing or weird, 
-    // otherwise calculate days from when the store was created.
-    const storeCreatedAt = store.createdAt ? new Date(store.createdAt) : new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
-    const effectiveStart = storeCreatedAt > SYSTEM_EPOCH ? storeCreatedAt : SYSTEM_EPOCH
+    // Default to at least 30 days if store.createdAt is missing or weird
+    const storeCreatedAt = store.createdAt ? dayjs(store.createdAt).tz(TIMEZONE) : nowTz.subtract(29, 'day');
+    const effectiveStart = storeCreatedAt.isAfter(SYSTEM_EPOCH) ? storeCreatedAt : SYSTEM_EPOCH
 
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const totalDays = Math.max(1, Math.ceil((now.getTime() - effectiveStart.getTime()) / msPerDay));
+    const totalDays = Math.max(1, nowTz.startOf('day').diff(effectiveStart.startOf('day'), 'day') + 1);
     const totalPages = Math.ceil(totalDays / limit)
 
     // Generate dates based on page offset
-    const end = new Date()
-    end.setDate(end.getDate() - (page - 1) * limit)
-    const start = new Date(end)
-    start.setDate(start.getDate() - limit + 1)
+    const end = nowTz.subtract((page - 1) * limit, 'day').startOf('day')
+    const start = end.subtract(limit - 1, 'day').startOf('day')
 
     const dates: string[] = []
-    for (let d = new Date(end); d >= start; d.setDate(d.getDate() - 1)) {
-        if (d < SYSTEM_EPOCH) break;
-        dates.push(d.toISOString().split('T')[0])
+    for (let d = end; d.isAfter(start) || d.isSame(start, 'day'); d = d.subtract(1, 'day')) {
+        if (d.isBefore(SYSTEM_EPOCH, 'day')) break;
+        dates.push(d.format('YYYY-MM-DD'))
     }
 
     if (dates.length === 0) {
