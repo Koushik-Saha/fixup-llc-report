@@ -3,6 +3,14 @@ import { useState, useEffect, use, useRef } from "react"
 import { useReactToPrint } from "react-to-print"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 export default function AdminReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -15,7 +23,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `Report_${report?.store?.name || 'Store'}_${report?.report_date ? new Date(report.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' }) : 'Date'}`,
+        documentTitle: `Report_${report?.store?.name || 'Store'}_${report?.report_date ? dayjs.utc(report.report_date).format('YYYY-MM-DD') : 'Date'}`,
     })
 
     useEffect(() => {
@@ -148,7 +156,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                                                 </span>
                                                 <span className="font-semibold text-gray-900">{log.user.name}</span>
                                             </div>
-                                            <span className="text-gray-500">{new Date(log.createdAt).toLocaleString()}</span>
+                                            <span className="text-gray-500">{dayjs(log.createdAt).tz(TIMEZONE).format('M/D/YYYY, h:mm A')}</span>
                                         </div>
                                         <div className="grid gap-2 bg-gray-50 p-3 rounded text-gray-700">
                                             {changes.cash && changes.cash.old !== changes.cash.new && (

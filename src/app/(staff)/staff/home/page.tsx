@@ -3,6 +3,14 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import prisma from "@/lib/prisma"
 import Link from "next/link"
 import ChangePasswordWrapper from "@/components/ChangePasswordWrapper"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 export default async function StaffHomePage() {
     const session = await getServerSession(authOptions)
@@ -16,20 +24,20 @@ export default async function StaffHomePage() {
         where: { id: storeId }
     })
 
-    // Check today's report
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Check today's report — using Pacific timezone midnight
+    const todayStr = dayjs().tz(TIMEZONE).format('YYYY-MM-DD')
+    const todayObj = new Date(`${todayStr}T00:00:00.000Z`)
 
     const todayReport = await prisma.dailyReport.findFirst({
         where: {
             store_id: storeId,
-            report_date: today
+            report_date: todayObj
         }
     })
 
     const userRec = await prisma.user.findUnique({ where: { id: session?.user?.id as string } })
 
-    const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+    const currentMonth = dayjs().tz(TIMEZONE).format('YYYY-MM') // "YYYY-MM" in Pacific
     const payrollRecord = await (prisma as any).payrollRecord.findUnique({
         where: {
             user_id_month_year: {

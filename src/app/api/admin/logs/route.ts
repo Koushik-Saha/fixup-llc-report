@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,12 +52,13 @@ export async function GET(req: Request) {
     // Filtering by timestamp of the action
     if (startDateStr || endDateStr) {
         where.createdAt = {}
-        if (startDateStr) where.createdAt.gte = new Date(startDateStr)
+        if (startDateStr) {
+            // Interpret the selected date as midnight in Pacific time
+            where.createdAt.gte = dayjs.tz(`${startDateStr}T00:00:00`, TIMEZONE).toDate()
+        }
         if (endDateStr) {
-            // Include the whole end day
-            const end = new Date(endDateStr)
-            end.setHours(23, 59, 59, 999)
-            where.createdAt.lte = end
+            // Include the entire end day in Pacific time (up to 23:59:59.999)
+            where.createdAt.lte = dayjs.tz(`${endDateStr}T23:59:59`, TIMEZONE).toDate()
         }
     }
 

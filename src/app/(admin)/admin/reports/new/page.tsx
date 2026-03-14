@@ -3,6 +3,14 @@ import { useState, useRef, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 function SubmitReportForm() {
     const router = useRouter()
@@ -10,7 +18,7 @@ function SubmitReportForm() {
 
     // Extract pre-fill data from URL
     const paramStoreId = searchParams.get('storeId') || ""
-    const paramDate = searchParams.get('date') || new Date().toISOString().split('T')[0]
+    const paramDate = searchParams.get('date') || dayjs().tz(TIMEZONE).format('YYYY-MM-DD')
 
     const [storeId, setStoreId] = useState<string>(paramStoreId)
     const [stores, setStores] = useState<any[]>([])
@@ -273,7 +281,7 @@ function SubmitReportForm() {
                     <label className="block text-sm font-medium text-gray-700">Target Report Date</label>
                     <input
                         type="date" required
-                        max={new Date().toISOString().split('T')[0]} // Allow today and anytime in the past
+                        max={dayjs().tz(TIMEZONE).format('YYYY-MM-DD')} // Allow today (Pacific) and anytime in the past
                         className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-lg"
                         value={reportDate}
                         onChange={e => setReportDate(e.target.value)}

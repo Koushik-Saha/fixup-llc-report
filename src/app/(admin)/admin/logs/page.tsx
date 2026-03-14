@@ -3,6 +3,14 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 export default function AdminActivityLogsPage() {
     const [logs, setLogs] = useState<any[]>([])
@@ -150,7 +158,7 @@ export default function AdminActivityLogsPage() {
                                 return (
                                     <tr key={log.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(log.createdAt).toLocaleString()}
+                                            {dayjs(log.createdAt).tz(TIMEZONE).format('M/D/YYYY, h:mm:ss A')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">

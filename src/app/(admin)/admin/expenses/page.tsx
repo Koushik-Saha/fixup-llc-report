@@ -2,6 +2,14 @@
 import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 type ExpenseData = {
     id: string
@@ -26,7 +34,7 @@ export default function ExpensesDashboard() {
     const [loading, setLoading] = useState(true)
 
     const [filterStore, setFilterStore] = useState("")
-    const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7))
+    const [filterMonth, setFilterMonth] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM'))
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -35,7 +43,7 @@ export default function ExpensesDashboard() {
     const [expenseStore, setExpenseStore] = useState("")
     const [expenseCategory, setExpenseCategory] = useState("Inventory")
     const [expenseAmount, setExpenseAmount] = useState("")
-    const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0])
+    const [expenseDate, setExpenseDate] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
     const [expenseNotes, setExpenseNotes] = useState("")
 
     useEffect(() => {
@@ -49,10 +57,9 @@ export default function ExpensesDashboard() {
 
     const fetchExpenses = () => {
         setLoading(true)
-        // Construct date boundaries from month filter (e.g. "2026-03")
-        const [year, month] = filterMonth.split('-')
-        const startDate = new Date(Number(year), Number(month) - 1, 1).toISOString()
-        const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59).toISOString()
+        // Construct date boundaries from month filter (e.g. "2026-03") using Pacific midnight
+        const startDate = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).format('YYYY-MM-DD')
+        const endDate = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).endOf('month').format('YYYY-MM-DD')
 
         const params = new URLSearchParams()
         if (filterStore) params.append('storeId', filterStore)
@@ -75,7 +82,7 @@ export default function ExpensesDashboard() {
         setExpenseStore(stores.length > 0 ? stores[0].id : "")
         setExpenseCategory("Inventory")
         setExpenseAmount("")
-        setExpenseDate(new Date().toISOString().split('T')[0])
+        setExpenseDate(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
         setExpenseNotes("")
         setIsModalOpen(true)
     }
@@ -161,7 +168,7 @@ export default function ExpensesDashboard() {
                             {expenses.map((exp) => (
                                 <tr key={exp.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {new Date(exp.expense_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
+                                        {dayjs.utc(exp.expense_date).format('M/D/YYYY')}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                                         {exp.store.name}

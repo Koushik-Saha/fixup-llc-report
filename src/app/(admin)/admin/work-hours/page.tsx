@@ -1,6 +1,14 @@
 "use client"
 import { useEffect, useState } from "react"
 import { SkeletonRow } from "@/components/Skeleton"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 type WorkHourData = {
     user_id: string
@@ -19,33 +27,28 @@ export default function WorkHoursPage() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
-    // Preset Date Ranges
+    // Preset Date Ranges using dayjs with Pacific timezone
     const getPresetDates = (preset: string) => {
-        const today = new Date()
-        let start = new Date()
-        let end = new Date()
+        const now = dayjs().tz(TIMEZONE)
+        let start = now
+        const end = now
 
         switch (preset) {
             case 'This Week':
-                // Assuming week starts on Monday
-                const day = today.getDay() || 7
-                start.setDate(today.getDate() - day + 1)
+                // Week starts on Monday
+                start = now.startOf('week').add(1, 'day') // dayjs startOf('week') is Sunday, +1 = Monday
                 break
             case 'Last 15 Days':
-                start.setDate(today.getDate() - 15)
+                start = now.subtract(15, 'day')
                 break
             case 'This Month':
-                start = new Date(today.getFullYear(), today.getMonth(), 1)
+                start = now.startOf('month')
                 break
         }
 
-        // Correct timezone offset for stringification
-        start.setMinutes(start.getMinutes() - start.getTimezoneOffset())
-        end.setMinutes(end.getMinutes() - end.getTimezoneOffset())
-
         return {
-            start: start.toISOString().split('T')[0],
-            end: end.toISOString().split('T')[0]
+            start: start.format('YYYY-MM-DD'),
+            end: end.format('YYYY-MM-DD')
         }
     }
 

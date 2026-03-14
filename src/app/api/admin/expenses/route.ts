@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,8 +30,8 @@ export async function GET(req: Request) {
 
     if (startDateStr || endDateStr) {
         where.expense_date = {}
-        if (startDateStr) where.expense_date.gte = new Date(startDateStr)
-        if (endDateStr) where.expense_date.lte = new Date(endDateStr)
+        if (startDateStr) where.expense_date.gte = dayjs.tz(`${startDateStr}T00:00:00`, TIMEZONE).toDate()
+        if (endDateStr) where.expense_date.lte = dayjs.tz(`${endDateStr}T23:59:59`, TIMEZONE).toDate()
     }
 
     try {

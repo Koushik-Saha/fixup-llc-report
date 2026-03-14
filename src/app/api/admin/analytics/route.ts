@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,30 +22,34 @@ export async function GET(req: Request) {
     const customStart = searchParams.get('startDate')
     const customEnd = searchParams.get('endDate')
 
-    let start = new Date()
-    let end = new Date()
+    let start: dayjs.Dayjs
+    let end: dayjs.Dayjs
 
     if (range === 'custom' && customStart && customEnd) {
-        start = new Date(customStart)
-        end = new Date(customEnd)
-        end.setHours(23, 59, 59, 999)
+        start = dayjs.tz(`${customStart}T00:00:00`, TIMEZONE)
+        end = dayjs.tz(`${customEnd}T23:59:59`, TIMEZONE)
     } else {
-        if (range === '1d') start.setDate(start.getDate() - 1)
-        else if (range === '3d') start.setDate(start.getDate() - 3)
-        else if (range === '1w') start.setDate(start.getDate() - 7)
-        else if (range === '15d') start.setDate(start.getDate() - 15)
-        else if (range === '1m') start.setMonth(start.getMonth() - 1)
-        else if (range === '3m') start.setMonth(start.getMonth() - 3)
-        else if (range === '6m') start.setMonth(start.getMonth() - 6)
-        else if (range === '1y') start.setFullYear(start.getFullYear() - 1)
-        else if (range === '2y') start.setFullYear(start.getFullYear() - 2)
+        end = dayjs().tz(TIMEZONE)
+        start = end.clone()
+        if (range === '1d') start = start.subtract(1, 'day')
+        else if (range === '3d') start = start.subtract(3, 'day')
+        else if (range === '1w') start = start.subtract(7, 'day')
+        else if (range === '15d') start = start.subtract(15, 'day')
+        else if (range === '1m') start = start.subtract(1, 'month')
+        else if (range === '3m') start = start.subtract(3, 'month')
+        else if (range === '6m') start = start.subtract(6, 'month')
+        else if (range === '1y') start = start.subtract(1, 'year')
+        else if (range === '2y') start = start.subtract(2, 'year')
     }
+
+    const startDate = start.toDate()
+    const endDate = end.toDate()
 
     const reports = await prisma.dailyReport.findMany({
         where: {
             report_date: {
-                gte: start,
-                lte: end
+                gte: startDate,
+                lte: endDate
             }
         },
         select: {
@@ -59,12 +71,12 @@ export async function GET(req: Request) {
     const storeAggregations: Record<string, number> = {}
 
     const storeExpensesQuery = await prisma.storeExpense.findMany({
-        where: { expense_date: { gte: start, lte: end } },
+        where: { expense_date: { gte: startDate, lte: endDate } },
         select: { amount: true }
     })
 
     const payrollPaymentsQuery = await prisma.payrollPayment.findMany({
-        where: { payment_date: { gte: start, lte: end } },
+        where: { payment_date: { gte: startDate, lte: endDate } },
         select: { amount: true }
     })
 

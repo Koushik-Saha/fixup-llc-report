@@ -3,6 +3,14 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import timezone from "dayjs/plugin/timezone"
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = "America/Los_Angeles"
 
 type PayrollData = {
     user_id: string
@@ -16,7 +24,7 @@ type PayrollData = {
 }
 
 export default function PayrollDashboard() {
-    const [monthYear, setMonthYear] = useState(new Date().toISOString().slice(0, 7))
+    const [monthYear, setMonthYear] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM'))
     const [payroll, setPayroll] = useState<PayrollData[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
@@ -27,7 +35,7 @@ export default function PayrollDashboard() {
     const [selectedUser, setSelectedUser] = useState<PayrollData | null>(null)
     const [paymentAmount, setPaymentAmount] = useState("")
     const [paymentNotes, setPaymentNotes] = useState("")
-    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
+    const [paymentDate, setPaymentDate] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
     const [submitting, setSubmitting] = useState(false)
 
     const fetchPayroll = () => {
@@ -49,7 +57,7 @@ export default function PayrollDashboard() {
         const remaining = user.base_salary - user.total_paid
         setPaymentAmount(remaining > 0 ? remaining.toString() : "")
         setPaymentNotes("")
-        setPaymentDate(new Date().toISOString().split('T')[0])
+        setPaymentDate(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
         setIsModalOpen(true)
     }
 
