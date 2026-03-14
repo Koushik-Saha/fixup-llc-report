@@ -10,7 +10,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     <Link href="/staff/home" className="text-xl font-bold text-gray-900">
                         Daily Sales
                     </Link>
-                    <div className="space-x-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                        <Link href="/staff/monthly-report" className="text-gray-600 hover:text-gray-900">Monthly Report</Link>
                         <Link href="/staff/reports" className="text-gray-600 hover:text-gray-900">Past Reports</Link>
                         <button
                             onClick={() => signOut()}
