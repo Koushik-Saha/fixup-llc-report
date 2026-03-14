@@ -135,7 +135,7 @@ export default function MonthlyReportPage() {
                                 return (
                                     <tr key={row.id} className={`${isMissing ? 'bg-red-50' : 'hover:bg-gray-50'} transition`}>
                                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                            {new Date(row.report_date).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' })}
+                                            {dayjs.utc(row.report_date).tz(TIMEZONE).format('ddd, MMM D')}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-right text-green-700 font-medium">
                                             {row.cash_amount != null ? `$${Number(row.cash_amount).toFixed(2)}` : '—'}
