@@ -174,26 +174,41 @@ export async function GET(req: Request) {
         where.store_id = storeId
     }
 
+    // Retrieve Store IDs associated with the requested User Filter
+    let userFilterStoreIds: string[] | null = null;
     if (userId) {
-        where.submitted_by_user_id = userId
+        const userMemberships = await prisma.storeMember.findMany({
+            where: { user_id: userId, status: 'Active' },
+            select: { store_id: true }
+        })
+        userFilterStoreIds = userMemberships.map(m => m.store_id)
+        
+        // If the user belongs to no stores, return an empty table immediately.
+        if (userFilterStoreIds.length === 0) {
+            return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
+        }
     }
 
-    if (startDateStr || endDateStr) {
-        where.report_date = {}
-        if (startDateStr) where.report_date.gte = new Date(startDateStr)
-        if (endDateStr) where.report_date.lte = new Date(endDateStr)
+    // Attempting to calculate the *final* permitted Store IDs array by 
+    // merging the Admin/Manager's allowedStoreIds with the userFilterStoreIds
+    let finalStoreIds: string[] | null = null;
+
+    if (allowedStoreIds && userFilterStoreIds) {
+        // Intersection of both permission arrays
+        finalStoreIds = allowedStoreIds.filter(id => userFilterStoreIds!.includes(id))
+        // If intersection is empty, no overlaps exist.
+        if (finalStoreIds.length === 0) {
+            return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
+        }
+    } else if (allowedStoreIds) {
+        finalStoreIds = allowedStoreIds
+    } else if (userFilterStoreIds) {
+        finalStoreIds = userFilterStoreIds
     }
 
+    // IF search is provided, stick to the traditional Prisma query
+    // (because "missing" reports don't have text-searchable data)
     if (search) {
-        where.OR = [
-            { store: { name: { contains: search, mode: 'insensitive' } } },
-            { submitted_by: { name: { contains: search, mode: 'insensitive' } } }
-        ]
-    }
-
-    // IF userId OR search is provided, stick to the traditional Prisma query
-    // (because "missing" reports don't have a user or anything text-searchable)
-    if (userId || search) {
         const [reports, total] = await Promise.all([
             prisma.dailyReport.findMany({
                 where,
@@ -237,11 +252,11 @@ export async function GET(req: Request) {
     }
 
     const storesQuery: any = { status: 'Active' }
-    if (allowedStoreIds) {
-        if (storeId && !allowedStoreIds.includes(storeId)) {
+    if (finalStoreIds) {
+        if (storeId && !finalStoreIds.includes(storeId)) {
             storesQuery.id = 'NO_ACCESS'
         } else {
-            storesQuery.id = storeId ? storeId : { in: allowedStoreIds }
+            storesQuery.id = storeId ? storeId : { in: finalStoreIds }
         }
     } else if (storeId) {
         storesQuery.id = storeId

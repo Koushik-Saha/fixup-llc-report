@@ -263,11 +263,23 @@ export default function AdminTodaysReportsPage() {
                                                     </span>
                                                 ))}
                                             </div>
+                                        ) : report.status === 'Missing' && userId ? (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                {users.find(u => u.id === userId)?.name || 'Filtered User'}
+                                            </span>
                                         ) : (
                                             <span className="text-gray-500">None</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{report.submitted_by?.name || 'Unknown'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {report.submitted_by?.name ? (
+                                             report.submitted_by.name
+                                        ) : report.status === 'Missing' && userId ? (
+                                            <span className="italic text-gray-400">Waiting on {users.find(u => u.id === userId)?.name?.split(' ')[0] || 'User'}</span>
+                                        ) : (
+                                            'Unknown'
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
                                         {report.status !== 'Missing' ? `${calculateDuration(report.time_in, report.time_out).toFixed(2)}h` : '-'}
                                     </td>

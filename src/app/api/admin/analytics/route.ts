@@ -46,13 +46,17 @@ export async function GET(req: Request) {
             card_amount: true,
             total_amount: true,
             expenses_amount: true,
-            payouts_amount: true
+            payouts_amount: true,
+            store: { select: { name: true } }
         },
         orderBy: { report_date: 'asc' }
     })
 
     // Group by date to flatten all store reports for global trend
     const groupedData: Record<string, any> = {}
+    
+    // Group by store for Top Performing Stores chart
+    const storeAggregations: Record<string, number> = {}
 
     const storeExpensesQuery = await prisma.storeExpense.findMany({
         where: { expense_date: { gte: start, lte: end } },
@@ -69,20 +73,32 @@ export async function GET(req: Request) {
 
     reports.forEach((r: any) => {
         const dateStr = new Date(r.report_date).toISOString().split('T')[0]
+        
+        const pettyCashForReport = Number(r.expenses_amount) + Number(r.payouts_amount)
+
         if (!groupedData[dateStr]) {
             groupedData[dateStr] = {
                 date: dateStr,
                 cash: 0,
                 card: 0,
-                total: 0
+                total: 0,
+                pettyCash: 0
             }
         }
         groupedData[dateStr].cash += Number(r.cash_amount)
         groupedData[dateStr].card += Number(r.card_amount)
         groupedData[dateStr].total += Number(r.total_amount)
+        groupedData[dateStr].pettyCash += pettyCashForReport
+
+        if (r.store?.name) {
+            if (!storeAggregations[r.store.name]) {
+                storeAggregations[r.store.name] = 0
+            }
+            storeAggregations[r.store.name] += Number(r.total_amount)
+        }
 
         totalSales += Number(r.total_amount)
-        totalPettyCashExpenses += Number(r.expenses_amount) + Number(r.payouts_amount)
+        totalPettyCashExpenses += pettyCashForReport
     })
 
     const totalStoreExpenses = storeExpensesQuery.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0)
@@ -90,9 +106,31 @@ export async function GET(req: Request) {
 
     const grossProfit = totalSales - totalPettyCashExpenses - totalStoreExpenses
     const netProfit = grossProfit - totalPayroll
+    
+    const storeDataArray = Object.keys(storeAggregations)
+        .map(name => ({ name, revenue: storeAggregations[name] }))
+        .sort((a, b) => b.revenue - a.revenue) // Sort highest revenue first
+
+    const costBreakdownArray = [
+        { name: 'Petty Cash', value: totalPettyCashExpenses },
+        { name: 'Store Expenses', value: totalStoreExpenses },
+        { name: 'Payroll', value: totalPayroll }
+    ].filter(item => item.value > 0)
+
+    const funnelDataArray = [
+        { name: 'Gross Sales', value: totalSales },
+        { name: 'Petty Cash', value: -totalPettyCashExpenses },
+        { name: 'Store Exp', value: -totalStoreExpenses },
+        { name: 'Gross Profit', value: grossProfit },
+        { name: 'Payroll', value: -totalPayroll },
+        { name: 'Net Profit', value: netProfit }
+    ]
 
     return NextResponse.json({
         chartData: Object.values(groupedData),
+        storeData: storeDataArray,
+        costBreakdown: costBreakdownArray,
+        funnelData: funnelDataArray,
         summary: {
             totalSales,
             totalPettyCashExpenses,

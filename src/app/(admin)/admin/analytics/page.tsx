@@ -1,10 +1,15 @@
 "use client"
 import { useState, useEffect } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from 'recharts'
 import { SkeletonCard, Skeleton } from "@/components/Skeleton"
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a855f7', '#ef4444', '#f97316'];
 
 export default function AnalyticsPage() {
     const [data, setData] = useState<any[]>([])
+    const [storeData, setStoreData] = useState<any[]>([])
+    const [costBreakdown, setCostBreakdown] = useState<any[]>([])
+    const [funnelData, setFunnelData] = useState<any[]>([])
     const [summary, setSummary] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [range, setRange] = useState("1m")
@@ -27,6 +32,9 @@ export default function AnalyticsPage() {
             .then(res => res.json())
             .then(d => {
                 setData(d.chartData || [])
+                setStoreData(d.storeData || [])
+                setCostBreakdown(d.costBreakdown || [])
+                setFunnelData(d.funnelData || [])
                 setSummary(d.summary || null)
                 setLoading(false)
             })
@@ -115,37 +123,134 @@ export default function AnalyticsPage() {
             ) : data.length === 0 ? (
                 <div className="p-12 text-center text-gray-500 bg-white shadow rounded-lg">No data available for the selected range.</div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Trend (Total)</h3>
-                        <div className="h-80 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="total" stroke="#4f46e5" activeDot={{ r: 8 }} name="Total Revenue" />
-                                </LineChart>
-                            </ResponsiveContainer>
+                <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Trend (Total)</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="total" stroke="#4f46e5" activeDot={{ r: 8 }} name="Total Revenue" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Cash vs Card Breakdown</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="cash" fill="#16a34a" name="Cash" stackId="a" />
+                                        <Bar dataKey="card" fill="#2563eb" name="Card" stackId="a" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="text-lg font-bold text-gray-800 mb-6">Cash vs Card Breakdown</h3>
-                        <div className="h-80 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="cash" fill="#16a34a" name="Cash" stackId="a" />
-                                    <Bar dataKey="card" fill="#2563eb" name="Card" stackId="a" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 1. Top Performing Stores */}
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Top Performing Stores</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={storeData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={60} />
+                                        <YAxis />
+                                        <Tooltip cursor={{fill: 'transparent'}} />
+                                        <Legend verticalAlign="top" height={36} />
+                                        <Bar dataKey="revenue" fill="#0088FE" name="Total Revenue" radius={[4, 4, 0, 0]}>
+                                            {storeData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* 2. Cost Breakdown */}
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Cost Breakdown</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={costBreakdown}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={100}
+                                            fill="#8884d8"
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                            label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                        >
+                                            {costBreakdown.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 3. Daily Petty Cash Tracker */}
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Daily Petty Cash Outflow Tracker</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ComposedChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="date" />
+                                        <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#ff7300" />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar yAxisId="left" dataKey="total" fill="#8884d8" name="Revenue" opacity={0.5} />
+                                        <Line yAxisId="right" type="monotone" dataKey="pettyCash" stroke="#ff7300" name="Daily Petty Cash Used" strokeWidth={3} dot={{ r: 4 }} />
+                                    </ComposedChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* 4. Financial Funnel */}
+                        <div className="bg-white p-6 rounded-lg shadow border">
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Financial Funnel (Waterfall View)</h3>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" />
+                                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 13 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                            {funnelData.map((entry, index) => {
+                                                const color = entry.value > 0 
+                                                                ? (entry.name === 'Gross Sales' ? '#0088FE' : entry.name === 'Gross Profit' ? '#6366f1' : '#10b981') 
+                                                                : '#ef4444';
+                                                return <Cell key={`cell-${index}`} fill={color} />;
+                                            })}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </div>
                 </div>
