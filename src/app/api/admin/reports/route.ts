@@ -149,6 +149,7 @@ export async function GET(req: Request) {
     const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
     const skip = (page - 1) * limit
     const search = searchParams.get('search')
+    const statusFilter = searchParams.get('status') // 'Verified' | 'Submitted' | 'Missing' | null
 
     let allowedStoreIds: string[] | null = null
     if (session.user.role === 'Manager') {
@@ -206,9 +207,16 @@ export async function GET(req: Request) {
         finalStoreIds = userFilterStoreIds
     }
 
-    // IF search is provided, stick to the traditional Prisma query
-    // (because "missing" reports don't have text-searchable data)
-    if (search) {
+    // IF search is provided OR status is Verified/Submitted, use direct DB query (skip missing-report logic)
+    if (search || (statusFilter && statusFilter !== 'Missing')) {
+        if (statusFilter && statusFilter !== 'Missing') {
+            where.status = statusFilter
+        }
+        if (finalStoreIds) {
+            where.store_id = storeId && finalStoreIds.includes(storeId) ? storeId : { in: finalStoreIds }
+        } else if (storeId) {
+            where.store_id = storeId
+        }
         const [reports, total] = await Promise.all([
             prisma.dailyReport.findMany({
                 where,
@@ -299,8 +307,13 @@ export async function GET(req: Request) {
 
     const finalData = paginatedCombinations.map(c => {
         const key = `${c.store.id}_${c.date}`
-        if (reportMap.has(key)) return reportMap.get(key)
-
+        if (reportMap.has(key)) {
+            // If filtering by 'Missing', skip slots that have a real report
+            if (statusFilter === 'Missing') return null
+            return reportMap.get(key)
+        }
+        // Slot has no report — only include if not filtering for real statuses
+        if (statusFilter && statusFilter !== 'Missing') return null
         return {
             id: `missing-${key}`,
             report_date: new Date(`${c.date}T00:00:00.000Z`),
@@ -312,14 +325,14 @@ export async function GET(req: Request) {
             total_amount: 0,
             status: 'Missing',
         }
-    })
+    }).filter(Boolean)
 
     return NextResponse.json({
         data: finalData,
         pagination: {
-            total,
+            total: finalData.length,
             page,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(finalData.length / limit) || 1
         }
     })
 }

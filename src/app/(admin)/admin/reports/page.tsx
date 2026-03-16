@@ -57,6 +57,7 @@ function AdminReportsContent() {
     const [endDate, setEndDate] = useState(searchParams.get('endDate') || "")
     const [month, setMonth] = useState(searchParams.get('month') || "")
     const [search, setSearch] = useState(searchParams.get('search') || "")
+    const [status, setStatus] = useState(searchParams.get('status') || "")
     const [page, setPage] = useState(Number(searchParams.get('page') || "1"))
     const [limit, setLimit] = useState(Number(searchParams.get('limit') || "10"))
 
@@ -66,14 +67,14 @@ function AdminReportsContent() {
     // Sync state → URL whenever any filter changes
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
         const current: Record<string, string> = {
-            storeId, userId, startDate, endDate, month, search,
+            storeId, userId, startDate, endDate, month, search, status,
             page: page.toString(), limit: limit.toString(),
             ...overrides
         }
         const p = new URLSearchParams()
         Object.entries(current).forEach(([k, v]) => { if (v) p.set(k, v) })
         router.replace(`/admin/reports?${p.toString()}`, { scroll: false })
-    }, [storeId, userId, startDate, endDate, month, search, page, limit, router])
+    }, [storeId, userId, startDate, endDate, month, search, status, page, limit, router])
 
     // Handlers that also update URL
     const handleStoreId = (v: string) => { setStoreId(v); setPage(1); pushParams({ storeId: v, page: '1' }) }
@@ -81,6 +82,7 @@ function AdminReportsContent() {
     const handleStartDate = (v: string) => { setStartDate(v); setMonth(''); setPage(1); pushParams({ startDate: v, month: '', page: '1' }) }
     const handleEndDate = (v: string) => { setEndDate(v); setMonth(''); setPage(1); pushParams({ endDate: v, month: '', page: '1' }) }
     const handleSearch = (v: string) => { setSearch(v); setPage(1); pushParams({ search: v, page: '1' }) }
+    const handleStatus = (v: string) => { setStatus(v); setPage(1); pushParams({ status: v, page: '1' }) }
     const handlePage = (v: number) => { setPage(v); pushParams({ page: v.toString() }) }
     const handleLimit = (v: number) => { setLimit(v); setPage(1); pushParams({ limit: v.toString(), page: '1' }) }
 
@@ -104,7 +106,7 @@ function AdminReportsContent() {
 
     const handleClear = () => {
         setStoreId(''); setUserId(''); setStartDate(''); setEndDate('')
-        setMonth(''); setSearch(''); setPage(1)
+        setMonth(''); setSearch(''); setStatus(''); setPage(1)
         router.replace('/admin/reports', { scroll: false })
     }
 
@@ -126,6 +128,7 @@ function AdminReportsContent() {
         if (startDate) params.append('startDate', startDate)
         if (endDate) params.append('endDate', endDate)
         if (search) params.append('search', search)
+        if (status) params.append('status', status)
         params.append('page', page.toString())
         params.append('limit', limit.toString())
 
@@ -137,7 +140,7 @@ function AdminReportsContent() {
                 setSelectedReports([])
                 setLoading(false)
             })
-    }, [storeId, userId, startDate, endDate, search, page, limit])
+    }, [storeId, userId, startDate, endDate, search, status, page, limit])
 
     useEffect(() => { fetchReports() }, [fetchReports])
 
@@ -197,7 +200,7 @@ function AdminReportsContent() {
         link.click()
     }
 
-    const hasActiveFilters = !!(storeId || userId || startDate || endDate || month || search)
+    const hasActiveFilters = !!(storeId || userId || startDate || endDate || month || search || status)
 
     return (
         <div className="space-y-6">
@@ -241,13 +244,24 @@ function AdminReportsContent() {
                 />
 
                 {/* Filter Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 items-end">
                     {/* Store */}
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Filter by Store</label>
                         <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500" value={storeId} onChange={e => handleStoreId(e.target.value)}>
                             <option value="">All Stores</option>
                             {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500" value={status} onChange={e => handleStatus(e.target.value)}>
+                            <option value="">All</option>
+                            <option value="Verified">✅ Verified</option>
+                            <option value="Submitted">📋 Submitted (Unverified)</option>
+                            <option value="Missing">❌ Missing</option>
                         </select>
                     </div>
 
