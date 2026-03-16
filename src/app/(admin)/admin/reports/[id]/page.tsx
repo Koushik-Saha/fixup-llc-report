@@ -72,7 +72,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
             <div ref={printRef} className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500 space-y-6">
                 <div className="flex justify-between items-start border-b pb-4">
                     <div>
-                        <h3 className="text-xl font-bold text-gray-800">{new Date(report.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}</h3>
+                        <h3 className="text-xl font-bold text-gray-800">{dayjs.utc(report.report_date).format('dddd, M/D/YYYY')}</h3>
                         <p className="text-gray-500 mt-1">Shift: {report.time_in ? <span className="font-semibold text-gray-700">{report.time_in} - {report.time_out}</span> : 'N/A'}</p>
                         <p className="text-gray-500">Submitted by: <span className="font-medium text-gray-700">{report.submitted_by.name}</span> ({report.submitted_by.email})</p>
                     </div>

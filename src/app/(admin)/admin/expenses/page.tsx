@@ -1,7 +1,9 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -28,13 +30,24 @@ type StoreData = {
     name: string
 }
 
-export default function ExpensesDashboard() {
+function ExpensesDashboard() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
     const [expenses, setExpenses] = useState<ExpenseData[]>([])
     const [stores, setStores] = useState<StoreData[]>([])
     const [loading, setLoading] = useState(true)
 
-    const [filterStore, setFilterStore] = useState("")
-    const [filterMonth, setFilterMonth] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM'))
+    const [filterStore, setFilterStore] = useState(searchParams.get('storeId') || "")
+    const [filterMonth, setFilterMonth] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
+    const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
+    const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
+
+    const pushParams = (overrides: Record<string, string> = {}) => {
+        const vals: Record<string, string> = { storeId: filterStore, month: filterMonth, page: page.toString(), limit: limit.toString(), ...overrides }
+        const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v); if (k === 'page' && v !== '1') p.set(k, v); if (k === 'limit' && v !== '10') p.set(k, v) })
+        router.replace(`/admin/expenses?${p.toString()}`, { scroll: false })
+    }
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -129,23 +142,16 @@ export default function ExpensesDashboard() {
             <div className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Store</label>
-                    <select
-                        className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                        value={filterStore}
-                        onChange={(e) => setFilterStore(e.target.value)}
-                    >
+                    <select className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                        value={filterStore} onChange={(e) => { setFilterStore(e.target.value); pushParams({ storeId: e.target.value }) }}>
                         <option value="">All Stores</option>
                         {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
                 <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Month</label>
-                    <input
-                        type="month"
-                        className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                        value={filterMonth}
-                        onChange={(e) => setFilterMonth(e.target.value)}
-                    />
+                    <input type="month" className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                        value={filterMonth} onChange={(e) => { setFilterMonth(e.target.value); pushParams({ month: e.target.value }) }} />
                 </div>
             </div>
 
@@ -165,37 +171,35 @@ export default function ExpensesDashboard() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {expenses.map((exp) => (
-                                <tr key={exp.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {dayjs.utc(exp.expense_date).format('M/D/YYYY')}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                        {exp.store.name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {exp.category}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">
-                                        -${Number(exp.amount).toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {exp.user.name}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {exp.notes || <span className="text-gray-400 italic">None</span>}
-                                    </td>
-                                </tr>
-                            ))}
-                            {expenses.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                                        No expenses found for this period.
-                                    </td>
-                                </tr>
-                            )}
+                            {(() => {
+                                const paged = expenses.slice((page - 1) * limit, page * limit)
+                                const totalPages = Math.ceil(expenses.length / limit)
+                                return (
+                                    <>
+                                        {paged.map((exp) => (
+                                            <tr key={exp.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{dayjs.utc(exp.expense_date).format('M/D/YYYY')}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{exp.store.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{exp.category}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">-${Number(exp.amount).toFixed(2)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.user.name}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">{exp.notes || <span className="text-gray-400 italic">None</span>}</td>
+                                            </tr>
+                                        ))}
+                                        {paged.length === 0 && <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No expenses found for this period.</td></tr>}
+                                        <tr className="bg-transparent">
+                                            <td colSpan={6} className="p-0">
+                                                <Pagination currentPage={page} totalPages={totalPages} totalItems={expenses.length}
+                                                    onPageChange={v => { setPage(v); pushParams({ page: v.toString() }) }}
+                                                    label="expenses" limit={limit}
+                                                    onLimitChange={v => { setLimit(v); setPage(1); pushParams({ limit: v.toString(), page: '1' }) }} />
+                                            </td>
+                                        </tr>
+                                    </>
+                                )
+                            })()}
                         </tbody>
                     </table>
                 </div>
@@ -296,5 +300,13 @@ export default function ExpensesDashboard() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function ExpensesPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading...</div>}>
+            <ExpensesDashboard />
+        </Suspense>
     )
 }

@@ -1,6 +1,9 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -22,21 +25,23 @@ type WorkHourData = {
     report_details: any[]
 }
 
-export default function WorkHoursPage() {
+function WorkHoursPage() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
     const [data, setData] = useState<WorkHourData[]>([])
     const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "")
+    const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
+    const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
 
     // Preset Date Ranges using dayjs with Pacific timezone
     const getPresetDates = (preset: string) => {
         const now = dayjs().tz(TIMEZONE)
         let start = now
         const end = now
-
         switch (preset) {
             case 'This Week':
-                // Week starts on Monday
-                start = now.startOf('week').add(1, 'day') // dayjs startOf('week') is Sunday, +1 = Monday
+                start = now.startOf('week').add(1, 'day')
                 break
             case 'Last 15 Days':
                 start = now.subtract(15, 'day')
@@ -45,17 +50,22 @@ export default function WorkHoursPage() {
                 start = now.startOf('month')
                 break
         }
-
-        return {
-            start: start.format('YYYY-MM-DD'),
-            end: end.format('YYYY-MM-DD')
-        }
+        return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD') }
     }
 
-    const initialPreset = getPresetDates('This Week')
-    const [preset, setPreset] = useState('This Week')
-    const [startDate, setStartDate] = useState(initialPreset.start)
-    const [endDate, setEndDate] = useState(initialPreset.end)
+    const urlPreset = searchParams.get('preset') || 'This Month'
+    const urlStart = searchParams.get('startDate') || ''
+    const urlEnd = searchParams.get('endDate') || ''
+
+    const [preset, setPreset] = useState(urlPreset)
+    const [startDate, setStartDate] = useState(urlStart || getPresetDates(urlPreset).start)
+    const [endDate, setEndDate] = useState(urlEnd || getPresetDates(urlPreset).end)
+
+    const pushParams = (overrides: Record<string, string> = {}) => {
+        const vals: Record<string, string> = { preset, startDate, endDate, search: searchTerm, ...overrides }
+        const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v) })
+        router.replace(`/admin/work-hours?${p.toString()}`, { scroll: false })
+    }
 
     const fetchWorkHours = () => {
         if (!startDate || !endDate) return
@@ -79,10 +89,11 @@ export default function WorkHoursPage() {
 
     const handlePresetChange = (p: string) => {
         setPreset(p)
-        if (p === 'Custom') return
+        if (p === 'Custom') { pushParams({ preset: p }); return }
         const dates = getPresetDates(p)
         setStartDate(dates.start)
         setEndDate(dates.end)
+        pushParams({ preset: p, startDate: dates.start, endDate: dates.end })
     }
 
     const filteredData = data.filter(d =>
@@ -90,19 +101,20 @@ export default function WorkHoursPage() {
         d.role.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    const handleSearch = (v: string) => { setSearchTerm(v); setPage(1); pushParams({ search: v, page: '1' }) }
+    const handleCustomDate = (key: string, v: string) => {
+        if (key === 'start') { setStartDate(v); pushParams({ startDate: v }) }
+        else { setEndDate(v); pushParams({ endDate: v }) }
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <h1 className="text-2xl font-bold text-gray-900">Work Hours Tracking</h1>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <input
-                        type="text"
-                        placeholder="Search staff..."
-                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 w-full sm:w-auto"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <input type="text" placeholder="Search staff..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 w-full sm:w-auto"
+                        value={searchTerm} onChange={(e) => handleSearch(e.target.value)} />
 
                     <select
                         className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white min-w-[140px]"
@@ -117,19 +129,9 @@ export default function WorkHoursPage() {
 
                     {preset === 'Custom' && (
                         <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-gray-300 rounded shadow-sm">
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-medium"
-                            />
+                            <input type="date" value={startDate} onChange={(e) => handleCustomDate('start', e.target.value)} className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-medium" />
                             <span className="text-gray-400">to</span>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-medium"
-                            />
+                            <input type="date" value={endDate} onChange={(e) => handleCustomDate('end', e.target.value)} className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-medium" />
                         </div>
                     )}
                 </div>
@@ -150,38 +152,53 @@ export default function WorkHoursPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredData.map((d) => (
-                                <tr key={d.user_id} className="hover:bg-gray-50 transition">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-bold text-gray-900">{d.name}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-500">{d.role}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-600">
-                                        {d.shifts_count}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                                        <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-bold bg-blue-100 text-blue-800">
-                                            {d.total_hours.toFixed(2)} hrs
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-green-700">
-                                        ${d.total_earned.toFixed(2)}
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredData.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 italic">
-                                        No work hours recorded for the selected date range.
-                                    </td>
-                                </tr>
-                            )}
+                            {(() => {
+                                const paged = filteredData.slice((page - 1) * limit, page * limit)
+                                const totalPages = Math.ceil(filteredData.length / limit)
+                                return (
+                                    <>
+                                        {paged.map((d) => (
+                                            <tr key={d.user_id} className="hover:bg-blue-50 transition cursor-pointer group">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Link href={`/admin/work-hours/${d.user_id}?startDate=${startDate}&endDate=${endDate}&preset=${preset}`} className="block">
+                                                        <div className="text-sm font-bold text-blue-700 group-hover:text-blue-900 group-hover:underline">{d.name}</div>
+                                                        <div className="text-xs text-gray-400 mt-0.5 group-hover:text-blue-500">View details →</div>
+                                                    </Link>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{d.role}</div></td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-600">{d.shifts_count}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-bold bg-blue-100 text-blue-800">{d.total_hours.toFixed(2)} hrs</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-green-700">${d.total_earned.toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                        {paged.length === 0 && (
+                                            <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500 italic">No work hours recorded for the selected date range.</td></tr>
+                                        )}
+                                        <tr className="bg-transparent">
+                                            <td colSpan={5} className="p-0">
+                                                <Pagination currentPage={page} totalPages={totalPages} totalItems={filteredData.length}
+                                                    onPageChange={v => { setPage(v); pushParams({ page: v.toString() }) }}
+                                                    label="staff" limit={limit}
+                                                    onLimitChange={v => { setLimit(v); setPage(1); pushParams({ limit: v.toString(), page: '1' }) }} />
+                                            </td>
+                                        </tr>
+                                    </>
+                                )
+                            })()}
                         </tbody>
                     </table>
                 </div>
             )}
         </div>
+    )
+}
+
+export default function WorkHoursPageWrapper() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading...</div>}>
+            <WorkHoursPage />
+        </Suspense>
     )
 }

@@ -1,8 +1,10 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -23,13 +25,24 @@ type PayrollData = {
     payments: any[]
 }
 
-export default function PayrollDashboard() {
-    const [monthYear, setMonthYear] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM'))
+function PayrollDashboard() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
+    const [monthYear, setMonthYear] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
     const [payroll, setPayroll] = useState<PayrollData[]>([])
     const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
-    const [roleFilter, setRoleFilter] = useState("All")
-    const [statusFilter, setStatusFilter] = useState("All")
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "")
+    const [roleFilter, setRoleFilter] = useState(searchParams.get('role') || "All")
+    const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || "All")
+    const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
+    const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
+
+    const pushParams = (overrides: Record<string, string> = {}) => {
+        const vals: Record<string, string> = { month: monthYear, search: searchTerm, role: roleFilter, status: statusFilter, page: page.toString(), limit: limit.toString(), ...overrides }
+        const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v && v !== 'All') p.set(k, v); if (k === 'page' && v !== '1') p.set(k, v); if (k === 'limit' && v !== '10') p.set(k, v) })
+        router.replace(`/admin/payroll?${p.toString()}`, { scroll: false })
+    }
 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<PayrollData | null>(null)
@@ -108,28 +121,17 @@ export default function PayrollDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-2xl font-bold text-gray-900 mb-4 sm:mb-0">Staff Payroll</h1>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <input
-                        type="text"
-                        placeholder="Search by name..."
-                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <select
-                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                    >
+                    <input type="text" placeholder="Search by name..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); pushParams({ search: e.target.value, page: '1' }) }} />
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900" value={roleFilter}
+                        onChange={(e) => { setRoleFilter(e.target.value); setPage(1); pushParams({ role: e.target.value, page: '1' }) }}>
                         <option value="All">All Roles</option>
                         <option value="Admin">Admin</option>
                         <option value="Manager">Manager</option>
                         <option value="Staff">Staff</option>
                     </select>
-                    <select
-                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900" value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); pushParams({ status: e.target.value, page: '1' }) }}>
                         <option value="All">All Statuses</option>
                         <option value="Paid">Paid</option>
                         <option value="Partial">Partial</option>
@@ -137,12 +139,8 @@ export default function PayrollDashboard() {
                     </select>
                     <div className="flex items-center gap-2 bg-white px-4 py-2 border border-gray-300 rounded shadow-sm shrink-0">
                         <label className="text-sm font-medium text-gray-700">Month:</label>
-                        <input
-                            type="month"
-                            value={monthYear}
-                            onChange={(e) => setMonthYear(e.target.value)}
-                            className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-semibold"
-                        />
+                        <input type="month" value={monthYear} onChange={(e) => { setMonthYear(e.target.value); pushParams({ month: e.target.value }) }}
+                            className="text-sm border-none focus:ring-0 p-0 text-gray-900 font-semibold" />
                     </div>
                 </div>
             </div>
@@ -163,58 +161,48 @@ export default function PayrollDashboard() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {payroll.filter(p => {
-                                const term = searchTerm.toLowerCase();
-                                const matchesSearch = p.name.toLowerCase().includes(term);
-                                const matchesRole = roleFilter === "All" || p.role === roleFilter;
-                                const matchesStatus = statusFilter === "All" || p.status === statusFilter;
-                                return matchesSearch && matchesRole && matchesStatus;
-                            }).map((p) => (
-                                <tr key={p.user_id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{p.name}</div>
-                                        <div className="text-sm text-gray-500">{p.role}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                        ${p.base_salary.toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        ${p.total_paid.toFixed(2)}
-                                        {p.payments.length > 0 && (
-                                            <span className="ml-2 text-xs text-blue-600 block">
-                                                ({p.payments.length} installments)
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                        ${Math.max(0, p.base_salary - p.total_paid).toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {renderStatusBadge(p.status)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                                        <button
-                                            onClick={() => openPaymentModal(p)}
-                                            className="text-blue-600 hover:text-blue-900"
-                                        >
-                                            Add Payment
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {payroll.filter(p => {
-                                const term = searchTerm.toLowerCase();
-                                const matchesSearch = p.name.toLowerCase().includes(term);
-                                const matchesRole = roleFilter === "All" || p.role === roleFilter;
-                                const matchesStatus = statusFilter === "All" || p.status === statusFilter;
-                                return matchesSearch && matchesRole && matchesStatus;
-                            }).length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                                            No active staff found matching criteria.
-                                        </td>
-                                    </tr>
-                                )}
+                            {(() => {
+                                const filtered = payroll.filter(p => {
+                                    const term = searchTerm.toLowerCase()
+                                    const matchesSearch = p.name.toLowerCase().includes(term)
+                                    const matchesRole = roleFilter === "All" || p.role === roleFilter
+                                    const matchesStatus = statusFilter === "All" || p.status === statusFilter
+                                    return matchesSearch && matchesRole && matchesStatus
+                                })
+                                const paged = filtered.slice((page - 1) * limit, page * limit)
+                                const totalPages = Math.ceil(filtered.length / limit)
+                                return (
+                                    <>
+                                        {paged.map((p) => (
+                                            <tr key={p.user_id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">{p.name}</div>
+                                                    <div className="text-sm text-gray-500">{p.role}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${p.base_salary.toFixed(2)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    ${p.total_paid.toFixed(2)}
+                                                    {p.payments.length > 0 && <span className="ml-2 text-xs text-blue-600 block">({p.payments.length} installments)</span>}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${Math.max(0, p.base_salary - p.total_paid).toFixed(2)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">{renderStatusBadge(p.status)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <button onClick={() => openPaymentModal(p)} className="text-blue-600 hover:text-blue-900">Add Payment</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {paged.length === 0 && <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No active staff found matching criteria.</td></tr>}
+                                        <tr className="bg-transparent">
+                                            <td colSpan={6} className="p-0">
+                                                <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length}
+                                                    onPageChange={v => { setPage(v); pushParams({ page: v.toString() }) }}
+                                                    label="staff" limit={limit}
+                                                    onLimitChange={v => { setLimit(v); setPage(1); pushParams({ limit: v.toString(), page: '1' }) }} />
+                                            </td>
+                                        </tr>
+                                    </>
+                                )
+                            })()}
                         </tbody>
                     </table>
                 </div>
@@ -295,5 +283,13 @@ export default function PayrollDashboard() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function PayrollPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading...</div>}>
+            <PayrollDashboard />
+        </Suspense>
     )
 }
