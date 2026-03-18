@@ -1,8 +1,7 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import prisma from "@/lib/prisma"
+"use client"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import ChangePasswordWrapper from "@/components/ChangePasswordWrapper"
+import { useSession } from "next-auth/react"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -12,114 +11,225 @@ dayjs.extend(timezone)
 
 const TIMEZONE = "America/Los_Angeles"
 
-export default async function StaffHomePage() {
-    const session = await getServerSession(authOptions)
-    const storeId = session?.user?.storeId
-
-    if (!storeId) {
-        return <div className="p-8 text-center text-red-600">You are not assigned to an active store.</div>
+type DashData = {
+    today: {
+        dateLabel: string
+        report: { id: string; status: string; cash_amount: number; card_amount: number; total_amount: number } | null
     }
+    month: {
+        label: string
+        submittedCount: number
+        missingDays: number
+        totalDays: number
+        totalHours: number
+        totalCash: number
+        totalCard: number
+        totalRevenue: number
+        totalPaid: number
+        verifiedCount: number
+    }
+    streak: number
+    recentReports: Array<{
+        id: string
+        report_date: string
+        cash_amount: number
+        card_amount: number
+        total_amount: number
+        status: string
+    }>
+}
 
-    const store = await prisma.store.findUnique({
-        where: { id: storeId }
-    })
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+    return (
+        <div className={`bg-white rounded-2xl shadow-sm p-4 border-t-4 ${color}`}>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+            <p className="text-2xl font-black text-gray-900 mt-1 leading-none">{value}</p>
+            {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        </div>
+    )
+}
 
-    // Check today's report — using Pacific timezone midnight
+function SkeletonCard() {
+    return <div className="bg-white rounded-2xl shadow-sm h-20 animate-pulse border-t-4 border-gray-200" />
+}
+
+export default function StaffHomePage() {
+    const { data: session } = useSession()
+    const [data, setData] = useState<DashData | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        fetch('/api/staff/dashboard')
+            .then(r => r.json())
+            .then(d => { if (d.error) setError(d.error); else setData(d) })
+            .catch(() => setError('Failed to load'))
+            .finally(() => setLoading(false))
+    }, [])
+
+    const firstName = session?.user?.name?.split(' ')[0] || 'there'
+    const hour = dayjs().tz(TIMEZONE).hour()
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
+    if (error) return <div className="p-6 text-red-500 text-center text-sm">{error}</div>
+
     const todayStr = dayjs().tz(TIMEZONE).format('YYYY-MM-DD')
-    const todayObj = new Date(`${todayStr}T00:00:00.000Z`)
-
-    const todayReport = await prisma.dailyReport.findFirst({
-        where: {
-            store_id: storeId,
-            report_date: todayObj
-        }
-    })
-
-    const userRec = await prisma.user.findUnique({ where: { id: session?.user?.id as string } })
-
-    const currentMonth = dayjs().tz(TIMEZONE).format('YYYY-MM') // "YYYY-MM" in Pacific
-    const payrollRecord = await (prisma as any).payrollRecord.findUnique({
-        where: {
-            user_id_month_year: {
-                user_id: session?.user?.id as string,
-                month_year: currentMonth
-            }
-        },
-        include: {
-            payments: { orderBy: { payment_date: 'desc' } }
-        }
-    })
-
-    const baseSalary = 0
-    const totalPaid = Number(payrollRecord?.total_paid || 0)
-    const balance = Math.max(0, baseSalary - totalPaid)
+    const todaySubmitted = !!data?.today?.report
+    const todayReport = data?.today?.report
 
     return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800">{userRec?.name}</h2>
-                            <p className="text-gray-600 font-medium flex items-center gap-2 mt-1">
-                                <span>{userRec?.email}</span>
-                                <span className="text-gray-300">|</span>
-                                <span>{(userRec as any)?.phone || 'No Phone Number'}</span>
+        <div className="space-y-5">
+
+            {/* Greeting banner */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
+                <p className="text-blue-100 text-sm">{data?.today?.dateLabel || dayjs().tz(TIMEZONE).format('dddd, MMMM D')}</p>
+                <h1 className="text-2xl font-black mt-1">{greeting}, {firstName}! 👋</h1>
+                {data?.streak !== undefined && data.streak > 1 && (
+                    <p className="text-blue-100 text-sm mt-2">🔥 {data.streak}-day submission streak — keep it up!</p>
+                )}
+            </div>
+
+            {/* Today's Action Card */}
+            <div className={`rounded-2xl shadow-sm p-5 flex items-center justify-between gap-4 border-2 ${todaySubmitted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Today's Report</p>
+                    {loading ? (
+                        <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mt-1" />
+                    ) : todaySubmitted ? (
+                        <>
+                            <p className="text-green-700 font-bold text-lg mt-0.5 flex items-center gap-2">
+                                <span>✅</span> Submitted
                             </p>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg inline-block border border-blue-100">
-                            <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Assigned Store</h3>
-                            <p className="text-gray-800 font-medium">{store?.name}</p>
-                            <p className="text-gray-600 text-sm">{store?.city}, {store?.state}</p>
-                        </div>
-                    </div>
-                    <ChangePasswordWrapper />
+                            <p className="text-sm text-green-600 mt-0.5">
+                                Total: <strong>${Number(todayReport?.total_amount || 0).toFixed(2)}</strong>
+                                {' '}· Status: <span className="capitalize">{todayReport?.status}</span>
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-amber-700 font-bold text-lg mt-0.5 flex items-center gap-2">
+                                <span>⚠️</span> Not submitted yet
+                            </p>
+                            <p className="text-sm text-amber-600 mt-0.5">Submit before end of day</p>
+                        </>
+                    )}
+                </div>
+                {todaySubmitted ? (
+                    <Link href={`/staff/report/${todayReport?.id}`}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition whitespace-nowrap flex-shrink-0">
+                        View →
+                    </Link>
+                ) : (
+                    <Link href={`/staff/report/new?date=${todayStr}`}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition whitespace-nowrap flex-shrink-0">
+                        Submit Now
+                    </Link>
+                )}
+            </div>
+
+            {/* Monthly Stats Grid */}
+            <div>
+                <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
+                    {data?.month.label || 'This Month'}
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                    {loading ? (
+                        <>
+                            <SkeletonCard /><SkeletonCard />
+                            <SkeletonCard /><SkeletonCard />
+                            <SkeletonCard /><SkeletonCard />
+                        </>
+                    ) : data ? (
+                        <>
+                            <StatCard
+                                label="Reports Submitted"
+                                value={`${data.month.submittedCount} / ${data.month.totalDays}`}
+                                sub={`${data.month.missingDays} missing`}
+                                color="border-blue-400"
+                            />
+                            <StatCard
+                                label="Verified"
+                                value={`${data.month.verifiedCount}`}
+                                sub={`of ${data.month.submittedCount} submitted`}
+                                color="border-green-400"
+                            />
+                            <StatCard
+                                label="Hours Worked"
+                                value={`${data.month.totalHours}h`}
+                                sub="based on shift times"
+                                color="border-indigo-400"
+                            />
+                            <StatCard
+                                label="Pay Received"
+                                value={`$${data.month.totalPaid.toFixed(2)}`}
+                                sub="this month"
+                                color="border-emerald-400"
+                            />
+                            <StatCard
+                                label="Total Cash"
+                                value={`$${data.month.totalCash.toFixed(2)}`}
+                                color="border-yellow-400"
+                            />
+                            <StatCard
+                                label="Total Card"
+                                value={`$${data.month.totalCard.toFixed(2)}`}
+                                color="border-purple-400"
+                            />
+                        </>
+                    ) : null}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div className="bg-white rounded-lg shadow border border-gray-100 p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Today's Report Status</h3>
-                    {todayReport ? (
-                        <div>
-                            <p className="text-green-600 font-medium mb-4 flex items-center">
-                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
-                                Submitted
-                            </p>
-                            <Link href={`/staff/report/${todayReport.id}`} className="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded transition inline-block">
-                                View Today's Report
-                            </Link>
-                        </div>
-                    ) : (
-                        <div>
-                            <p className="text-yellow-600 font-medium mb-4 flex items-center">
-                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742-2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
-                                Not submitted yet
-                            </p>
-                            <Link href="/staff/report/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition inline-block">
-                                Submit Today's Report
-                            </Link>
-                        </div>
-                    )}
-                </div>
-
-                <div className="bg-white rounded-lg shadow border border-gray-100 p-6 flex flex-col">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-800">My Wallet ({new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})</h3>
-                    <div className="flex-1 space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500 font-medium">Expected Salary</span>
-                            <span className="text-gray-900 font-bold">${baseSalary.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-4">
-                            <span className="text-gray-500 font-medium">Total Received</span>
-                            <span className="text-green-600 font-bold">${totalPaid.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                            <span className="text-gray-700 font-bold">Remaining Balance</span>
-                            <span className="text-indigo-600 text-lg font-bold">${balance.toFixed(2)}</span>
-                        </div>
+            {/* Recent Reports */}
+            {data && data.recentReports.length > 0 && (
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Recent Submissions</h2>
+                        <Link href="/staff/reports" className="text-xs text-blue-600 font-semibold hover:underline">See all →</Link>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
+                        {data.recentReports.map(r => {
+                            const dateStr = r.report_date.split('T')[0]
+                            return (
+                                <Link key={r.id} href={`/staff/report/${r.id}`}
+                                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {dayjs.utc(r.report_date).format('ddd, MMM D')}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Cash ${Number(r.cash_amount).toFixed(2)} · Card ${Number(r.card_amount).toFixed(2)}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-sm font-bold text-gray-900">${Number(r.total_amount).toFixed(2)}</p>
+                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                            r.status === 'Verified' ? 'bg-green-100 text-green-700' :
+                                            r.status === 'CorrectionRequested' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-blue-100 text-blue-700'
+                                        }`}>
+                                            {r.status === 'Verified' ? '✓' : r.status === 'CorrectionRequested' ? '⚠' : '●'} {r.status}
+                                        </span>
+                                    </div>
+                                </Link>
+                            )
+                        })}
                     </div>
                 </div>
+            )}
+
+            {/* Quick actions */}
+            <div className="grid grid-cols-2 gap-3 pb-2">
+                <Link href="/staff/monthly-report"
+                    className="bg-white rounded-2xl shadow-sm p-4 text-center hover:bg-blue-50 transition border border-gray-100">
+                    <div className="text-2xl mb-1">📆</div>
+                    <p className="text-sm font-semibold text-gray-700">Monthly Report</p>
+                </Link>
+                <Link href="/staff/reports"
+                    className="bg-white rounded-2xl shadow-sm p-4 text-center hover:bg-blue-50 transition border border-gray-100">
+                    <div className="text-2xl mb-1">📋</div>
+                    <p className="text-sm font-semibold text-gray-700">All Reports</p>
+                </Link>
             </div>
         </div>
     )

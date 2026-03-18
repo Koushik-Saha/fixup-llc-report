@@ -80,10 +80,12 @@ model DailyReport {
   time_in              String?  // Ex: "10:00 AM"
   time_out             String?  // Ex: "08:00 PM"
   notes                String?
+  expected_cash        Decimal? @db.Decimal(10, 2)  // For reconciliation — set by manager
   status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'
   staff_edit_count     Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+
 
   store                Store         @relation(fields: [store_id], references: [id])
   submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id])
@@ -181,3 +183,15 @@ model StoreExpense {
   @@map("store_expenses")
 }
 
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // 'MISSING_REPORT' | 'UNVERIFIED_REPORT' | 'PAYROLL_DUE' | 'GENERAL'
+  title       String
+  message     String
+  is_read     Boolean  @default(false)
+  store_id    String?
+  report_id   String?
+  createdAt   DateTime @default(now())
+
+  @@map("notifications")
+}

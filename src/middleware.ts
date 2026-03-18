@@ -9,8 +9,10 @@ export async function middleware(request: NextRequest) {
 
     if (path === '/') {
         if (token) {
-            if (token.role === 'Admin' || token.role === 'Manager') {
+            if (token.role === 'Admin') {
                 return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+            } else if (token.role === 'Manager') {
+                return NextResponse.redirect(new URL('/admin/todays-reports', request.url))
             } else {
                 return NextResponse.redirect(new URL('/staff/home', request.url))
             }
@@ -19,8 +21,10 @@ export async function middleware(request: NextRequest) {
     }
 
     if (path.startsWith('/login') && token) {
-        if (token.role === 'Admin' || token.role === 'Manager') {
+        if (token.role === 'Admin') {
             return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+        } else if (token.role === 'Manager') {
+            return NextResponse.redirect(new URL('/admin/todays-reports', request.url))
         } else {
             return NextResponse.redirect(new URL('/staff/home', request.url))
         }
