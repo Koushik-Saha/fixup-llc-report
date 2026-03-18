@@ -4,10 +4,11 @@ import { signOut, useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-    { href: '/staff/home',           label: 'Home',    icon: '🏠' },
-    { href: '/staff/report/new',     label: 'Submit',  icon: '➕' },
-    { href: '/staff/monthly-report', label: 'Monthly', icon: '📆' },
-    { href: '/staff/reports',        label: 'History', icon: '📋' },
+    { href: '/staff/home',           label: 'Home',     icon: '🏠' },
+    { href: '/staff/report/new',     label: 'Submit',   icon: '➕' },
+    { href: '/staff/schedule',       label: 'Schedule', icon: '📅' },
+    { href: '/staff/monthly-report', label: 'Monthly',  icon: '📆' },
+    { href: '/staff/reports',        label: 'History',  icon: '📋' },
 ]
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {

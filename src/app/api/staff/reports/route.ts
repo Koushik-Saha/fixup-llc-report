@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls } = body
 
     if (cash_amount === undefined || card_amount === undefined) {
         return NextResponse.json({ error: 'Cash and Card amounts are required' }, { status: 400 })
@@ -81,6 +81,7 @@ export async function POST(req: Request) {
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
                     payouts_amount: Number(payouts_amount) || 0,
+                    category_id: category_id || null,
                     total_amount: total,
                     time_in: time_in || null,
                     time_out: time_out || null,

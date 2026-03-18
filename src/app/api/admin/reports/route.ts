@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { store_id, staff_ids, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
+    const { store_id, category_id, staff_ids, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
 
     if (!store_id) {
         return NextResponse.json({ error: 'Store ID is required' }, { status: 400 })
@@ -81,6 +81,7 @@ export async function POST(req: Request) {
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
+                    category_id: category_id || null,
                     payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
                     time_in: time_in || null,
