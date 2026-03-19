@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
 
-    let where: any = {}
+    let where: any = { store: { company_id: session.user.companyId } }
 
     if (store_id) where.store_id = store_id
     if (user_id) where.user_id = user_id
@@ -56,6 +56,11 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const { user_id, store_id, clock_in, clock_out, status, notes } = body
+
+    const validStore = await prisma.store.findFirst({
+      where: { id: store_id, company_id: session.user.companyId }
+    })
+    if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
 
     const newLog = await prisma.timeLog.create({
       data: {

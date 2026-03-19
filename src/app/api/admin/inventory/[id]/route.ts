@@ -13,6 +13,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
         const { id } = await props.params
         const body = await req.json()
         
+        const existingItem = await prisma.inventoryItem.findFirst({
+            where: { id, store: { company_id: session.user.companyId } }
+        })
+        if (!existingItem) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+        
         const updateData: any = {}
         if (body.name !== undefined) updateData.name = body.name
         if (body.sku !== undefined) updateData.sku = body.sku || null
@@ -44,6 +49,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
         }
 
         const { id } = await props.params
+
+        const existingItem = await prisma.inventoryItem.findFirst({
+            where: { id, store: { company_id: session.user.companyId } }
+        })
+        if (!existingItem) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
         await prisma.inventoryItem.delete({
             where: { id }

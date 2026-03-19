@@ -11,7 +11,7 @@ export async function GET() {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const where: any = {}
+    const where: any = { company_id: session.user.companyId }
     if (session.user.role === 'Manager') {
         const memberships = await prisma.storeMember.findMany({
             where: { user_id: session.user.id, status: 'Active' },
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
 
     const store = await prisma.store.create({
         data: {
+            company_id: session.user.companyId,
             name,
             address,
             city,

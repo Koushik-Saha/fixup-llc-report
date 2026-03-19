@@ -50,7 +50,8 @@ export async function GET(req: Request) {
             report_date: {
                 gte: startDate,
                 lte: endDate
-            }
+            },
+            store: { company_id: session.user.companyId }
         },
         select: {
             report_date: true,
@@ -71,12 +72,18 @@ export async function GET(req: Request) {
     const storeAggregations: Record<string, number> = {}
 
     const storeExpensesQuery = await prisma.storeExpense.findMany({
-        where: { expense_date: { gte: startDate, lte: endDate } },
+        where: { 
+            expense_date: { gte: startDate, lte: endDate },
+            store: { company_id: session.user.companyId }
+        },
         select: { amount: true }
     })
 
     const payrollPaymentsQuery = await prisma.payrollPayment.findMany({
-        where: { payment_date: { gte: startDate, lte: endDate } },
+        where: { 
+            payment_date: { gte: startDate, lte: endDate },
+            payroll_record: { user: { company_id: session.user.companyId } }
+        },
         select: { amount: true }
     })
 

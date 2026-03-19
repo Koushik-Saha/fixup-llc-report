@@ -94,7 +94,8 @@ export const authOptions: NextAuthOptions = {
                     email: user.email,
                     name: user.name,
                     role: user.role,
-                    storeId: storeId
+                    storeId: storeId,
+                    companyId: user.company_id
                 }
             }
         })
@@ -105,6 +106,7 @@ export const authOptions: NextAuthOptions = {
                 token.role = user.role
                 token.id = user.id
                 token.storeId = user.storeId
+                token.companyId = (user as any).companyId
             }
             return token
         },
@@ -113,6 +115,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role as string
                 session.user.id = token.id as string
                 session.user.storeId = token.storeId as string | null
+                session.user.companyId = token.companyId as string
             }
             return session
         }

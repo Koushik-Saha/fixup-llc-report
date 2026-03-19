@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
     // Fetch all active staff/users except the ghost admin
     const users = await prisma.user.findMany({
-        where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' } },
+        where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' }, company_id: session.user.companyId },
         select: { id: true, name: true, email: true, role: true, pay_type: true, base_salary: true }
     })
 
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
 
     // Fetch existing payroll records for this month
     const records = await prisma.payrollRecord.findMany({
-        where: { month_year: monthYear },
+        where: { month_year: monthYear, user: { company_id: session.user.companyId } },
         include: {
             payments: {
                 orderBy: { payment_date: 'desc' }
@@ -148,6 +148,13 @@ export async function POST(req: Request) {
 
     const payAmount = Number(amount)
     if (payAmount <= 0) {
+        return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+    }
+
+    const validUser = await prisma.user.findFirst({
+        where: { id: user_id, company_id: session.user.companyId }
+    })
+    if (!validUser) return NextResponse.json({ error: 'Unauthorized user access' }, { status: 403 })
         return NextResponse.json({ error: 'Amount must be greater than zero' }, { status: 400 })
     }
 

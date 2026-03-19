@@ -10,8 +10,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const id = (await params).id
-    const store = await prisma.store.findUnique({
-        where: { id }
+    const store = await prisma.store.findFirst({
+        where: { id, company_id: session.user.companyId }
     })
     if (!store) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -25,6 +25,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
     const body = await req.json()
     const { name, address, city, state, zip_code, block, max_members, status } = body
+
+    const existingStore = await prisma.store.findFirst({
+        where: { id, company_id: session.user.companyId }
+    })
+    if (!existingStore) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const store = await prisma.store.update({
         where: { id },
@@ -60,6 +65,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const id = (await params).id
 
     try {
+        const existingStore = await prisma.store.findFirst({
+            where: { id, company_id: session.user.companyId }
+        })
+        if (!existingStore) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
         const store = await prisma.store.update({
             where: { id },
             data: { status: 'Inactive' }

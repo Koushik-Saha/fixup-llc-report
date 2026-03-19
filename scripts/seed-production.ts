@@ -8,6 +8,18 @@ async function main() {
 
     const defaultPassword = await bcrypt.hash('Staff@123', 10)
 
+    // 0. CREATE INITIAL COMPANY
+    const defaultCompany = await prisma.company.upsert({
+        where: { subdomain: 'fixup' },
+        update: {},
+        create: {
+            name: 'FixUp LLC',
+            subdomain: 'fixup',
+            primary_color: '#4f46e5'
+        }
+    })
+    console.log(`  ✓ Created default Company: ${defaultCompany.name} (Subdomain: ${defaultCompany.subdomain})`)
+
     // Helper to extract initials (e.g. "MD Mostakin Hossain Patwari" -> "MH")
     // Note: The user explicitly requested "MH" for the first store, so I'll manually map these to ensure absolute accuracy based on their prompt.
     const getStoreName = (baseStore: string, initials: string) => `${baseStore} - ${initials}`
@@ -15,6 +27,7 @@ async function main() {
     // 1. CREATE USERS (All marked as HOURLY per user request)
     const usersData = [
         {
+            company_id: defaultCompany.id,
             name: "Shovon Sadeek",
             email: "explore.esa01@gmail.com",
             password_hash: defaultPassword,
@@ -24,6 +37,7 @@ async function main() {
             base_salary: 15.00 
         },
         {
+            company_id: defaultCompany.id,
             name: "MD Mostakin Hossain Patwari",
             email: "mostakin@ymail.com",
             password_hash: defaultPassword,
@@ -33,6 +47,7 @@ async function main() {
             base_salary: 15.00
         },
         {
+            company_id: defaultCompany.id,
             name: "Yeasin Arafat",
             email: "yeasin@fixupllc.com",
             password_hash: defaultPassword,
@@ -42,6 +57,7 @@ async function main() {
             base_salary: 15.00
         },
         {
+            company_id: defaultCompany.id,
             name: "Alif Azhar",
             email: "alif@fixupllc.com",
             password_hash: defaultPassword,
@@ -51,6 +67,7 @@ async function main() {
             base_salary: 15.00
         },
         {
+            company_id: defaultCompany.id,
             name: "Mowdud Ahmed Nihon",
             email: "mowdudahmed@c5k.com",
             password_hash: defaultPassword,
@@ -60,6 +77,7 @@ async function main() {
             base_salary: 15.00
         },
         {
+            company_id: defaultCompany.id,
             name: "Arif Hossain",
             email: "arif@fixupllc.com", // Guessed email based on pattern, as screenshot cuts it off
             password_hash: defaultPassword,
@@ -91,6 +109,7 @@ async function main() {
     // 2. CREATE STORES AND ASSIGN USERS
     const storesData = [
         {
+            company_id: defaultCompany.id,
             // The user explicitly requested "Fast Phone Repair and accessories - MH"
             name: getStoreName("Fast Phone Repair and accessories", "MH"),
             address: "7400 S Las Vegas Blvd, Entrance-C, Kiosk beside Starbucks (Unit TT45)",
@@ -102,6 +121,7 @@ async function main() {
             assignTo: ["MD Mostakin Hossain Patwari"]
         },
         {
+            company_id: defaultCompany.id,
             name: getStoreName("Las Vegas Phone Repair & Accessories", "YA"), // Yeasin Arafat -> YA
             address: "7400 Las Vegas Blvd S, Unit - TT42, Inside of the shopping Mall",
             city: "Las Vegas",
@@ -112,6 +132,7 @@ async function main() {
             assignTo: ["Yeasin Arafat"]
         },
         {
+            company_id: defaultCompany.id,
             name: getStoreName("Max Phone Repair & Accessories", "AA"), // Alif Azhar -> AA
             address: "7400 Las Vegas Blvd S, Unit TT38",
             city: "Las Vegas",
@@ -122,6 +143,7 @@ async function main() {
             assignTo: ["Alif Azhar"]
         },
         {
+            company_id: defaultCompany.id,
             name: getStoreName("Max Phone Repair & Accessories", "MN"), // Mowdud Ahmed Nihon -> MN
             address: "775 S Grand Central Pkwy",
             city: "Las Vegas",
@@ -132,6 +154,7 @@ async function main() {
             assignTo: ["Mowdud Ahmed Nihon"]
         },
         {
+            company_id: defaultCompany.id,
             name: getStoreName("Max Phone Repair & Accessories - 2", "AH"), // Arif Hossain -> AH
             address: "775 S Grand Central Pkwy",
             city: "Las Vegas",
@@ -153,6 +176,7 @@ async function main() {
         if (!store) {
             store = await prisma.store.create({
                 data: {
+                    company_id: s.company_id,
                     name: s.name,
                     address: s.address,
                     city: s.city,

@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     if (startDateParam) dateFilter.gte = new Date(`${startDateParam}T00:00:00`)
     if (endDateParam) dateFilter.lte = new Date(`${endDateParam}T23:59:59`)
 
-    const reportFilter: any = {}
+    const reportFilter: any = { store: { company_id: session.user.companyId } }
     if (Object.keys(dateFilter).length > 0) reportFilter.report_date = dateFilter
     if (storeId) reportFilter.store_id = storeId
 

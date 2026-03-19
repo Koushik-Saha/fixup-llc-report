@@ -28,7 +28,8 @@ export async function GET(req: Request) {
 
     const where: any = {
         report_date: { gte: startObj, lte: endObj },
-        status: { not: 'Missing' }
+        status: { not: 'Missing' },
+        store: { company_id: session.user.companyId }
     }
     if (storeId) where.store_id = storeId
 

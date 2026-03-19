@@ -11,8 +11,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     try {
         const categoryId = (await params).id
-        const category = await prisma.category.findUnique({
-            where: { id: categoryId }
+        const category = await prisma.category.findFirst({
+            where: { id: categoryId, company_id: session.user.companyId }
         })
         if (!category) return NextResponse.json({ error: 'Category not found' }, { status: 404 })
 
@@ -35,6 +35,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const { name, status } = body
 
         if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+
+        const existingCategory = await prisma.category.findFirst({
+            where: { id: categoryId, company_id: session.user.companyId }
+        })
+        if (!existingCategory) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
         const updatedCategory = await prisma.category.update({
             where: { id: categoryId },
@@ -66,6 +71,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
     try {
         const categoryId = (await params).id
+
+        const existingCategory = await prisma.category.findFirst({
+            where: { id: categoryId, company_id: session.user.companyId }
+        })
+        if (!existingCategory) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
         const deactivated = await prisma.category.update({
             where: { id: categoryId },
             data: { status: 'Inactive' }

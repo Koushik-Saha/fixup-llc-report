@@ -16,8 +16,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
     const id = (await params).id
 
-    const report = await prisma.dailyReport.findUnique({
-        where: { id },
+    const report = await prisma.dailyReport.findFirst({
+        where: { id, store: { company_id: session.user.companyId } },
         include: {
             images: true,
             sale_items: true,
@@ -82,8 +82,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls, sale_items, inventory_usage } = body
 
     try {
-        const existingReport = await prisma.dailyReport.findUnique({
-            where: { id },
+        const existingReport = await prisma.dailyReport.findFirst({
+            where: { id, store: { company_id: session.user.companyId } },
             include: { images: true, store: true }
         })
         if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })

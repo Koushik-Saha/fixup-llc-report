@@ -58,7 +58,7 @@ function PunchClock() {
     useEffect(() => {
         fetch('/api/staff/punch')
             .then(r => r.json())
-            .then(d => { if (!d.error) setPunch(d) })
+            .then(d => { if (d && !d.error) setPunch(d) })
             .finally(() => setLoadingPunch(false))
     }, [])
 

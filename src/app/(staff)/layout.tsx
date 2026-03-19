@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { signOut, useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
+import { CompanyProvider, useCompany } from '@/components/CompanyProvider'
 
 const NAV_ITEMS = [
     { href: '/staff/home',           label: 'Home',     icon: '🏠' },
@@ -12,8 +13,17 @@ const NAV_ITEMS = [
 ]
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <CompanyProvider>
+            <StaffLayoutInner>{children}</StaffLayoutInner>
+        </CompanyProvider>
+    )
+}
+
+function StaffLayoutInner({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const { data: session } = useSession()
+    const company = useCompany()
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -21,7 +31,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             <header className="bg-white shadow shrink-0 sticky top-0 z-40">
                 <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
                     <Link href="/staff/home" className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <span className="text-blue-600">⚡</span> Daily Sales
+                        {company.logo_url && <img src={company.logo_url} alt="Logo" className="w-6 h-6 object-contain rounded" />}
+                        {!company.logo_url && <span className="text-brand">⚡</span>}
+                        {company.name || 'Daily Sales'}
                     </Link>
                     <div className="flex items-center gap-3">
                         <span className="text-sm text-gray-500 hidden sm:block">{session?.user?.name}</span>
@@ -50,11 +62,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                                 key={item.href}
                                 href={item.href}
                                 className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-xs font-medium transition
-                                    ${isActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                    ${isActive ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                                 <span className="text-xl leading-none">{item.icon}</span>
                                 <span>{item.label}</span>
-                                {isActive && <span className="absolute bottom-0 w-8 h-0.5 bg-blue-600 rounded-t-full" />}
+                                {isActive && <span className="absolute bottom-0 w-8 h-0.5 bg-brand rounded-t-full" />}
                             </Link>
                         )
                     })}

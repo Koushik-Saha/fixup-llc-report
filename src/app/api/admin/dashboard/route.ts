@@ -36,18 +36,18 @@ export async function GET() {
     // ── Active stores & users ──────────────────────────────────────────────────
     const [activeStores, totalUsers, totalStores] = await Promise.all([
         prisma.store.findMany({
-            where: { status: 'Active' },
+            where: { company_id: session.user.companyId, status: 'Active' },
             select: { id: true, name: true, city: true }
         }),
-        prisma.user.count({ where: { status: 'Active' } }),
-        prisma.store.count({ where: { status: 'Active' } })
+        prisma.user.count({ where: { company_id: session.user.companyId, status: 'Active' } }),
+        prisma.store.count({ where: { company_id: session.user.companyId, status: 'Active' } })
     ])
 
     const allStoreIds = activeStores.map(s => s.id)
 
     // ── Today's reports ────────────────────────────────────────────────────────
     const todaysReports = await prisma.dailyReport.findMany({
-        where: { report_date: todayObj },
+        where: { report_date: todayObj, store_id: { in: allStoreIds } },
         select: {
             id: true,
             store_id: true,
@@ -189,7 +189,7 @@ export async function GET() {
     // ── Top submitters (this month, by report count) ───────────────────────────
     const topSubmitters = await prisma.dailyReport.groupBy({
         by: ['submitted_by_user_id'],
-        where: { report_date: { gte: monthStartObj, lte: todayObj } },
+        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
         _count: { id: true },
         _sum: { total_amount: true },
         orderBy: { _count: { id: 'desc' } },

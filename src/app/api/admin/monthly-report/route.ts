@@ -26,7 +26,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'storeId required' }, { status: 400 })
     }
 
-    const store = await prisma.store.findUnique({ where: { id: storeId } })
+    const store = await prisma.store.findFirst({ where: { id: storeId, company_id: session.user.companyId } })
     if (!store) {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
     }

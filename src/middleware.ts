@@ -9,7 +9,9 @@ export async function middleware(request: NextRequest) {
 
     if (path === '/') {
         if (token) {
-            if (token.role === 'Admin') {
+            if (token.role === 'SuperAdmin') {
+                return NextResponse.redirect(new URL('/super-admin', request.url))
+            } else if (token.role === 'Admin') {
                 return NextResponse.redirect(new URL('/admin/dashboard', request.url))
             } else if (token.role === 'Manager') {
                 return NextResponse.redirect(new URL('/admin/todays-reports', request.url))
@@ -20,8 +22,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    if (path.startsWith('/login') && token) {
-        if (token.role === 'Admin') {
+    if ((path.startsWith('/login') || path.startsWith('/register')) && token) {
+        if (token.role === 'SuperAdmin') {
+            return NextResponse.redirect(new URL('/super-admin', request.url))
+        } else if (token.role === 'Admin') {
             return NextResponse.redirect(new URL('/admin/dashboard', request.url))
         } else if (token.role === 'Manager') {
             return NextResponse.redirect(new URL('/admin/todays-reports', request.url))
@@ -38,9 +42,13 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
+    if (path.startsWith('/super-admin') && (!token || token.role !== 'SuperAdmin')) {
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+
     return NextResponse.next()
 }
 
 export const config = {
-    matcher: ['/', '/login', '/admin/:path*', '/staff/:path*'],
+    matcher: ['/', '/login', '/register', '/admin/:path*', '/staff/:path*', '/super-admin/:path*'],
 }

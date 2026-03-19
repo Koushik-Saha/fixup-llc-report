@@ -11,6 +11,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     }
 
     const { id } = await props.params
+
+    const existingLog = await prisma.timeLog.findFirst({
+      where: { id, store: { company_id: session.user.companyId } }
+    })
+    if (!existingLog) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+
     const body = await req.json()
     const { clock_in, clock_out, status, notes } = body
 
@@ -44,6 +50,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
     }
 
     const { id } = await props.params
+
+    const existingLog = await prisma.timeLog.findFirst({
+      where: { id, store: { company_id: session.user.companyId } }
+    })
+    if (!existingLog) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
     await prisma.timeLog.delete({
       where: { id }

@@ -8,19 +8,41 @@ datasource db {
 }
 
 
+model Company {
+  id               String     @id @default(cuid())
+  name             String
+  subdomain        String     @unique
+  logo_url         String?
+  primary_color    String     @default("#6366f1")
+  stripe_customer  String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  users            User[]
+  stores           Store[]
+  categories       Category[]
+  notifications    Notification[]
+
+  @@map("companies")
+}
+
 model Category {
-  id        String        @id @default(cuid())
-  name      String
-  status    String        @default("Active") // 'Active' or 'Inactive'
-  createdAt DateTime      @default(now())
-  updatedAt DateTime         @updatedAt
-  reports   CategoryReport[]
+  id         String   @id @default(cuid())
+  company_id String
+  name       String
+  status     String   @default("Active") // 'Active' or 'Inactive'
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  company    Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  reports    CategoryReport[]
 
   @@map("categories")
 }
 
 model Store {
   id          String        @id @default(cuid())
+  company_id  String
   name        String
   address     String        @default("")
   city        String        @default("")
@@ -32,6 +54,7 @@ model Store {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  company     Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
   members     StoreMember[]
   reports     DailyReport[]
   expenses    StoreExpense[]
@@ -44,13 +67,15 @@ model Store {
 
 model User {
   id                 String        @id @default(cuid())
+  company_id         String
   name               String
   email              String        @unique
   password_hash      String
-  role               String        @default("Staff") // 'Admin' or 'Staff'
+  role               String        @default("Staff") // 'SuperAdmin', 'Admin', 'Manager', 'Staff'
   status             String        @default("Active") // 'Active' or 'Inactive'
   pay_type           String        @default("MONTHLY") // 'MONTHLY' or 'HOURLY'
   base_salary        Decimal       @default(0) @db.Decimal(10, 2)
+  manager_rate       Decimal       @default(0) @db.Decimal(10, 2)
   reset_token        String?
   reset_token_expiry DateTime?
   two_factor_enabled Boolean       @default(false)
@@ -60,6 +85,8 @@ model User {
   tax_id             String?       // SSN or EIN (Encrypted in prod)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
+
+  company            Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   storeMembers       StoreMember[]
   reports            DailyReport[]
@@ -284,13 +311,17 @@ model StoreExpense {
 
 model Notification {
   id          String   @id @default(cuid())
-  type        String   // 'MISSING_REPORT' | 'UNVERIFIED_REPORT' | 'PAYROLL_DUE' | 'GENERAL'
+  company_id  String
   title       String
   message     String
+  type        String   @default("Alert") // 'Alert', 'Reminder', 'System'
   is_read     Boolean  @default(false)
   store_id    String?
   report_id   String?
+  link        String?
   createdAt   DateTime @default(now())
+  
+  company     Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }

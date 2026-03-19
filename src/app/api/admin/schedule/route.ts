@@ -26,6 +26,11 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'storeId and weekStart required' }, { status: 400 })
     }
 
+    const validStore = await prisma.store.findFirst({
+        where: { id: storeId, company_id: session.user.companyId }
+    })
+    if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+
     const start = new Date(`${weekStart}T00:00:00.000Z`)
     const end = new Date(`${dayjs(weekStart).add(6, 'day').format('YYYY-MM-DD')}T00:00:00.000Z`)
 
@@ -63,6 +68,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    const validStore = await prisma.store.findFirst({
+        where: { id: store_id, company_id: session.user.companyId }
+    })
+    if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+
     const dateObj = new Date(`${shift_date}T00:00:00.000Z`)
 
     const shift = await prisma.shiftSchedule.upsert({
@@ -84,6 +94,11 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+    const validShift = await prisma.shiftSchedule.findFirst({
+        where: { id, store: { company_id: session.user.companyId } }
+    })
+    if (!validShift) return NextResponse.json({ error: 'Unauthorized shift access' }, { status: 403 })
 
     await prisma.shiftSchedule.delete({ where: { id } })
     return NextResponse.json({ ok: true })

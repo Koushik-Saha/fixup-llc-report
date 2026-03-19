@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { CompanyProvider, useCompany } from '@/components/CompanyProvider'
 
 function BellIcon() {
     return (
@@ -13,12 +14,21 @@ function BellIcon() {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <CompanyProvider>
+            <AdminLayoutInner>{children}</AdminLayoutInner>
+        </CompanyProvider>
+    )
+}
+
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [unreadCount, setUnreadCount] = useState(0)
     const isAdmin = session?.user?.role === 'Admin'
     const isManagerOrAdmin = session?.user?.role === 'Admin' || session?.user?.role === 'Manager'
     const pathname = usePathname()
+    const company = useCompany()
 
     // Poll unread notification count every 60s
     useEffect(() => {
@@ -51,17 +61,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
             {/* Mobile Header */}
-            <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
-                <div className="text-xl font-bold">Daily Sales Admin</div>
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 bg-gray-800 rounded font-medium text-sm">
+            <div className="md:hidden bg-brand text-white p-4 flex justify-between items-center shrink-0">
+                <div className="text-xl font-bold">{company.name || 'Admin Portal'}</div>
+                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 bg-black/20 hover:bg-black/30 rounded font-medium text-sm">
                     {isSidebarOpen ? 'Close Menu' : 'Menu'}
                 </button>
             </div>
 
             {/* Sidebar */}
-            <aside className={`${isSidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-gray-900 text-white flex-shrink-0 md:h-screen md:sticky top-0 overflow-y-auto`}>
-                <div className="hidden md:block p-4 text-xl font-bold border-b border-gray-800">
-                    Daily Sales Admin
+            <aside className={`${isSidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-brand text-white flex-shrink-0 md:h-screen md:sticky top-0 overflow-y-auto`}>
+                <div className="hidden md:block p-4 text-xl font-bold border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                        {company.logo_url && <img src={company.logo_url} alt="Logo" className="w-8 h-8 object-contain rounded" />}
+                        {company.name || 'Admin Portal'}
+                    </div>
                 </div>
                 <nav className="p-3 space-y-1">
                     {isAdmin && navLink('/admin/dashboard', '🏠 Dashboard')}
@@ -99,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         href="/admin/notifications"
                         onClick={() => setIsSidebarOpen(false)}
                         className={`flex items-center justify-between py-2 px-4 rounded transition text-sm font-medium
-                            ${pathname === '/admin/notifications' ? 'bg-gray-700 text-white' : 'hover:bg-gray-800 text-gray-200'}`}
+                            ${pathname === '/admin/notifications' ? 'bg-black/30 text-white' : 'hover:bg-black/20 text-gray-200'}`}
                     >
                         <span>🔔 Notifications</span>
                         {unreadCount > 0 && (
@@ -117,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="bg-white shadow px-4 sm:px-6 py-3 flex flex-wrap gap-4 justify-between items-center shrink-0">
-                    <h1 className="text-lg font-semibold text-gray-800">Admin Portal</h1>
+                    <h1 className="text-lg font-semibold text-gray-800">{company.name ? `${company.name} Workspace` : 'Admin Portal'}</h1>
                     <div className="flex items-center gap-3">
                         {/* Bell icon */}
                         <Link href="/admin/notifications" className="relative text-gray-500 hover:text-indigo-600 transition p-1.5 rounded-lg hover:bg-indigo-50">

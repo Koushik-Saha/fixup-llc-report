@@ -15,7 +15,7 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url)
         const store_id = searchParams.get('store_id')
 
-        let where: any = {}
+        let where: any = { store: { company_id: session.user.companyId } }
         if (store_id) where.store_id = store_id
 
         const inventory = await prisma.inventoryItem.findMany({
@@ -46,6 +46,11 @@ export async function POST(req: Request) {
         if (!store_id || !name) {
             return NextResponse.json({ error: 'Store ID and Name are required' }, { status: 400 })
         }
+
+        const validStore = await prisma.store.findFirst({
+            where: { id: store_id, company_id: session.user.companyId }
+        })
+        if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
 
         const newItem = await prisma.inventoryItem.create({
             data: {

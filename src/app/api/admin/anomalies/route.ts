@@ -29,19 +29,16 @@ export async function GET(req: Request) {
             }
         }
 
-        const where: any = {}
+        const where: any = { report: { store: { company_id: session.user.companyId } } }
         if (status && status !== 'All') {
             where.status = status
         }
         if (storeId) {
-            where.report = { store_id: storeId }
+            where.report.store_id = storeId
         }
 
         if (allowedStoreIds) {
-            where.report = {
-                ...where.report,
-                store_id: { in: allowedStoreIds }
-            }
+            where.report.store_id = { in: allowedStoreIds }
         }
 
         const [total, anomalies] = await prisma.$transaction([

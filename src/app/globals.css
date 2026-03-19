@@ -6,6 +6,7 @@
 }
 
 @theme inline {
+  --color-brand: var(--brand-primary, #111827); /* Default to gray-900 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

@@ -28,6 +28,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Store ID, Cash, and Card amounts are required' }, { status: 400 })
     }
 
+    // Tenancy Check
+    const targetStore = await prisma.store.findFirst({
+        where: { id: store_id, company_id: session.user.companyId }
+    })
+    if (!targetStore) {
+        return NextResponse.json({ error: 'Store not found or unauthorized' }, { status: 404 })
+    }
+
     if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length === 0) {
         return NextResponse.json({ error: 'At least one staff member must be assigned to the report' }, { status: 400 })
     }
@@ -140,7 +148,7 @@ export async function POST(req: Request) {
                 }
             })
 
-            const store = await tx.store.findUnique({ where: { id: store_id } })
+            const store = targetStore
             sendDailySummary({
                 storeName: store?.name || 'Unknown Store',
                 reportDate: reportDateObj.toLocaleDateString('en-US', { timeZone: 'UTC' }),

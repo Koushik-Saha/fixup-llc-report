@@ -11,6 +11,7 @@ export async function GET() {
 
     try {
         const categories = await prisma.category.findMany({
+            where: { company_id: session.user.companyId },
             orderBy: { name: 'asc' },
             include: {
                 _count: {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
         if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
         const newCategory = await prisma.category.create({
-            data: { name }
+            data: { company_id: session.user.companyId, name }
         })
 
         await prisma.systemLog.create({

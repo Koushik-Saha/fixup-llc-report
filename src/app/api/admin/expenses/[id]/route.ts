@@ -20,8 +20,10 @@ export async function PATCH(
         return NextResponse.json({ error: 'action must be approve or reject' }, { status: 400 })
     }
 
-    const expense = await prisma.storeExpense.findUnique({ where: { id } })
-    if (!expense) return NextResponse.json({ error: 'Expense not found' }, { status: 404 })
+    const expense = await prisma.storeExpense.findFirst({
+        where: { id, store: { company_id: session.user.companyId } }
+    })
+    if (!expense) return NextResponse.json({ error: 'Expense not found or unauthorized' }, { status: 404 })
 
     const updated = await prisma.storeExpense.update({
         where: { id },
@@ -62,6 +64,11 @@ export async function DELETE(
     }
 
     const { id } = await params
+
+    const expense = await prisma.storeExpense.findFirst({
+        where: { id, store: { company_id: session.user.companyId } }
+    })
+    if (!expense) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
     await prisma.storeExpense.delete({ where: { id } })
     return NextResponse.json({ ok: true })

@@ -19,10 +19,11 @@ export async function GET() {
     }
 
     const notifications = await prisma.notification.findMany({
+        where: { company_id: session.user.companyId },
         orderBy: { createdAt: 'desc' },
         take: 50
     })
-    const unreadCount = await prisma.notification.count({ where: { is_read: false } })
+    const unreadCount = await prisma.notification.count({ where: { is_read: false, company_id: session.user.companyId } })
 
     return NextResponse.json({ notifications, unreadCount })
 }
@@ -39,12 +40,12 @@ export async function POST() {
     const todayObj = new Date(`${todayStr}T00:00:00.000Z`)
 
     const activeStores = await prisma.store.findMany({
-        where: { status: 'Active' },
+        where: { status: 'Active', company_id: session.user.companyId },
         select: { id: true, name: true }
     })
 
     const todaysReports = await prisma.dailyReport.findMany({
-        where: { report_date: todayObj },
+        where: { report_date: todayObj, store: { company_id: session.user.companyId } },
         select: { store_id: true }
     })
 
@@ -57,6 +58,7 @@ export async function POST() {
     for (const store of missingStores) {
         const existing = await prisma.notification.findFirst({
             where: {
+                company_id: session.user.companyId,
                 type: 'MISSING_REPORT',
                 store_id: store.id,
                 createdAt: { gte: todayObj }
@@ -65,6 +67,7 @@ export async function POST() {
         if (!existing) {
             const n = await prisma.notification.create({
                 data: {
+                    company_id: session.user.companyId,
                     type: 'MISSING_REPORT',
                     title: `Missing Report — ${store.name}`,
                     message: `${store.name} has not submitted a daily report for ${now.format('MMMM D, YYYY')}.`,
@@ -76,14 +79,15 @@ export async function POST() {
     }
 
     // Unverified report count alert
-    const unverifiedCount = await prisma.dailyReport.count({ where: { status: 'Submitted' } })
+    const unverifiedCount = await prisma.dailyReport.count({ where: { status: 'Submitted', store: { company_id: session.user.companyId } } })
     if (unverifiedCount > 0) {
         const existing = await prisma.notification.findFirst({
-            where: { type: 'UNVERIFIED_REPORT', createdAt: { gte: todayObj } }
+            where: { company_id: session.user.companyId, type: 'UNVERIFIED_REPORT', createdAt: { gte: todayObj } }
         })
         if (!existing) {
             const n = await prisma.notification.create({
                 data: {
+                    company_id: session.user.companyId,
                     type: 'UNVERIFIED_REPORT',
                     title: `${unverifiedCount} Reports Awaiting Verification`,
                     message: `There are ${unverifiedCount} submitted reports that have not been verified yet.`
@@ -97,11 +101,12 @@ export async function POST() {
     const dayOfMonth = now.date()
     if (dayOfMonth === 1 || dayOfMonth === 15) {
         const existing = await prisma.notification.findFirst({
-            where: { type: 'PAYROLL_DUE', createdAt: { gte: todayObj } }
+            where: { company_id: session.user.companyId, type: 'PAYROLL_DUE', createdAt: { gte: todayObj } }
         })
         if (!existing) {
             const n = await prisma.notification.create({
                 data: {
+                    company_id: session.user.companyId,
                     type: 'PAYROLL_DUE',
                     title: 'Payroll Review Reminder',
                     message: `Today is the ${dayOfMonth === 1 ? '1st' : '15th'} — please review and process payroll for staff.`
@@ -122,7 +127,7 @@ export async function PATCH() {
     }
 
     await prisma.notification.updateMany({
-        where: { is_read: false },
+        where: { is_read: false, company_id: session.user.companyId },
         data: { is_read: true }
     })
 
