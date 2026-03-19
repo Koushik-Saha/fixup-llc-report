@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import prisma from '@/lib/prisma'
-import { authenticator } from 'otplib'
+import * as otplibType from 'otplib'
+const authenticator = (otplibType as any).authenticator
 
 // POST /api/auth/2fa/disable — disable 2FA (requires current TOTP code)
 export async function POST(req: Request) {

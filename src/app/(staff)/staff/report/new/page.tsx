@@ -30,6 +30,11 @@ export default function SubmitReportPage() {
 
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState("")
+    const [saleItems, setSaleItems] = useState<{ category: string, description: string, quantity: number, unit_price: number | '' }[]>([])
+
+    // Inventory
+    const [inventoryItems, setInventoryItems] = useState<any[]>([])
+    const [inventoryUsage, setInventoryUsage] = useState<{ item_id: string, quantity: number }[]>([])
 
     useEffect(() => {
         // Hydrate default target date if navigating from a missing report link
@@ -38,6 +43,18 @@ export default function SubmitReportPage() {
         if (dateParam) {
             setReportDate(dateParam)
         }
+
+        const fetchInventory = async () => {
+            try {
+                const res = await fetch('/api/staff/inventory')
+                const data = await res.json()
+                if (data.success) setInventoryItems(data.data)
+            } catch (err) {
+                console.error('Failed to load inventory', err)
+            }
+        }
+
+        fetchInventory()
     }, [])
 
     const netCash = (Number(cash) || 0) - (Number(expenses) || 0) - (Number(payouts) || 0)
@@ -105,7 +122,9 @@ export default function SubmitReportPage() {
                 time_in: timeIn.trim(),
                 time_out: timeOut.trim(),
                 notes: notes.trim(),
-                imageUrls: publicUrls
+                imageUrls: publicUrls,
+                sale_items: saleItems.filter(i => i.description.trim() !== "" && i.unit_price !== ""),
+                inventory_usage: inventoryUsage.filter(u => u.item_id && u.quantity > 0)
             }
 
             const res = await fetch("/api/staff/reports", {
@@ -193,7 +212,65 @@ export default function SubmitReportPage() {
                     </div>
                 </div>
 
-                <div>
+                {/* ITEM SALES SECTION */}
+                <div className="pt-6 border-t border-gray-200">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-900">Itemized Sales (Optional)</h3>
+                        <button type="button" onClick={() => setSaleItems([...saleItems, { category: 'Repair', description: '', quantity: 1, unit_price: '' }])} className="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md font-medium hover:bg-blue-100 transition">
+                            + Add Item
+                        </button>
+                    </div>
+                    {saleItems.length === 0 ? (
+                        <p className="text-sm text-gray-500">No individual items recorded. Click "Add Item" to itemize sales.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {saleItems.map((item, index) => (
+                                <div key={index} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-gray-50 p-3 rounded border border-gray-100">
+                                    <select className="px-2 py-1.5 border border-gray-300 rounded text-sm w-full sm:w-auto" value={item.category} onChange={e => { const newItems = [...saleItems]; newItems[index].category = e.target.value; setSaleItems(newItems) }}>
+                                        <option value="Repair">Repair</option>
+                                        <option value="Accessory">Accessory</option>
+                                        <option value="Device">Device Sale</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <input type="text" placeholder="Description (e.g. iPhone 13 Screen)" className="px-2 py-1.5 border border-gray-300 rounded text-sm flex-1 w-full" value={item.description} onChange={e => { const newItems = [...saleItems]; newItems[index].description = e.target.value; setSaleItems(newItems) }} />
+                                    <input type="number" min="1" placeholder="Qty" className="px-2 py-1.5 border border-gray-300 rounded text-sm w-20" value={item.quantity} onChange={e => { const newItems = [...saleItems]; newItems[index].quantity = Number(e.target.value); setSaleItems(newItems) }} />
+                                    <input type="number" min="0" step="0.01" placeholder="Price ($)" className="px-2 py-1.5 border border-gray-300 rounded text-sm w-28" value={item.unit_price} onChange={e => { const newItems = [...saleItems]; newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value); setSaleItems(newItems) }} />
+                                    <button type="button" onClick={() => setSaleItems(saleItems.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-700 p-1 font-bold shrink-0">✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* INVENTORY USAGE SECTION */}
+                <div className="pt-6 border-t border-gray-200">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-gray-900">Inventory Usage (Optional)</h3>
+                        <button type="button" onClick={() => setInventoryUsage([...inventoryUsage, { item_id: '', quantity: 1 }])} className="text-sm bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-md font-medium hover:bg-indigo-100 transition">
+                            + Log Part Used
+                        </button>
+                    </div>
+                    {inventoryUsage.length === 0 ? (
+                        <p className="text-sm text-gray-500">No inventory parts logged. Click "Log Part Used" to deduct items from store stock.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {inventoryUsage.map((usage, index) => (
+                                <div key={index} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-gray-50 p-3 rounded border border-gray-100">
+                                    <select className="px-2 py-1.5 border border-gray-300 rounded text-sm flex-1 w-full" value={usage.item_id} onChange={e => { const newUsage = [...inventoryUsage]; newUsage[index].item_id = e.target.value; setInventoryUsage(newUsage) }}>
+                                        <option value="" disabled>Select Item...</option>
+                                        {inventoryItems.map(item => (
+                                            <option key={item.id} value={item.id}>{item.name} {item.sku ? `(${item.sku})` : ''} - {item.quantity} in stock</option>
+                                        ))}
+                                    </select>
+                                    <input type="number" min="1" placeholder="Qty Used" className="px-2 py-1.5 border border-gray-300 rounded text-sm w-24" value={usage.quantity} onChange={e => { const newUsage = [...inventoryUsage]; newUsage[index].quantity = Number(e.target.value); setInventoryUsage(newUsage) }} />
+                                    <button type="button" onClick={() => setInventoryUsage(inventoryUsage.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-700 p-1 font-bold shrink-0">✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
                     <label className="block text-sm font-medium text-gray-700">Report Date</label>
                     <input
                         type="date" required

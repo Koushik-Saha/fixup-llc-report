@@ -127,6 +127,53 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                     </div>
                 )}
 
+                {report.sale_items && report.sale_items.length > 0 && (
+                    <div className="bg-white border rounded-lg shadow-sm overflow-hidden mt-6">
+                        <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                                <span>🏷️</span> Itemized Sales
+                            </h3>
+                            <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {report.sale_items.length} Items
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-white">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Price</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {report.sale_items.map((item: any) => (
+                                        <tr key={item.id}>
+                                            <td className="px-4 py-2 whitespace-nowrap">
+                                                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">
+                                                    {item.category}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2 text-gray-900">{item.description}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right text-gray-700">{item.quantity}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right text-gray-700">${Number(item.unit_price).toFixed(2)}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">${(item.quantity * Number(item.unit_price)).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                    <tr className="bg-gray-50 font-bold">
+                                        <td colSpan={4} className="px-4 py-3 text-right text-gray-900">Total Itemized Revenue:</td>
+                                        <td className="px-4 py-3 text-right text-green-700">
+                                            ${report.sale_items.reduce((sum: number, item: any) => sum + (item.quantity * Number(item.unit_price)), 0).toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
                 {report.images && report.images.length > 0 && (
                     <div>
                         <h3 className="text-lg font-semibold mb-4">Receipt Images ({report.images.length})</h3>

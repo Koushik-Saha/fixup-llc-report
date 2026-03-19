@@ -160,6 +160,54 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 </div>
             )}
 
+            {/* ITEM SALES SECTION */}
+            {report.sale_items && report.sale_items.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                            <span>🏷️</span> Itemized Sales
+                        </h3>
+                        <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            {report.sale_items.length} Items
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-100 text-sm border-b">
+                            <thead className="bg-white">
+                                <tr>
+                                    <th className="px-4 py-2+ text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Category</th>
+                                    <th className="px-4 py-2+ text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
+                                    <th className="px-4 py-2+ text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Qty</th>
+                                    <th className="px-4 py-2+ text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Unit Price</th>
+                                    <th className="px-4 py-2+ text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 bg-white">
+                                {report.sale_items.map((item: any) => (
+                                    <tr key={item.id} className="hover:bg-gray-50/50">
+                                        <td className="px-4 py-2.5 whitespace-nowrap">
+                                            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-medium border border-gray-200">
+                                                {item.category}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-gray-800 font-medium">{item.description}</td>
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-right text-gray-600">{item.quantity}</td>
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-right text-gray-600">${Number(item.unit_price).toFixed(2)}</td>
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-right font-semibold text-gray-900">${(item.quantity * Number(item.unit_price)).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                                <tr className="bg-gray-50">
+                                    <td colSpan={4} className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Itemized Revenue:</td>
+                                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 border-t border-gray-200">
+                                        ${report.sale_items.reduce((sum: number, item: any) => sum + (item.quantity * Number(item.unit_price)), 0).toFixed(2)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             {/* Receipt Images */}
             {report.images && report.images.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">

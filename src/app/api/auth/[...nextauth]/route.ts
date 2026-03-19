@@ -42,7 +42,8 @@ export const authOptions: NextAuthOptions = {
                     }
 
                     // Try verifying TOTP token
-                    const { authenticator } = await import('otplib')
+                    const otplibType = await import('otplib')
+                    const authenticator = (otplibType as any).authenticator
                     const isValidTotp = user.totp_secret && authenticator.verify({ token: providedCode, secret: user.totp_secret })
 
                     if (!isValidTotp) {

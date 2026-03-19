@@ -52,19 +52,21 @@ export async function GET(req: Request) {
         const endDate = new Date(startDate)
         endDate.setMonth(endDate.getMonth() + 1)
         
-        const reports = await prisma.dailyReport.findMany({
+        const logs = await prisma.timeLog.findMany({
             where: {
-                report_date: { gte: startDate, lt: endDate },
-                status: { in: ['Submitted', 'Verified'] }
+                clock_in: { gte: startDate, lt: endDate },
+                status: 'Approved',
+                clock_out: { not: null } // Only count finished punches
             },
-            select: { time_in: true, time_out: true, assignees: { select: { id: true } } }
+            select: { user_id: true, clock_in: true, clock_out: true }
         })
 
-        for (const report of reports) {
-            const duration = calculateDuration(report.time_in, report.time_out)
-            for (const assignee of report.assignees) {
-                hourlyTotals.set(assignee.id, (hourlyTotals.get(assignee.id) || 0) + duration)
-            }
+        for (const log of logs) {
+            if (!log.clock_out) continue;
+            const durationMs = log.clock_out.getTime() - log.clock_in.getTime()
+            const durationHrs = durationMs / (1000 * 60 * 60)
+            
+            hourlyTotals.set(log.user_id, (hourlyTotals.get(log.user_id) || 0) + Math.max(0, durationHrs))
         }
     }
 

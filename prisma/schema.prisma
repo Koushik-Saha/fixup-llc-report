@@ -36,6 +36,8 @@ model Store {
   reports     DailyReport[]
   expenses    StoreExpense[]
   shift_schedules ShiftSchedule[]
+  time_logs   TimeLog[]
+  inventory_items InventoryItem[]
 
   @@map("stores")
 }
@@ -54,6 +56,8 @@ model User {
   two_factor_enabled Boolean       @default(false)
   totp_secret        String?
   backup_codes       String?       // JSON array of hashed backup codes
+  tax_classification String        @default("W-2") // 'W-2' or '1099'
+  tax_id             String?       // SSN or EIN (Encrypted in prod)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -61,6 +65,7 @@ model User {
   reports            DailyReport[]
   category_reports   CategoryReport[]
   edit_logs          EditLog[]
+  time_logs          TimeLog[]
   system_logs        SystemLog[]
   payroll_records    PayrollRecord[]
   store_expenses     StoreExpense[]
@@ -99,21 +104,39 @@ model DailyReport {
   time_in              String?  // Ex: "10:00 AM"
   time_out             String?  // Ex: "08:00 PM"
   notes                String?
+  payouts_details      String?  @default("")
   expected_cash        Decimal? @db.Decimal(10, 2)  // For reconciliation — set by manager
-  status               String   @default("Submitted") // 'Submitted', 'Verified', 'CorrectionRequested'
+  status               String   @default("Submitted") // 'Submitted', 'Missing', 'Verified', 'Correction Requested'
   staff_edit_count     Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
 
-  store                Store         @relation(fields: [store_id], references: [id])
-  submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id])
+  store                Store         @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  submitted_by         User          @relation(fields: [submitted_by_user_id], references: [id], onDelete: Cascade)
   images               ReportImage[]
   edit_logs            EditLog[]
+  anomalies            Anomaly[]
   assignees            User[]        @relation("ReportAssignees")
+  sale_items           SaleItem[]
+  inventory_usages   InventoryUsage[]
 
   @@unique([store_id, report_date])
   @@map("daily_reports")
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  report_id   String
+  category    String   // 'Repair', 'Accessory', 'Device', 'Other'
+  description String
+  quantity    Int      @default(1)
+  unit_price  Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+
+  report      DailyReport @relation(fields: [report_id], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
 }
 
 model ReportImage {
@@ -139,6 +162,21 @@ model EditLog {
   user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("edit_logs")
+}
+
+model Anomaly {
+  id          String   @id @default(cuid())
+  report_id   String
+  type        String   // 'CASH_VARIANCE', 'REVENUE_DROP', 'HIGH_EXPENSES'
+  description String
+  severity    String   @default("Medium") // 'Low', 'Medium', 'High'
+  status      String   @default("Open")   // 'Open', 'Investigating', 'Resolved', 'Dismissed'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  report      DailyReport @relation(fields: [report_id], references: [id], onDelete: Cascade)
+
+  @@map("anomalies")
 }
 
 model CategoryReport {
@@ -210,8 +248,11 @@ model PayrollPayment {
   id          String   @id @default(cuid())
   record_id   String
   amount      Decimal  @db.Decimal(10, 2)
+  bonus       Decimal? @db.Decimal(10, 2)
+  deductions  Decimal? @db.Decimal(10, 2)
   payment_date DateTime @db.Date
   notes       String?
+  status      String   @default("Paid")
   createdAt   DateTime @default(now())
 
   record      PayrollRecord @relation(fields: [record_id], references: [id], onDelete: Cascade)
@@ -270,4 +311,53 @@ model ShiftSchedule {
 
   @@unique([store_id, user_id, shift_date])
   @@map("shift_schedules")
+}
+
+model TimeLog {
+  id        String    @id @default(cuid())
+  user_id   String
+  store_id  String
+  clock_in  DateTime  @default(now())
+  clock_out DateTime?
+  status    String    @default("Approved") // 'Pending', 'Approved', 'Flagged'
+  notes     String?   // Automatically used if edited by admin
+
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  store     Store     @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("time_logs")
+}
+
+model InventoryItem {
+  id            String    @id @default(cuid())
+  store_id      String
+  name          String
+  sku           String?
+  quantity      Int       @default(0)
+  unit_cost     Decimal   @default(0) @db.Decimal(10, 2)
+  reorder_level Int       @default(0)
+  category      String    @default("General")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  store         Store     @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  usages        InventoryUsage[]
+
+  @@map("inventory_items")
+}
+
+model InventoryUsage {
+  id            String    @id @default(cuid())
+  report_id     String
+  item_id       String
+  quantity_used Int
+  timestamp     DateTime  @default(now())
+
+  report        DailyReport    @relation(fields: [report_id], references: [id], onDelete: Cascade)
+  item          InventoryItem  @relation(fields: [item_id], references: [id], onDelete: Restrict)
+
+  @@map("inventory_usages")
 }

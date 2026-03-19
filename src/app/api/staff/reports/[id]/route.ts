@@ -80,7 +80,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, sale_items, inventory_usage } = body
 
     // Calculate what changed
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
@@ -114,6 +114,42 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     staff_edit_count: { increment: 1 }
                 }
             })
+
+            // Replace inventory usage if provided
+            if (inventory_usage !== undefined) {
+                // 1. Fetch old usages to restore inventory quantities
+                const oldUsages = await tx.inventoryUsage.findMany({ where: { report_id: report_id } })
+                for (const old of oldUsages) {
+                    await tx.inventoryItem.update({
+                        where: { id: old.item_id },
+                        data: { quantity: { increment: old.quantity_used } }
+                    })
+                }
+
+                // 2. Delete old usages
+                await tx.inventoryUsage.deleteMany({ where: { report_id: report_id } })
+
+                // 3. Apply new usages
+                if (inventory_usage && inventory_usage.length > 0) {
+                    for (const usage of inventory_usage) {
+                        const qty = Number(usage.quantity) || 0
+                        if (qty <= 0) continue
+
+                        await tx.inventoryUsage.create({
+                            data: {
+                                report_id: report_id,
+                                item_id: usage.item_id,
+                                quantity_used: qty
+                            }
+                        })
+
+                        await tx.inventoryItem.update({
+                            where: { id: usage.item_id },
+                            data: { quantity: { decrement: qty } }
+                        })
+                    }
+                }
+            }
 
             // Log the edit using legacy EditLog
             await tx.editLog.create({

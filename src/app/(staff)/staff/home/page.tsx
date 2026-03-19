@@ -49,6 +49,99 @@ function StatCard({ label, value, sub, color }: { label: string; value: string; 
     )
 }
 
+function PunchClock() {
+    const [punch, setPunch] = useState<any>(null)
+    const [loadingPunch, setLoadingPunch] = useState(true)
+    const [timeStr, setTimeStr] = useState<string>('00:00:00')
+    const [toggling, setToggling] = useState(false)
+
+    useEffect(() => {
+        fetch('/api/staff/punch')
+            .then(r => r.json())
+            .then(d => { if (!d.error) setPunch(d) })
+            .finally(() => setLoadingPunch(false))
+    }, [])
+
+    useEffect(() => {
+        if (!punch?.clock_in || punch?.clock_out) {
+            setTimeStr('00:00:00')
+            return
+        }
+        
+        const tick = () => {
+            const diff = dayjs().diff(dayjs(punch.clock_in), 'second')
+            const h = Math.floor(diff / 3600).toString().padStart(2, '0')
+            const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0')
+            const s = (diff % 60).toString().padStart(2, '0')
+            setTimeStr(`${h}:${m}:${s}`)
+        }
+        
+        tick() // initial tick
+        const interval = setInterval(tick, 1000)
+        return () => clearInterval(interval)
+    }, [punch?.clock_in, punch?.clock_out])
+
+    const handlePunch = async () => {
+        setToggling(true)
+        const action = punch?.clock_in && !punch?.clock_out ? 'clock_out' : 'clock_in'
+        try {
+            const res = await fetch('/api/staff/punch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            })
+            const data = await res.json()
+            if (data.success) {
+                setPunch(action === 'clock_in' ? data.log : null)
+                // Optionally show a toast
+            } else {
+                alert(data.error || 'Failed to clock in/out')
+            }
+        } catch (e: any) {
+            alert('A network error occurred.')
+        } finally {
+            setToggling(false)
+        }
+    }
+
+    if (loadingPunch) {
+        return <div className="bg-white rounded-2xl shadow-sm h-24 animate-pulse border-2 border-slate-100" />
+    }
+
+    const isClockedIn = punch?.clock_in && !punch?.clock_out
+
+    return (
+        <div className={`rounded-2xl shadow-md p-5 border-2 flex flex-col md:flex-row items-center justify-between gap-4 transition-all ${isClockedIn ? 'bg-indigo-50 border-indigo-200 shadow-indigo-100/50' : 'bg-white border-slate-200'}`}>
+            <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Time Clock</p>
+                {isClockedIn ? (
+                    <div>
+                        <p className="text-3xl font-black text-indigo-700 tracking-tight font-mono">{timeStr}</p>
+                        <p className="text-xs text-indigo-500 font-medium mt-1">Clocked in at {dayjs(punch.clock_in).format('h:mm A')}</p>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-3xl font-black text-gray-800 tracking-tight font-mono">{timeStr}</p>
+                        <p className="text-xs text-gray-400 font-medium mt-1">You are currently off the clock</p>
+                    </div>
+                )}
+            </div>
+
+            <button
+                onClick={handlePunch}
+                disabled={toggling}
+                className={`py-3 px-8 rounded-xl font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-50 whitespace-nowrap w-full md:w-auto ${
+                    isClockedIn 
+                        ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200' 
+                        : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200'
+                }`}
+            >
+                {toggling ? 'Updating...' : isClockedIn ? 'Clock Out' : 'Clock In'}
+            </button>
+        </div>
+    )
+}
+
 function SkeletonCard() {
     return <div className="bg-white rounded-2xl shadow-sm h-20 animate-pulse border-t-4 border-gray-200" />
 }
@@ -79,6 +172,8 @@ export default function StaffHomePage() {
 
     return (
         <div className="space-y-5">
+        
+            <PunchClock />
 
             {/* Greeting banner */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">

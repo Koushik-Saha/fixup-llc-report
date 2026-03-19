@@ -209,6 +209,13 @@ export async function GET() {
         revenue: Math.round(Number(s._sum.total_amount || 0) * 100) / 100
     }))
 
+    // ── Low Stock Inventory ────────────────────────────────────────────────────
+    const inventory = await prisma.inventoryItem.findMany({
+        where: { store_id: { in: allStoreIds } },
+        select: { id: true, name: true, sku: true, quantity: true, reorder_level: true, store: { select: { name: true } } }
+    })
+    const lowStockItems = inventory.filter(i => i.quantity <= i.reorder_level)
+
     return NextResponse.json({
         kpi: {
             todayCash,
@@ -227,6 +234,7 @@ export async function GET() {
         storePerformance,
         calendarDays,
         topPerformers,
-        todayStatus
+        todayStatus,
+        lowStockItems
     })
 }

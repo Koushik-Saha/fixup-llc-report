@@ -76,10 +76,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <div className="pt-2 pb-1 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</div>
                             {navLink('/admin/stores', '🏪 Stores')}
                             {navLink('/admin/categories', '🏷️ Categories')}
+                            {navLink('/admin/inventory', '📦 Inventory')}
                             {navLink('/admin/users', '👥 Users')}
                             {navLink('/admin/work-hours', '⏱️ Work Hours', 'text-blue-400')}
+                            {navLink('/admin/time-logs', '⏰ Time Logs', 'text-sky-400')}
                             {navLink('/admin/payroll', '💰 Payroll', 'text-green-400')}
+                            {navLink('/admin/payroll/tax-export', '🧮 Tax Exports', 'text-emerald-500 pl-10 text-sm')}
+                            {navLink('/admin/sales', '📊 Sales Analytics', 'text-indigo-400')}
                             {navLink('/admin/expenses', '🧾 Expenses', 'text-red-400')}
+                            {navLink('/admin/anomalies', '🤖 Anomalies', 'text-purple-400')}
                             {navLink('/admin/reconciliation', '⚖️ Reconciliation', 'text-orange-400')}
                             {isManagerOrAdmin && navLink('/admin/schedule', '📅 Shift Schedule', 'text-violet-400')}
                             {navLink('/admin/analytics', '📈 Analytics')}

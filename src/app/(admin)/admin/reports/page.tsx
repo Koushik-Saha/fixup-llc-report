@@ -373,7 +373,16 @@ function AdminReportsContent() {
                                             />
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{dayjs.utc(report.report_date).format('M/D/YYYY')}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                            <span>{dayjs.utc(report.report_date).format('M/D/YYYY')}</span>
+                                            {report.anomalies && report.anomalies.length > 0 && (
+                                                <Link href="/admin/anomalies" title={`${report.anomalies.length} unresolved anomalies`} className="text-rose-600 bg-rose-50 rounded-full px-1.5 py-0.5 text-[10px] border border-rose-200 cursor-pointer font-bold animate-pulse hover:bg-rose-100 transition inline-block">
+                                                    ⚠️ {report.anomalies.length} Flag{report.anomalies.length > 1 ? 's' : ''}
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown Store'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {report.assignees && report.assignees.length > 0 ? (
@@ -445,6 +454,7 @@ function AdminReportsContent() {
                                         <td className="px-6 py-3 text-left font-black text-indigo-700">
                                             {totalHours.toFixed(2)}h
                                         </td>
+                                        <td className="px-6 py-3 text-left" />
                                         <td className="px-6 py-3 text-left font-black text-gray-700">
                                             ${totalCash.toFixed(2)}
                                         </td>
