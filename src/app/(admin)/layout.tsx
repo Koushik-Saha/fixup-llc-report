@@ -51,7 +51,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 href={href}
                 onClick={() => setIsSidebarOpen(false)}
                 className={`block py-2 px-4 rounded transition text-sm font-medium
-                    ${active ? 'bg-gray-700 text-white' : `hover:bg-gray-800 ${color ?? 'text-gray-200'}`}`}
+                    ${active ? 'bg-brand text-white' : `hover:bg-gray-800 ${color ?? 'text-gray-200'}`}`}
             >
                 {label}
             </Link>
@@ -69,7 +69,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Sidebar */}
-            <aside className={`${isSidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-brand text-white flex-shrink-0 md:h-screen md:sticky top-0 overflow-y-auto`}>
+            <aside className={`${isSidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-gray-900 text-white flex-shrink-0 md:h-screen md:sticky top-0 overflow-y-auto`}>
                 <div className="hidden md:block p-4 text-xl font-bold border-b border-white/10">
                     <div className="flex items-center gap-2">
                         {company.logo_url && <img src={company.logo_url} alt="Logo" className="w-8 h-8 object-contain rounded" />}
@@ -112,7 +112,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         href="/admin/notifications"
                         onClick={() => setIsSidebarOpen(false)}
                         className={`flex items-center justify-between py-2 px-4 rounded transition text-sm font-medium
-                            ${pathname === '/admin/notifications' ? 'bg-black/30 text-white' : 'hover:bg-black/20 text-gray-200'}`}
+                            ${pathname === '/admin/notifications' ? 'bg-brand text-white' : 'hover:bg-gray-800 text-gray-200'}`}
                     >
                         <span>🔔 Notifications</span>
                         {unreadCount > 0 && (
