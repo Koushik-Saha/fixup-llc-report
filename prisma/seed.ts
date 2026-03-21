@@ -7,11 +7,22 @@ async function main() {
   const adminPassword = await bcrypt.hash('Admin@123', 10)
   const staffPassword = await bcrypt.hash('Staff@123', 10)
 
+  // Seed Company first
+  const company = await prisma.company.upsert({
+    where: { subdomain: 'fixitup' },
+    update: {},
+    create: {
+      name: 'FixItUp Core',
+      subdomain: 'fixitup',
+    }
+  })
+
   // Seed Super Admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@fixitup.com' },
     update: {},
     create: {
+      company_id: company.id,
       email: 'admin@fixitup.com',
       name: 'Super Admin',
       password_hash: adminPassword,
@@ -25,6 +36,7 @@ async function main() {
     where: { email: 'koushik@freedomshippingllc.com' },
     update: {},
     create: {
+      company_id: company.id,
       email: 'koushik@freedomshippingllc.com',
       name: 'Koushik Saha',
       password_hash: adminPassword,
@@ -38,6 +50,7 @@ async function main() {
     where: { email: 'staff@fixitup.com' },
     update: {},
     create: {
+      company_id: company.id,
       email: 'staff@fixitup.com',
       name: 'John Staff',
       password_hash: staffPassword,
@@ -49,6 +62,7 @@ async function main() {
   // Seed Store
   const store1 = await prisma.store.create({
     data: {
+      company_id: company.id,
       name: 'Las Vegas - Store 1',
       address: '123 Casino Drive',
       city: 'Las Vegas',

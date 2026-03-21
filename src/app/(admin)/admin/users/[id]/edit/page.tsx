@@ -8,7 +8,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     const router = useRouter()
     const { id } = use(params)
 
-    const [formData, setFormData] = useState({ name: "", email: "", role: "Staff", status: "Active", pay_type: "MONTHLY", password: "", base_salary: 0, tax_classification: "W-2", tax_id: "" })
+    const [formData, setFormData] = useState({ name: "", email: "", phone: "", role: "Staff", status: "Active", pay_type: "MONTHLY", password: "", base_salary: 0, tax_classification: "W-2", tax_id: "" })
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -16,10 +16,17 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
     useEffect(() => {
         fetch(`/api/admin/users/${id}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch user")
+                return res.json()
+            })
             .then(data => {
                 // Cast base_salary to handle Prisma Decimal format (often returned as string)
-                setFormData({ ...data, password: "", pay_type: data.pay_type || "MONTHLY", base_salary: Number(data.base_salary || 0), tax_classification: data.tax_classification || "W-2", tax_id: data.tax_id || "" })
+                setFormData({ ...data, password: "", phone: data.phone || "", pay_type: data.pay_type || "MONTHLY", base_salary: Number(data.base_salary || 0), tax_classification: data.tax_classification || "W-2", tax_id: data.tax_id || "" })
+                setLoading(false)
+            })
+            .catch(err => {
+                setError(err.message)
                 setLoading(false)
             })
     }, [id])
@@ -66,6 +73,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input type="email" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input type="text" placeholder="Optional" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
                 <div className="relative">
                     <label className="block text-sm font-medium text-gray-700">New Password (leave blank to keep current)</label>

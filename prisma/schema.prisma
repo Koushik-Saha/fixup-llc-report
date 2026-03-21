@@ -22,6 +22,7 @@ model Company {
   stores           Store[]
   categories       Category[]
   notifications    Notification[]
+  error_logs       ErrorLog[]
 
   @@map("companies")
 }
@@ -81,6 +82,7 @@ model User {
   two_factor_enabled Boolean       @default(false)
   totp_secret        String?
   backup_codes       String?       // JSON array of hashed backup codes
+  phone              String?
   tax_classification String        @default("W-2") // 'W-2' or '1099'
   tax_id             String?       // SSN or EIN (Encrypted in prod)
   createdAt          DateTime      @default(now())
@@ -94,6 +96,7 @@ model User {
   edit_logs          EditLog[]
   time_logs          TimeLog[]
   system_logs        SystemLog[]
+  error_logs         ErrorLog[]
   payroll_records    PayrollRecord[]
   store_expenses     StoreExpense[]
   assigned_reports   DailyReport[] @relation("ReportAssignees")
@@ -391,4 +394,22 @@ model InventoryUsage {
   item          InventoryItem  @relation(fields: [item_id], references: [id], onDelete: Restrict)
 
   @@map("inventory_usages")
+}
+
+model ErrorLog {
+  id          String   @id @default(cuid())
+  company_id  String?
+  user_id     String?
+  source      String   // 'Frontend' or 'Backend'
+  message     String   @db.Text
+  stack_trace String?  @db.Text
+  path        String?  // URL path where the error occurred
+  method      String?  // HTTP method if API error
+  payload     String?  @db.Text // JSON string of request body or params
+  createdAt   DateTime @default(now())
+
+  company     Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@map("error_logs")
 }

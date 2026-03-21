@@ -79,7 +79,7 @@ export default function MonthlyReportPage() {
                     <p className="text-sm text-gray-500 mt-1">{storeName} — {month}</p>
                 </div>
                 <Link href="/staff/home" className="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                    ← Back to Home
+                    Back to Home
                 </Link>
             </div>
 
@@ -163,7 +163,7 @@ export default function MonthlyReportPage() {
                                                     href={`/staff/report/${row.id}`}
                                                     className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full transition"
                                                 >
-                                                    {row.status === 'Verified' ? '✓ Verified' : row.status === 'CorrectionRequested' ? '⚠ Correction' : 'View'}
+                                                    {row.status === 'Verified' ? 'Verified' : row.status === 'CorrectionRequested' ? 'Correction' : 'View'}
                                                 </Link>
                                             )}
                                         </td>

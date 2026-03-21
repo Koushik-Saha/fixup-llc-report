@@ -6,7 +6,7 @@ import toast from "react-hot-toast"
 
 export default function CreateUserPage() {
     const router = useRouter()
-    const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "Staff", status: "Active", pay_type: "MONTHLY", base_salary: 0 })
+    const [formData, setFormData] = useState({ name: "", email: "", phone: "", password: "", role: "Staff", status: "Active", pay_type: "MONTHLY", base_salary: 0 })
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -46,6 +46,10 @@ export default function CreateUserPage() {
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input type="email" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input type="text" placeholder="Optional" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
                 <div className="relative">
                     <label className="block text-sm font-medium text-gray-700">Password</label>

@@ -178,9 +178,9 @@ export default function StaffHomePage() {
             {/* Greeting banner */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
                 <p className="text-blue-100 text-sm">{data?.today?.dateLabel || dayjs().tz(TIMEZONE).format('dddd, MMMM D')}</p>
-                <h1 className="text-2xl font-black mt-1">{greeting}, {firstName}! 👋</h1>
+                <h1 className="text-2xl font-black mt-1">{greeting}, {firstName}!</h1>
                 {data?.streak !== undefined && data.streak > 1 && (
-                    <p className="text-blue-100 text-sm mt-2">🔥 {data.streak}-day submission streak — keep it up!</p>
+                    <p className="text-blue-100 text-sm mt-2">{data.streak}-day submission streak — keep it up!</p>
                 )}
             </div>
 
@@ -192,8 +192,8 @@ export default function StaffHomePage() {
                         <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mt-1" />
                     ) : todaySubmitted ? (
                         <>
-                            <p className="text-green-700 font-bold text-lg mt-0.5 flex items-center gap-2">
-                                <span>✅</span> Submitted
+                            <p className="text-green-700 font-bold text-lg mt-0.5">
+                                Submitted
                             </p>
                             <p className="text-sm text-green-600 mt-0.5">
                                 Total: <strong>${Number(todayReport?.total_amount || 0).toFixed(2)}</strong>
@@ -202,8 +202,8 @@ export default function StaffHomePage() {
                         </>
                     ) : (
                         <>
-                            <p className="text-amber-700 font-bold text-lg mt-0.5 flex items-center gap-2">
-                                <span>⚠️</span> Not submitted yet
+                            <p className="text-amber-700 font-bold text-lg mt-0.5">
+                                Not submitted yet
                             </p>
                             <p className="text-sm text-amber-600 mt-0.5">Submit before end of day</p>
                         </>
@@ -243,9 +243,8 @@ export default function StaffHomePage() {
                                 color="border-blue-400"
                             />
                             <StatCard
-                                label="Verified"
-                                value={`${data.month.verifiedCount}`}
-                                sub={`of ${data.month.submittedCount} submitted`}
+                                label="Total Sales"
+                                value={`$${data.month.totalRevenue.toFixed(2)}`}
                                 color="border-green-400"
                             />
                             <StatCard
@@ -303,7 +302,7 @@ export default function StaffHomePage() {
                                             r.status === 'CorrectionRequested' ? 'bg-yellow-100 text-yellow-700' :
                                             'bg-blue-100 text-blue-700'
                                         }`}>
-                                            {r.status === 'Verified' ? '✓' : r.status === 'CorrectionRequested' ? '⚠' : '●'} {r.status}
+                                            {r.status === 'CorrectionRequested' ? 'Correction Requested' : r.status}
                                         </span>
                                     </div>
                                 </Link>
@@ -317,12 +316,10 @@ export default function StaffHomePage() {
             <div className="grid grid-cols-2 gap-3 pb-2">
                 <Link href="/staff/monthly-report"
                     className="bg-white rounded-2xl shadow-sm p-4 text-center hover:bg-blue-50 transition border border-gray-100">
-                    <div className="text-2xl mb-1">📆</div>
                     <p className="text-sm font-semibold text-gray-700">Monthly Report</p>
                 </Link>
                 <Link href="/staff/reports"
                     className="bg-white rounded-2xl shadow-sm p-4 text-center hover:bg-blue-50 transition border border-gray-100">
-                    <div className="text-2xl mb-1">📋</div>
                     <p className="text-sm font-semibold text-gray-700">All Reports</p>
                 </Link>
             </div>

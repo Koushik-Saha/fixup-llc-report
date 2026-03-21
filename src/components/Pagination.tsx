@@ -73,13 +73,17 @@ export function Pagination({ currentPage, totalPages, totalItems, onPageChange, 
                     </div>
                 )}
             </div>
-            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto w-full sm:w-auto justify-center sm:justify-end pb-1 sm:pb-0">
+            <div className="flex space-x-1 sm:space-x-2 w-full sm:w-auto justify-center sm:justify-end pb-1 sm:pb-0 shrink-0">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage <= 1}
-                    className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50 hover:bg-gray-100 transition-colors"
+                    className="px-2 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50 hover:bg-gray-100 transition-colors flex items-center justify-center min-w-[32px]"
+                    aria-label="Previous Page"
+                    title="Previous Page"
                 >
-                    Prev
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                 </button>
 
                 {generatePageNumbers().map((page, idx) => (
@@ -96,9 +100,13 @@ export function Pagination({ currentPage, totalPages, totalItems, onPageChange, 
                 <button
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage >= totalPages}
-                    className="px-3 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50 hover:bg-gray-100 transition-colors"
+                    className="px-2 py-1 border border-gray-300 rounded bg-white text-gray-700 disabled:opacity-50 hover:bg-gray-100 transition-colors flex items-center justify-center min-w-[32px]"
+                    aria-label="Next Page"
+                    title="Next Page"
                 >
-                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
                 </button>
             </div>
         </div>

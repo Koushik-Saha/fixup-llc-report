@@ -155,8 +155,6 @@ export async function POST(req: Request) {
         where: { id: user_id, company_id: session.user.companyId }
     })
     if (!validUser) return NextResponse.json({ error: 'Unauthorized user access' }, { status: 403 })
-        return NextResponse.json({ error: 'Amount must be greater than zero' }, { status: 400 })
-    }
 
     try {
         const result = await prisma.$transaction(async (tx: any) => {
