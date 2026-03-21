@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { hash } from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
     try {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             }
         }
 
-        const hashedPassword = await hash(adminPassword, 12)
+        const hashedPassword = await bcrypt.hash(adminPassword, 12)
 
         // Atomic creation
         const result = await prisma.$transaction(async (tx: any) => {
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
                     company_id: company.id,
                     name: adminName,
                     email: adminEmail,
-                    password: hashedPassword,
+                    password_hash: hashedPassword,
                     role: 'Admin'
                 }
             })

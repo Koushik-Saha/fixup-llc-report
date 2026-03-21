@@ -58,7 +58,7 @@ export default function StaffReportsPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">My Required Reports</h1>
                 <Link href="/staff/home" className="text-blue-600 hover:text-blue-800 font-medium">
-                    &larr; Back to Home
+                    Back to Home
                 </Link>
             </div>
 

@@ -60,9 +60,6 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         onClick={() => handlePrint()}
                         className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-3 py-2 rounded-lg transition"
                     >
-                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
                         PDF / Print
                     </button>
 
@@ -80,7 +77,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                         href="/staff/reports"
                         className="text-sm font-medium text-blue-600 hover:text-blue-800 px-1 py-2"
                     >
-                        ← Back to Reports
+                        Back to Reports
                     </Link>
                 </div>
             </div>
@@ -165,7 +162,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-                            <span>🏷️</span> Itemized Sales
+                            Itemized Sales
                         </h3>
                         <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                             {report.sale_items.length} Items
@@ -226,7 +223,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
             {/* Back Link */}
             <div className="pb-4">
                 <Link href="/staff/home" className="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                    ← Back to Dashboard
+                    Back to Dashboard
                 </Link>
             </div>
         </div>

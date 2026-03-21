@@ -82,7 +82,7 @@ export async function GET(req: Request) {
     const payrollPaymentsQuery = await prisma.payrollPayment.findMany({
         where: { 
             payment_date: { gte: startDate, lte: endDate },
-            payroll_record: { user: { company_id: session.user.companyId } }
+            record: { user: { company_id: session.user.companyId } }
         },
         select: { amount: true }
     })

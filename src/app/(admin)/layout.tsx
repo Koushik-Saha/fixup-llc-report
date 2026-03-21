@@ -123,6 +123,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     </Link>
 
                     {isAdmin && navLink('/admin/logs', '📋 Activity Logs')}
+                    {isAdmin && navLink('/admin/error-logs', '🚨 Error Logs')}
                     {navLink('/admin/settings/security', '🔐 Security (2FA)')}
                 </nav>
             </aside>

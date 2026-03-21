@@ -90,7 +90,6 @@ export async function POST(req: Request) {
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
-                    category_id: category_id || null,
                     payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
                     time_in: time_in || null,

@@ -54,11 +54,10 @@ export async function GET() {
         select: { id: true, status: true, cash_amount: true, card_amount: true, total_amount: true }
     })
 
-    // This month's reports by this user
+    // All month reports for this store (for matching stats with monthly report)
     const monthReports = await prisma.dailyReport.findMany({
         where: {
             store_id: storeId,
-            submitted_by_user_id: userId,
             report_date: { gte: startObj, lte: endObj }
         },
         select: {
@@ -69,20 +68,27 @@ export async function GET() {
             total_amount: true,
             status: true,
             time_in: true,
-            time_out: true
+            time_out: true,
+            submitted_by_user_id: true,
+            assignees: {
+                select: { id: true }
+            }
         },
         orderBy: { report_date: 'desc' }
     })
 
-    // Compute work hours
+    // Compute work hours strictly for reports where the user is an assignee or submitter
     let totalHours = 0
     monthReports.forEach(r => {
-        const s = parseHours(r.time_in)
-        const e = parseHours(r.time_out)
-        if (s !== null && e !== null) {
-            let d = e - s
-            if (d < 0) d += 24
-            totalHours += Math.max(0, d)
+        const isUserAssigned = r.submitted_by_user_id === userId || r.assignees.some(a => a.id === userId)
+        if (isUserAssigned) {
+            const s = parseHours(r.time_in)
+            const e = parseHours(r.time_out)
+            if (s !== null && e !== null) {
+                let d = e - s
+                if (d < 0) d += 24
+                totalHours += Math.max(0, d)
+            }
         }
     })
 

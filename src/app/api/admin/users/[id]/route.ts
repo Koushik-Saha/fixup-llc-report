@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const user = await prisma.user.findUnique({
         where: { id },
-        select: { id: true, name: true, email: true, role: true, status: true, pay_type: true, base_salary: true, tax_classification: true, tax_id: true }
+        select: { id: true, name: true, email: true, role: true, status: true, pay_type: true, base_salary: true, tax_classification: true, tax_id: true, phone: true }
     })
     if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -26,9 +26,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const id = (await params).id
     const body = await req.json()
-    const { name, email, role, status, pay_type, password, base_salary, tax_classification, tax_id } = body
+    const { name, email, role, status, pay_type, password, base_salary, tax_classification, tax_id, phone } = body
 
-    const updateData: any = { name, email, role, status, pay_type }
+    const updateData: any = { name, email, role, status, pay_type, phone: phone?.trim() || null }
     if (tax_classification) updateData.tax_classification = tax_classification
     if (tax_id !== undefined) updateData.tax_id = tax_id
     if (base_salary !== undefined) {
