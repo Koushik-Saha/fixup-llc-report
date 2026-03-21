@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendDailySummary } from '@/lib/email'
+import { evaluateReportForAnomalies } from '@/lib/anomaly-engine'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -21,10 +22,18 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { store_id, staff_ids, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
+    const { store_id, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls, staff_ids, status, sale_items, inventory_usage } = body
 
-    if (!store_id) {
-        return NextResponse.json({ error: 'Store ID is required' }, { status: 400 })
+    if (!store_id || cash_amount === undefined || card_amount === undefined) {
+        return NextResponse.json({ error: 'Store ID, Cash, and Card amounts are required' }, { status: 400 })
+    }
+
+    // Tenancy Check
+    const targetStore = await prisma.store.findFirst({
+        where: { id: store_id, company_id: session.user.companyId }
+    })
+    if (!targetStore) {
+        return NextResponse.json({ error: 'Store not found or unauthorized' }, { status: 404 })
     }
 
     if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length === 0) {
@@ -81,14 +90,44 @@ export async function POST(req: Request) {
                     cash_amount: Number(cash_amount),
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
+                    category_id: category_id || null,
                     payouts_amount: Number(payouts_amount) || 0,
                     total_amount: total,
                     time_in: time_in || null,
                     time_out: time_out || null,
                     notes: notes || null,
-                    status: 'Submitted'
+                    status: 'Submitted',
+                    sale_items: sale_items && sale_items.length > 0 ? {
+                        create: sale_items.map((item: any) => ({
+                            category: item.category,
+                            description: item.description,
+                            quantity: Number(item.quantity) || 1,
+                            unit_price: Number(item.unit_price) || 0
+                        }))
+                    } : undefined
                 }
             })
+
+            // Process Inventory Usage
+            if (inventory_usage && inventory_usage.length > 0) {
+                for (const usage of inventory_usage) {
+                    const qty = Number(usage.quantity) || 0
+                    if (qty <= 0) continue
+
+                    await tx.inventoryUsage.create({
+                        data: {
+                            report_id: newReport.id,
+                            item_id: usage.item_id,
+                            quantity_used: qty
+                        }
+                    })
+
+                    await tx.inventoryItem.update({
+                        where: { id: usage.item_id },
+                        data: { quantity: { decrement: qty } }
+                    })
+                }
+            }
 
             if (imageUrls && imageUrls.length > 0) {
                 await tx.reportImage.createMany({
@@ -109,7 +148,7 @@ export async function POST(req: Request) {
                 }
             })
 
-            const store = await tx.store.findUnique({ where: { id: store_id } })
+            const store = targetStore
             sendDailySummary({
                 storeName: store?.name || 'Unknown Store',
                 reportDate: reportDateObj.toLocaleDateString('en-US', { timeZone: 'UTC' }),
@@ -122,11 +161,13 @@ export async function POST(req: Request) {
             return newReport
         })
 
-        return NextResponse.json(report)
-    } catch (err: any) {
-        console.error('Error creating report:', err)
+        evaluateReportForAnomalies(report.id).catch(console.error)
+
+        return NextResponse.json(report, { status: 201 })
+    } catch (error: any) {
+        console.error('Error creating report:', error)
         // To handle unique constraint technically just in case of race condition
-        if (err.code === 'P2002') {
+        if (error.code === 'P2002') {
             return NextResponse.json({ error: 'Report already exists for today' }, { status: 400 })
         }
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

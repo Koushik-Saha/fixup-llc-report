@@ -119,9 +119,58 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                 </div>
 
                 {report.notes && (
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2">Notes</h3>
-                        <p className="text-gray-700 bg-yellow-50 p-3 rounded">{report.notes}</p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                        <h3 className="text-sm font-bold text-yellow-800 uppercase tracking-wide mb-2 flex items-center gap-2">
+                            <span>📝</span> Staff Notes
+                        </h3>
+                        <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-line">{report.notes}</p>
+                    </div>
+                )}
+
+                {report.sale_items && report.sale_items.length > 0 && (
+                    <div className="bg-white border rounded-lg shadow-sm overflow-hidden mt-6">
+                        <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                                <span>🏷️</span> Itemized Sales
+                            </h3>
+                            <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                {report.sale_items.length} Items
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-white">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Price</th>
+                                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {report.sale_items.map((item: any) => (
+                                        <tr key={item.id}>
+                                            <td className="px-4 py-2 whitespace-nowrap">
+                                                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">
+                                                    {item.category}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2 text-gray-900">{item.description}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right text-gray-700">{item.quantity}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right text-gray-700">${Number(item.unit_price).toFixed(2)}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">${(item.quantity * Number(item.unit_price)).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                    <tr className="bg-gray-50 font-bold">
+                                        <td colSpan={4} className="px-4 py-3 text-right text-gray-900">Total Itemized Revenue:</td>
+                                        <td className="px-4 py-3 text-right text-green-700">
+                                            ${report.sale_items.reduce((sum: number, item: any) => sum + (item.quantity * Number(item.unit_price)), 0).toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
@@ -139,10 +188,10 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                 )}
 
                 {report.edit_logs && report.edit_logs.length > 0 && (
-                    <div className="mt-8 pt-8 border-t border-gray-200">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                            Edit History ({report.edit_logs.length})
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                        <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <span className="text-gray-500">🕐</span> Edit History
+                            <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">{report.edit_logs.length}</span>
                         </h3>
                         <div className="space-y-4">
                             {report.edit_logs.map((log: any) => {

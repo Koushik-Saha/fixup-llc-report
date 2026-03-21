@@ -1,260 +1,315 @@
 "use client"
-import { useState, useEffect } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from 'recharts'
-import { SkeletonCard, Skeleton } from "@/components/Skeleton"
+import { useState, useEffect, Suspense, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    LineChart, Line, Legend, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis
+} from "recharts"
+import dayjs from "dayjs"
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a855f7', '#ef4444', '#f97316'];
+const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16']
 
-export default function AnalyticsPage() {
-    const [data, setData] = useState<any[]>([])
-    const [storeData, setStoreData] = useState<any[]>([])
-    const [costBreakdown, setCostBreakdown] = useState<any[]>([])
-    const [funnelData, setFunnelData] = useState<any[]>([])
-    const [summary, setSummary] = useState<any>(null)
+type StoreStat = {
+    store_id: string
+    store_name: string
+    store_city: string
+    totalRevenue: number
+    totalCash: number
+    totalCard: number
+    avgDailyRevenue: number
+    submittedDays: number
+    missingDays: number
+    verifiedDays: number
+    reliabilityScore: number
+    totalHours: number
+    revenuePerHour: number
+}
+
+type AnalyticsData = {
+    period: { start: string; end: string; totalDays: number }
+    storeStats: StoreStat[]
+    dailyTrend: { date: string; label: string; revenue: number }[]
+}
+
+function fmt(n: number) {
+    return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
+
+function ReliabilityBar({ score, color }: { score: number; color: string }) {
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gray-100 rounded-full h-2">
+                <div className="h-2 rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: color }} />
+            </div>
+            <span className="text-xs font-bold text-gray-700 w-9 text-right">{score}%</span>
+        </div>
+    )
+}
+
+function AnalyticsContent() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
+    const [data, setData] = useState<AnalyticsData | null>(null)
     const [loading, setLoading] = useState(true)
-    const [range, setRange] = useState("1m")
-    const [customStart, setCustomStart] = useState("")
-    const [customEnd, setCustomEnd] = useState("")
+    const [month, setMonth] = useState(searchParams.get('month') || dayjs().format('YYYY-MM'))
+    const [activeChart, setActiveChart] = useState<'revenue' | 'efficiency' | 'reliability'>('revenue')
+    const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set())
 
-    useEffect(() => {
+    const pushParams = (overrides: Record<string, string> = {}) => {
+        const p = new URLSearchParams({ month, ...overrides })
+        router.replace(`/admin/analytics?${p}`, { scroll: false })
+    }
+
+    const fetchData = useCallback(() => {
         setLoading(true)
-        let url = `/api/admin/analytics?range=${range}`
-        if (range === 'custom') {
-            if (customStart && customEnd) {
-                url += `&startDate=${customStart}&endDate=${customEnd}`
-            } else {
-                setLoading(false)
-                return // Wait for both dates
-            }
-        }
-
-        fetch(url)
-            .then(res => res.json())
+        fetch(`/api/admin/analytics/stores?month=${month}`)
+            .then(r => r.json())
             .then(d => {
-                setData(d.chartData || [])
-                setStoreData(d.storeData || [])
-                setCostBreakdown(d.costBreakdown || [])
-                setFunnelData(d.funnelData || [])
-                setSummary(d.summary || null)
+                setData(d)
+                // Default: all stores selected
+                setSelectedStores(new Set(d.storeStats?.map((s: StoreStat) => s.store_id) || []))
                 setLoading(false)
             })
-    }, [range, customStart, customEnd])
+            .catch(() => setLoading(false))
+    }, [month])
+
+    useEffect(() => { fetchData() }, [fetchData])
+
+    if (loading) return (
+        <div className="space-y-6 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-48" />
+            <div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 bg-gray-200 rounded-xl" />)}</div>
+            <div className="h-72 bg-gray-200 rounded-xl" />
+            <div className="h-64 bg-gray-200 rounded-xl" />
+        </div>
+    )
+
+    if (!data) return <div className="p-8 text-center text-red-500">Failed to load analytics.</div>
+
+    const { storeStats, dailyTrend, period } = data
+    const filteredStats = storeStats.filter(s => selectedStores.has(s.store_id))
+
+    const totalRevenue = storeStats.reduce((a, s) => a + s.totalRevenue, 0)
+    const totalDays = period.totalDays
+    const avgReliability = storeStats.length > 0 ? Math.round(storeStats.reduce((a, s) => a + s.reliabilityScore, 0) / storeStats.length) : 0
+    const topStore = storeStats[0]
+    const avgDailyRevenue = storeStats.reduce((a, s) => a + s.avgDailyRevenue, 0)
+
+    const toggleStore = (id: string) => {
+        setSelectedStores(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) { if (next.size > 1) next.delete(id) }
+            else next.add(id)
+            return next
+        })
+    }
+
+    const chartData = filteredStats.map((s, i) => ({
+        name: s.store_name.length > 18 ? s.store_name.slice(0, 16) + '…' : s.store_name,
+        fullName: s.store_name,
+        Revenue: s.totalRevenue,
+        'Revenue/Hr': s.revenuePerHour,
+        Reliability: s.reliabilityScore,
+        Cash: s.totalCash,
+        Card: s.totalCard,
+        color: COLORS[i % COLORS.length]
+    }))
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (!active || !payload?.length) return null
+        return (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-3 text-sm">
+                <p className="font-bold text-gray-900 mb-1">{payload[0]?.payload?.fullName || label}</p>
+                {payload.map((p: any, i: number) => (
+                    <p key={i} style={{ color: p.color }} className="font-semibold">
+                        {p.name}: {p.name === 'Reliability' ? `${p.value}%` : fmt(p.value)}
+                    </p>
+                ))}
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-800">Profitability Engine</h2>
-
-                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                    {/* Quick Ranges */}
-                    <select
-                        value={range}
-                        onChange={(e) => setRange(e.target.value)}
-                        className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white min-w-[140px]"
-                    >
-                        <option value="1d">1 Day (1D)</option>
-                        <option value="3d">3 Days (3D)</option>
-                        <option value="1w">1 Week (1W)</option>
-                        <option value="15d">15 Days (15D)</option>
-                        <option value="1m">1 Month (1M)</option>
-                        <option value="3m">3 Months (3M)</option>
-                        <option value="6m">6 Months (6M)</option>
-                        <option value="1y">1 Year (1Y)</option>
-                        <option value="2y">2 Years (2Y)</option>
-                        <option value="custom">Custom Range</option>
-                    </select>
-
-                    {/* Custom Date Picker */}
-                    {range === 'custom' && (
-                        <div className="flex space-x-2 items-center">
-                            <input
-                                type="date"
-                                className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
-                                value={customStart}
-                                onChange={(e) => setCustomStart(e.target.value)}
-                            />
-                            <span className="text-gray-500 text-sm">to</span>
-                            <input
-                                type="date"
-                                className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
-                                value={customEnd}
-                                onChange={(e) => setCustomEnd(e.target.value)}
-                            />
-                        </div>
-                    )}
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">📈 Store Analytics</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">
+                        {dayjs(period.start).format('MMM D')} – {dayjs(period.end).format('MMM D, YYYY')} · {totalDays} days
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <input type="month" value={month}
+                        onChange={e => { setMonth(e.target.value); pushParams({ month: e.target.value }) }}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
                 </div>
             </div>
 
-            {summary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
-                        <h3 className="text-gray-500 font-medium text-sm">Gross Sales (Revenue)</h3>
-                        <p className="text-2xl font-bold text-gray-900">${summary.totalSales.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-red-400">
-                        <h3 className="text-gray-500 font-medium text-sm">Petty Cash (Daily)</h3>
-                        <p className="text-2xl font-bold text-red-600">-${summary.totalPettyCashExpenses.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-orange-400">
-                        <h3 className="text-gray-500 font-medium text-sm">Store Expenses (Admin)</h3>
-                        <p className="text-2xl font-bold text-orange-600">-${summary.totalStoreExpenses.toFixed(2)}</p>
-                    </div>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl shadow border-t-4 border-indigo-500 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Revenue</p>
+                    <p className="text-2xl font-black text-gray-900 mt-1">{fmt(totalRevenue)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{storeStats.length} stores</p>
+                </div>
+                <div className="bg-white rounded-xl shadow border-t-4 border-emerald-500 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Daily Revenue</p>
+                    <p className="text-2xl font-black text-gray-900 mt-1">{fmt(avgDailyRevenue)}</p>
+                    <p className="text-xs text-gray-400 mt-1">all stores combined</p>
+                </div>
+                <div className="bg-white rounded-xl shadow border-t-4 border-amber-500 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Reliability</p>
+                    <p className="text-2xl font-black text-gray-900 mt-1">{avgReliability}%</p>
+                    <p className="text-xs text-gray-400 mt-1">reports submitted on time</p>
+                </div>
+                <div className="bg-white rounded-xl shadow border-t-4 border-rose-500 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Top Store</p>
+                    <p className="text-lg font-black text-gray-900 mt-1 leading-tight">{topStore?.store_name?.split(' ').slice(0, 3).join(' ') || '—'}</p>
+                    <p className="text-xs text-gray-400 mt-1">{fmt(topStore?.totalRevenue || 0)}</p>
+                </div>
+            </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500">
-                        <h3 className="text-gray-500 font-medium text-sm">Gross Profit</h3>
-                        <p className="text-2xl font-black text-indigo-700">${summary.grossProfit.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500">
-                        <h3 className="text-gray-500 font-medium text-sm">Staff Payroll Paid</h3>
-                        <p className="text-2xl font-bold text-yellow-600">-${summary.totalPayroll.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-gray-900 p-6 rounded-lg shadow border-l-4 border-green-500">
-                        <h3 className="text-gray-400 font-medium text-sm">Company Net Profit</h3>
-                        <p className="text-3xl font-black text-green-400">${summary.netProfit.toFixed(2)}</p>
-                    </div>
+            {/* Store filter chips */}
+            <div className="flex flex-wrap gap-2">
+                <button onClick={() => setSelectedStores(new Set(storeStats.map(s => s.store_id)))}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition">
+                    All Stores
+                </button>
+                {storeStats.map((s, i) => (
+                    <button key={s.store_id} onClick={() => toggleStore(s.store_id)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition ${selectedStores.has(s.store_id) ? 'text-white border-transparent' : 'bg-white border-gray-200 text-gray-500'}`}
+                        style={selectedStores.has(s.store_id) ? { backgroundColor: COLORS[i % COLORS.length], borderColor: COLORS[i % COLORS.length] } : {}}>
+                        {s.store_name.split(' ').slice(0, 3).join(' ')}
+                    </button>
+                ))}
+            </div>
+
+            {/* Chart type tabs */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+                {[
+                    { key: 'revenue', label: '💰 Revenue' },
+                    { key: 'efficiency', label: '⚡ Revenue/Hr' },
+                    { key: 'reliability', label: '📊 Reliability' }
+                ].map(t => (
+                    <button key={t.key} onClick={() => setActiveChart(t.key as any)}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${activeChart === t.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Main Bar Chart */}
+            <div className="bg-white rounded-xl shadow p-5">
+                <h2 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">
+                    {activeChart === 'revenue' ? 'Total Revenue by Store' : activeChart === 'efficiency' ? 'Revenue per Hour Worked' : 'Report Submission Reliability'}
+                </h2>
+                <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 60, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fontSize: 11 }}
+                            tickFormatter={v => activeChart === 'reliability' ? `${v}%` : `$${(v / 1000).toFixed(0)}k`} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey={activeChart === 'revenue' ? 'Revenue' : activeChart === 'efficiency' ? 'Revenue/Hr' : 'Reliability'}
+                            radius={[6, 6, 0, 0]} maxBarSize={60}>
+                            {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Cash vs Card stacked */}
+            {filteredStats.length > 0 && (
+                <div className="bg-white rounded-xl shadow p-5">
+                    <h2 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Cash vs. Card Split by Store</h2>
+                    <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 60, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" interval={0} />
+                            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend />
+                            <Bar dataKey="Cash" stackId="a" fill="#fbbf24" radius={[0, 0, 0, 0]} maxBarSize={50} />
+                            <Bar dataKey="Card" stackId="a" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
             )}
 
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-                    <SkeletonCard />
-                    <SkeletonCard />
-                </div>
-            ) : data.length === 0 ? (
-                <div className="p-12 text-center text-gray-500 bg-white shadow rounded-lg">No data available for the selected range.</div>
-            ) : (
-                <div className="flex flex-col gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Trend (Total)</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="total" stroke="#4f46e5" activeDot={{ r: 8 }} name="Total Revenue" />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Cash vs Card Breakdown</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Bar dataKey="cash" fill="#16a34a" name="Cash" stackId="a" />
-                                        <Bar dataKey="card" fill="#2563eb" name="Card" stackId="a" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* 1. Top Performing Stores */}
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Top Performing Stores</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={storeData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={60} />
-                                        <YAxis />
-                                        <Tooltip cursor={{fill: 'transparent'}} />
-                                        <Legend verticalAlign="top" height={36} />
-                                        <Bar dataKey="revenue" fill="#0088FE" name="Total Revenue" radius={[4, 4, 0, 0]}>
-                                            {storeData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        {/* 2. Cost Breakdown */}
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Cost Breakdown</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={costBreakdown}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={100}
-                                            fill="#8884d8"
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                                        >
-                                            {costBreakdown.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* 3. Daily Petty Cash Tracker */}
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Daily Petty Cash Outflow Tracker</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <ComposedChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" />
-                                        <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="#ff7300" />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Bar yAxisId="left" dataKey="total" fill="#8884d8" name="Revenue" opacity={0.5} />
-                                        <Line yAxisId="right" type="monotone" dataKey="pettyCash" stroke="#ff7300" name="Daily Petty Cash Used" strokeWidth={3} dot={{ r: 4 }} />
-                                    </ComposedChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        {/* 4. Financial Funnel */}
-                        <div className="bg-white p-6 rounded-lg shadow border">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Financial Funnel (Waterfall View)</h3>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={funnelData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" />
-                                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 13 }} />
-                                        <Tooltip />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                            {funnelData.map((entry, index) => {
-                                                const color = entry.value > 0 
-                                                                ? (entry.name === 'Gross Sales' ? '#0088FE' : entry.name === 'Gross Profit' ? '#6366f1' : '#10b981') 
-                                                                : '#ef4444';
-                                                return <Cell key={`cell-${index}`} fill={color} />;
-                                            })}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
+            {/* Daily Revenue Trend */}
+            {dailyTrend.length > 0 && (
+                <div className="bg-white rounded-xl shadow p-5">
+                    <h2 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Daily Revenue Trend (All Stores)</h2>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={dailyTrend} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={Math.floor(dailyTrend.length / 6)} />
+                            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+                            <Tooltip formatter={(v: any) => [`$${Number(v).toFixed(2)}`, 'Revenue']} />
+                            <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </div>
             )}
+
+            {/* Rankings Table */}
+            <div className="bg-white rounded-xl shadow overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">🏆 Store Rankings</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-100">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Store</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg/Day</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Rev/Hr</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[160px]">Reliability</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Missing</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {storeStats.map((s, i) => (
+                                <tr key={s.store_id} className={`hover:bg-gray-50 ${i === 0 ? 'bg-yellow-50/50' : ''}`}>
+                                    <td className="px-4 py-3 text-sm">
+                                        <span className={`font-black text-lg ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-600' : 'text-gray-300'}`}>
+                                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <p className="text-sm font-bold text-gray-900">{s.store_name}</p>
+                                        <p className="text-xs text-gray-400">{s.store_city}</p>
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-sm font-black text-gray-900">{fmt(s.totalRevenue)}</td>
+                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">{fmt(s.avgDailyRevenue)}</td>
+                                    <td className="px-4 py-3 text-right text-sm font-semibold text-indigo-700">{s.revenuePerHour > 0 ? fmt(s.revenuePerHour) : '—'}</td>
+                                    <td className="px-4 py-3 min-w-[160px]">
+                                        <ReliabilityBar score={s.reliabilityScore} color={COLORS[i % COLORS.length]} />
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-sm text-green-700 font-semibold">{s.submittedDays}</td>
+                                    <td className="px-4 py-3 text-right text-sm">
+                                        <span className={`font-semibold ${s.missingDays > 0 ? 'text-red-600' : 'text-gray-400'}`}>{s.missingDays}</span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+    )
+}
+
+export default function AnalyticsPage() {
+    return (
+        <Suspense fallback={<div className="p-10 text-center text-gray-400 animate-pulse">Loading analytics...</div>}>
+            <AnalyticsContent />
+        </Suspense>
     )
 }

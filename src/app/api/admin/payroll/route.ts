@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
     // Fetch all active staff/users except the ghost admin
     const users = await prisma.user.findMany({
-        where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' } },
+        where: { status: 'Active', email: { not: 'koushik@freedomshippingllc.com' }, company_id: session.user.companyId },
         select: { id: true, name: true, email: true, role: true, pay_type: true, base_salary: true }
     })
 
@@ -52,25 +52,27 @@ export async function GET(req: Request) {
         const endDate = new Date(startDate)
         endDate.setMonth(endDate.getMonth() + 1)
         
-        const reports = await prisma.dailyReport.findMany({
+        const logs = await prisma.timeLog.findMany({
             where: {
-                report_date: { gte: startDate, lt: endDate },
-                status: { in: ['Submitted', 'Verified'] }
+                clock_in: { gte: startDate, lt: endDate },
+                status: 'Approved',
+                clock_out: { not: null } // Only count finished punches
             },
-            select: { time_in: true, time_out: true, assignees: { select: { id: true } } }
+            select: { user_id: true, clock_in: true, clock_out: true }
         })
 
-        for (const report of reports) {
-            const duration = calculateDuration(report.time_in, report.time_out)
-            for (const assignee of report.assignees) {
-                hourlyTotals.set(assignee.id, (hourlyTotals.get(assignee.id) || 0) + duration)
-            }
+        for (const log of logs) {
+            if (!log.clock_out) continue;
+            const durationMs = log.clock_out.getTime() - log.clock_in.getTime()
+            const durationHrs = durationMs / (1000 * 60 * 60)
+            
+            hourlyTotals.set(log.user_id, (hourlyTotals.get(log.user_id) || 0) + Math.max(0, durationHrs))
         }
     }
 
     // Fetch existing payroll records for this month
     const records = await prisma.payrollRecord.findMany({
-        where: { month_year: monthYear },
+        where: { month_year: monthYear, user: { company_id: session.user.companyId } },
         include: {
             payments: {
                 orderBy: { payment_date: 'desc' }
@@ -146,6 +148,13 @@ export async function POST(req: Request) {
 
     const payAmount = Number(amount)
     if (payAmount <= 0) {
+        return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+    }
+
+    const validUser = await prisma.user.findFirst({
+        where: { id: user_id, company_id: session.user.companyId }
+    })
+    if (!validUser) return NextResponse.json({ error: 'Unauthorized user access' }, { status: 403 })
         return NextResponse.json({ error: 'Amount must be greater than zero' }, { status: 400 })
     }
 

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { evaluateReportForAnomalies } from '@/lib/anomaly-engine'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,10 +16,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
     const id = (await params).id
 
-    const report = await prisma.dailyReport.findUnique({
-        where: { id },
+    const report = await prisma.dailyReport.findFirst({
+        where: { id, store: { company_id: session.user.companyId } },
         include: {
             images: true,
+            sale_items: true,
             store: { select: { name: true, city: true, state: true } },
             submitted_by: { select: { name: true, email: true } },
             edit_logs: {
@@ -69,7 +71,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json(report)
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
     if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,11 +79,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
 
     const body = await req.json()
-    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls } = body
+    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls, sale_items, inventory_usage } = body
 
     try {
-        const existingReport = await prisma.dailyReport.findUnique({
-            where: { id },
+        const existingReport = await prisma.dailyReport.findFirst({
+            where: { id, store: { company_id: session.user.companyId } },
             include: { images: true, store: true }
         })
         if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -142,6 +144,57 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     }
                 })
 
+                // Replace inventory usage if provided
+                if (inventory_usage !== undefined) {
+                    // 1. Fetch old usages to restore inventory quantities
+                    const oldUsages = await tx.inventoryUsage.findMany({ where: { report_id: id } })
+                    for (const old of oldUsages) {
+                        await tx.inventoryItem.update({
+                            where: { id: old.item_id },
+                            data: { quantity: { increment: old.quantity_used } }
+                        })
+                    }
+
+                    // 2. Delete old usages
+                    await tx.inventoryUsage.deleteMany({ where: { report_id: id } })
+
+                    // 3. Apply new usages
+                    if (inventory_usage && inventory_usage.length > 0) {
+                        for (const usage of inventory_usage) {
+                            const qty = Number(usage.quantity) || 0
+                            if (qty <= 0) continue
+
+                            await tx.inventoryUsage.create({
+                                data: {
+                                    report_id: id,
+                                    item_id: usage.item_id,
+                                    quantity_used: qty
+                                }
+                            })
+
+                            await tx.inventoryItem.update({
+                                where: { id: usage.item_id },
+                                data: { quantity: { decrement: qty } }
+                            })
+                        }
+                    }
+                }
+
+                if (sale_items !== undefined) {
+                    await tx.saleItem.deleteMany({ where: { report_id: id } })
+                    if (sale_items.length > 0) {
+                        await tx.saleItem.createMany({
+                            data: sale_items.map((item: any) => ({
+                                report_id: id,
+                                category: item.category,
+                                description: item.description,
+                                quantity: Number(item.quantity) || 1,
+                                unit_price: Number(item.unit_price) || 0
+                            }))
+                        })
+                    }
+                }
+
                 // Handle Image Deletions
                 if (keptImageIds) {
                     await tx.reportImage.deleteMany({
@@ -189,28 +242,35 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 changesText: JSON.stringify(changes, null, 2)
             })
 
+            evaluateReportForAnomalies(updatedReport.id).catch(console.error)
+
             return NextResponse.json(updatedReport)
         } else {
             // Admin is just updating status (Verify / Correction Requested)
-            const report = await prisma.dailyReport.update({
-                where: { id },
-                data: { status }
+            const transaction = await prisma.$transaction(async (tx: any) => {
+                const report = await tx.dailyReport.update({
+                    where: { id },
+                    data: { status }
+                })
+
+                await tx.systemLog.create({
+                    data: {
+                        user_id: session.user.id,
+                        action: 'REPORT_STATUS_UPDATE',
+                        entity: 'DailyReport',
+                        entity_id: id,
+                        details: JSON.stringify({ new_status: status })
+                    }
+                })
+                return report
             })
 
-            await prisma.systemLog.create({
-                data: {
-                    user_id: session.user.id,
-                    action: 'REPORT_STATUS_UPDATE',
-                    entity: 'DailyReport',
-                    entity_id: id,
-                    details: JSON.stringify({ new_status: status })
-                }
-            })
+            evaluateReportForAnomalies(transaction.id).catch(console.error)
 
-            return NextResponse.json(report)
+            return NextResponse.json(transaction, { status: 200 })
         }
-    } catch (e) {
-        console.error(e)
+    } catch (error: any) {
+        console.error(error)
         return NextResponse.json({ error: 'Failed to update report' }, { status: 500 })
     }
 }

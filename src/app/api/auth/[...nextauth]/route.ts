@@ -9,7 +9,8 @@ export const authOptions: NextAuthOptions = {
             name: "Credentials",
             credentials: {
                 email: { label: "Email", type: "email", placeholder: "m@example.com" },
-                password: { label: "Password", type: "password" }
+                password: { label: "Password", type: "password" },
+                totpCode: { label: "2FA Code", type: "text", optional: true }
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
@@ -33,6 +34,53 @@ export const authOptions: NextAuthOptions = {
                     return null
                 }
 
+                // 2FA Check
+                if (user.two_factor_enabled) {
+                    const providedCode = credentials?.totpCode
+                    if (!providedCode) {
+                        throw new Error("2FA_REQUIRED")
+                    }
+
+                    // Try verifying TOTP token
+                    const otplibType = await import('otplib')
+                    const authenticator = (otplibType as any).authenticator
+                    const isValidTotp = user.totp_secret && authenticator.verify({ token: providedCode, secret: user.totp_secret })
+
+                    if (!isValidTotp) {
+                        // Check if it's a backup code
+                        let isValidBackup = false
+                        let remainingBackups = []
+                        if (user.backup_codes) {
+                            try {
+                                const hashedBackups = JSON.parse(user.backup_codes)
+                                const inputHash = providedCode.replace(/-/g, '')
+                                
+                                for (let i = 0; i < hashedBackups.length; i++) {
+                                    const match = await bcrypt.compare(inputHash, hashedBackups[i])
+                                    if (match) {
+                                        isValidBackup = true
+                                        // Remove the used backup code
+                                        remainingBackups = hashedBackups.filter((_: any, index: number) => index !== i)
+                                        break
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error parsing backup codes', e)
+                            }
+                        }
+
+                        if (!isValidBackup) {
+                            throw new Error("INVALID_2FA")
+                        } else {
+                            // Update user to remove used backup code
+                            await prisma.user.update({
+                                where: { id: user.id },
+                                data: { backup_codes: JSON.stringify(remainingBackups) }
+                            })
+                        }
+                    }
+                }
+
                 let storeId = null
                 if (user.role === "Staff" && user.storeMembers.length > 0) {
                     const activeMember = user.storeMembers.find((m: any) => m.status === "Active")
@@ -46,7 +94,8 @@ export const authOptions: NextAuthOptions = {
                     email: user.email,
                     name: user.name,
                     role: user.role,
-                    storeId: storeId
+                    storeId: storeId,
+                    companyId: user.company_id
                 }
             }
         })
@@ -57,6 +106,7 @@ export const authOptions: NextAuthOptions = {
                 token.role = user.role
                 token.id = user.id
                 token.storeId = user.storeId
+                token.companyId = (user as any).companyId
             }
             return token
         },
@@ -65,6 +115,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role as string
                 session.user.id = token.id as string
                 session.user.storeId = token.storeId as string | null
+                session.user.companyId = token.companyId as string
             }
             return session
         }

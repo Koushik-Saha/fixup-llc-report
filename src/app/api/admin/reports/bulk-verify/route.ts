@@ -20,22 +20,29 @@ export async function PATCH(req: Request) {
         }
 
         // Additional Manager validation: Managers can only verify reports belonging to their stores
-        let allowedStoreIds: string[] | null = null
+        let allowedStoreIds: string[] = []
         if (session.user.role === 'Manager') {
             const memberships = await prisma.storeMember.findMany({
                 where: { user_id: session.user.id, status: 'Active' },
                 select: { store_id: true }
             })
             allowedStoreIds = memberships.map(m => m.store_id)
+        } else {
+            const companyStores = await prisma.store.findMany({
+                where: { company_id: session.user.companyId },
+                select: { id: true }
+            })
+            allowedStoreIds = companyStores.map(s => s.id)
+        }
+
+        if (allowedStoreIds.length === 0) {
+             return NextResponse.json({ error: 'No authorized stores available for verification' }, { status: 403 })
         }
 
         const whereClause: any = {
             id: { in: reportIds },
-            status: 'Submitted' // Ensure we only verify unverified reports
-        }
-
-        if (allowedStoreIds) {
-            whereClause.store_id = { in: allowedStoreIds }
+            status: 'Submitted', // Ensure we only verify unverified reports
+            store_id: { in: allowedStoreIds }
         }
 
         const updateResult = await prisma.dailyReport.updateMany({

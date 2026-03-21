@@ -71,7 +71,8 @@ export async function GET(req: Request) {
             gte: new Date(`${startDateStr}T00:00:00.000Z`),
             lte: endBuffer
         },
-        status: { in: ['Submitted', 'Verified'] } // Count valid reports
+        status: { in: ['Submitted', 'Verified'] }, // Count valid reports
+        store: { company_id: session.user.companyId }
     }
 
     if (allowedStoreIds) {

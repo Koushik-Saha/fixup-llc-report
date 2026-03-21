@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
@@ -21,13 +21,18 @@ type ExpenseData = {
     amount: number
     expense_date: string
     notes: string | null
+    approval_status: string
+    review_note: string | null
+    reviewed_at: string | null
     store: { name: string }
     user: { name: string }
+    reviewed_by?: { name: string } | null
 }
 
-type StoreData = {
-    id: string
-    name: string
+function statusBadge(status: string) {
+    if (status === 'Approved') return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">✓ Approved</span>
+    if (status === 'Rejected') return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-700">✕ Rejected</span>
+    return <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">⏳ Pending</span>
 }
 
 function ExpensesDashboard() {
@@ -35,267 +40,315 @@ function ExpensesDashboard() {
     const searchParams = useSearchParams()
 
     const [expenses, setExpenses] = useState<ExpenseData[]>([])
-    const [stores, setStores] = useState<StoreData[]>([])
+    const [stores, setStores] = useState<{ id: string; name: string }[]>([])
     const [loading, setLoading] = useState(true)
 
+    const [tab, setTab] = useState<'Pending' | 'All'>(searchParams.get('tab') === 'All' ? 'All' : 'Pending')
     const [filterStore, setFilterStore] = useState(searchParams.get('storeId') || "")
     const [filterMonth, setFilterMonth] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
     const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
-    const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
+    const [limit] = useState(15)
 
-    const pushParams = (overrides: Record<string, string> = {}) => {
-        const vals: Record<string, string> = { storeId: filterStore, month: filterMonth, page: page.toString(), limit: limit.toString(), ...overrides }
-        const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v); if (k === 'page' && v !== '1') p.set(k, v); if (k === 'limit' && v !== '10') p.set(k, v) })
-        router.replace(`/admin/expenses?${p.toString()}`, { scroll: false })
-    }
-
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    // Add expense modal
+    const [addOpen, setAddOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-
-    // Form state
     const [expenseStore, setExpenseStore] = useState("")
     const [expenseCategory, setExpenseCategory] = useState("Inventory")
     const [expenseAmount, setExpenseAmount] = useState("")
     const [expenseDate, setExpenseDate] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
     const [expenseNotes, setExpenseNotes] = useState("")
 
+    // Review modal
+    const [reviewTarget, setReviewTarget] = useState<ExpenseData | null>(null)
+    const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve')
+    const [reviewNote, setReviewNote] = useState("")
+    const [reviewing, setReviewing] = useState(false)
+
+    const pushParams = useCallback((overrides: Record<string, string> = {}) => {
+        const vals = { storeId: filterStore, month: filterMonth, tab, ...overrides }
+        const p = new URLSearchParams()
+        Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v) })
+        router.replace(`/admin/expenses?${p.toString()}`, { scroll: false })
+    }, [filterStore, filterMonth, tab, router])
+
     useEffect(() => {
-        // Fetch Stores for dropdowns
-        fetch('/api/admin/stores')
-            .then(res => res.json())
-            .then(data => {
-                setStores(data.filter((s: any) => s.status === 'Active'))
-            })
+        fetch('/api/admin/stores').then(r => r.json()).then(d => setStores(d.filter((s: any) => s.status === 'Active')))
     }, [])
 
-    const fetchExpenses = () => {
+    const fetchExpenses = useCallback(() => {
         setLoading(true)
-        // Construct date boundaries from month filter (e.g. "2026-03") using Pacific midnight
-        const startDate = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).format('YYYY-MM-DD')
-        const endDate = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).endOf('month').format('YYYY-MM-DD')
-
+        const start = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).format('YYYY-MM-DD')
+        const end = dayjs.tz(`${filterMonth}-01T00:00:00`, TIMEZONE).endOf('month').format('YYYY-MM-DD')
         const params = new URLSearchParams()
-        if (filterStore) params.append('storeId', filterStore)
-        params.append('startDate', startDate)
-        params.append('endDate', endDate)
-
-        fetch(`/api/admin/expenses?${params.toString()}`)
-            .then(res => res.json())
-            .then(data => {
-                setExpenses(data)
-                setLoading(false)
-            })
-    }
-
-    useEffect(() => {
-        fetchExpenses()
+        if (filterStore) params.set('storeId', filterStore)
+        params.set('startDate', start)
+        params.set('endDate', end)
+        fetch(`/api/admin/expenses?${params}`)
+            .then(r => r.json())
+            .then(d => { setExpenses(Array.isArray(d) ? d : []); setLoading(false) })
     }, [filterStore, filterMonth])
 
-    const openModal = () => {
-        setExpenseStore(stores.length > 0 ? stores[0].id : "")
-        setExpenseCategory("Inventory")
-        setExpenseAmount("")
-        setExpenseDate(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
-        setExpenseNotes("")
-        setIsModalOpen(true)
-    }
+    useEffect(() => { fetchExpenses() }, [fetchExpenses])
 
-    const handleExpenseSubmit = async (e: React.FormEvent) => {
+    const handleAddExpense = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
-
         const res = await fetch("/api/admin/expenses", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                store_id: expenseStore,
-                category: expenseCategory,
-                amount: Number(expenseAmount),
-                expense_date: expenseDate,
-                notes: expenseNotes
-            })
+            body: JSON.stringify({ store_id: expenseStore, category: expenseCategory, amount: Number(expenseAmount), expense_date: expenseDate, notes: expenseNotes })
         })
-
-        if (res.ok) {
-            toast.success("Expense logged successfully")
-            setIsModalOpen(false)
-            fetchExpenses()
-        } else {
-            const data = await res.json()
-            toast.error(data.error || "Failed to log expense")
-        }
+        if (res.ok) { toast.success("Expense logged"); setAddOpen(false); fetchExpenses() }
+        else { const d = await res.json(); toast.error(d.error || "Failed") }
         setSubmitting(false)
     }
 
+    const handleReview = async () => {
+        if (!reviewTarget) return
+        setReviewing(true)
+        const res = await fetch(`/api/admin/expenses/${reviewTarget.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: reviewAction, review_note: reviewNote })
+        })
+        if (res.ok) {
+            toast.success(reviewAction === 'approve' ? '✓ Expense Approved' : '✕ Expense Rejected')
+            setReviewTarget(null)
+            setReviewNote("")
+            fetchExpenses()
+        } else {
+            const d = await res.json(); toast.error(d.error || "Failed")
+        }
+        setReviewing(false)
+    }
+
+    const displayed = tab === 'Pending'
+        ? expenses.filter(e => e.approval_status === 'Pending')
+        : expenses
+    const paged = displayed.slice((page - 1) * limit, page * limit)
+    const totalPages = Math.ceil(displayed.length / limit)
+
+    const pendingCount = expenses.filter(e => e.approval_status === 'Pending').length
+    const totalAmount = expenses.filter(e => e.approval_status === 'Approved').reduce((a, e) => a + Number(e.amount), 0)
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
+            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Store Expenses</h1>
-                <button
-                    onClick={openModal}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded shadow font-medium"
-                >
-                    Add Expense
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Store Expenses</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">Review and approve expense submissions</p>
+                </div>
+                <button onClick={() => { setExpenseStore(stores[0]?.id || ""); setAddOpen(true) }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg shadow font-medium text-sm transition">
+                    + Add Expense
                 </button>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Store</label>
-                    <select className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                        value={filterStore} onChange={(e) => { setFilterStore(e.target.value); pushParams({ storeId: e.target.value }) }}>
+            {/* KPI row */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-black text-yellow-700">{pendingCount}</p>
+                    <p className="text-xs text-yellow-600 font-semibold mt-0.5">Pending Review</p>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-black text-green-700">${totalAmount.toFixed(2)}</p>
+                    <p className="text-xs text-green-600 font-semibold mt-0.5">Approved This Month</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-black text-gray-900">{expenses.length}</p>
+                    <p className="text-xs text-gray-400 font-semibold mt-0.5">Total Submitted</p>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-xl shadow flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[160px]">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Store</label>
+                    <select className="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                        value={filterStore} onChange={e => { setFilterStore(e.target.value); pushParams({ storeId: e.target.value }) }}>
                         <option value="">All Stores</option>
                         {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Month</label>
-                    <input type="month" className="block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                        value={filterMonth} onChange={(e) => { setFilterMonth(e.target.value); pushParams({ month: e.target.value }) }} />
+                <div className="flex-1 min-w-[140px]">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Month</label>
+                    <input type="month" className="block w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                        value={filterMonth} onChange={e => { setFilterMonth(e.target.value); pushParams({ month: e.target.value }) }} />
                 </div>
             </div>
 
-            {loading ? (
-                <div className="bg-white shadow rounded-lg overflow-hidden p-6"><SkeletonRow rows={5} /></div>
-            ) : (
-                <div className="bg-white shadow overflow-hidden sm:rounded-lg overflow-x-auto">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+                {(['Pending', 'All'] as const).map(t => (
+                    <button key={t} onClick={() => { setTab(t); setPage(1); pushParams({ tab: t }) }}
+                        className={`px-5 py-1.5 rounded-lg text-sm font-semibold transition ${tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {t === 'Pending' ? `⏳ Pending (${pendingCount})` : `📋 All (${expenses.length})`}
+                    </button>
+                ))}
+            </div>
+
+            {/* Table */}
+            <div className="bg-white shadow rounded-xl overflow-hidden overflow-x-auto">
+                {loading ? (
+                    <div className="p-6"><SkeletonRow rows={5} /></div>
+                ) : (
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logged By</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Store</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                                {tab === 'Pending' && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>}
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {(() => {
-                                const paged = expenses.slice((page - 1) * limit, page * limit)
-                                const totalPages = Math.ceil(expenses.length / limit)
-                                return (
-                                    <>
-                                        {paged.map((exp) => (
-                                            <tr key={exp.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{dayjs.utc(exp.expense_date).format('M/D/YYYY')}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{exp.store.name}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{exp.category}</span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600">-${Number(exp.amount).toFixed(2)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.user.name}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">{exp.notes || <span className="text-gray-400 italic">None</span>}</td>
-                                            </tr>
-                                        ))}
-                                        {paged.length === 0 && <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">No expenses found for this period.</td></tr>}
-                                        <tr className="bg-transparent">
-                                            <td colSpan={6} className="p-0">
-                                                <Pagination currentPage={page} totalPages={totalPages} totalItems={expenses.length}
-                                                    onPageChange={v => { setPage(v); pushParams({ page: v.toString() }) }}
-                                                    label="expenses" limit={limit}
-                                                    onLimitChange={v => { setLimit(v); setPage(1); pushParams({ limit: v.toString(), page: '1' }) }} />
-                                            </td>
-                                        </tr>
-                                    </>
-                                )
-                            })()}
+                        <tbody className="bg-white divide-y divide-gray-100">
+                            {paged.map(exp => (
+                                <tr key={exp.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{dayjs.utc(exp.expense_date).format('M/D/YY')}</td>
+                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">{exp.store.name}</td>
+                                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">{exp.category}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm font-bold text-red-600 whitespace-nowrap">-${Number(exp.amount).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{exp.user.name}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        {statusBadge(exp.approval_status)}
+                                        {exp.reviewed_by && <p className="text-xs text-gray-400 mt-0.5">by {exp.reviewed_by.name}</p>}
+                                        {exp.review_note && <p className="text-xs text-gray-400 italic mt-0.5">"{exp.review_note}"</p>}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[180px] truncate">{exp.notes || <span className="italic text-gray-300">—</span>}</td>
+                                    {tab === 'Pending' && (
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {exp.approval_status === 'Pending' && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => { setReviewTarget(exp); setReviewAction('approve'); setReviewNote("") }}
+                                                        className="text-xs font-semibold bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg transition">
+                                                        ✓ Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setReviewTarget(exp); setReviewAction('reject'); setReviewNote("") }}
+                                                        className="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition">
+                                                        ✕ Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                            {paged.length === 0 && (
+                                <tr><td colSpan={tab === 'Pending' ? 8 : 7} className="px-6 py-10 text-center text-gray-400">
+                                    {tab === 'Pending' ? '🎉 No pending expenses — all caught up!' : 'No expenses found for this period.'}
+                                </td></tr>
+                            )}
                         </tbody>
                     </table>
-                </div>
-            )}
+                )}
+                {!loading && totalPages > 1 && (
+                    <Pagination currentPage={page} totalPages={totalPages} totalItems={displayed.length}
+                        onPageChange={v => { setPage(v) }} label="expenses" limit={limit} onLimitChange={() => {}} />
+                )}
+            </div>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <div className="flex justify-between items-center pb-4 mb-4 border-b">
+            {/* Add Expense Modal */}
+            {addOpen && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setAddOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-gray-900">Log Store Expense</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-500">
-                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <button onClick={() => setAddOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
                         </div>
-
-                        <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <form onSubmit={handleAddExpense} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Store</label>
-                                <select
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                                    value={expenseStore}
-                                    onChange={(e) => setExpenseStore(e.target.value)}
-                                >
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Store</label>
+                                <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                    value={expenseStore} onChange={e => setExpenseStore(e.target.value)}>
                                     {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Category</label>
-                                <select
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                                    value={expenseCategory}
-                                    onChange={(e) => setExpenseCategory(e.target.value)}
-                                >
-                                    <option value="Inventory">Inventory / Products</option>
-                                    <option value="Rent">Rent</option>
-                                    <option value="Utilities">Utilities</option>
-                                    <option value="Maintenance">Maintenance</option>
-                                    <option value="Other">Other</option>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+                                <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                    value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)}>
+                                    {['Inventory', 'Rent', 'Utilities', 'Maintenance', 'Marketing', 'Supplies', 'Other'].map(c =>
+                                        <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0.01"
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                    value={expenseAmount}
-                                    onChange={(e) => setExpenseAmount(e.target.value)}
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Amount ($)</label>
+                                    <input type="number" step="0.01" min="0.01" required
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                        value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Date</label>
+                                    <input type="date" required
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                        value={expenseDate} onChange={e => setExpenseDate(e.target.value)} />
+                                </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Expense Date</label>
-                                <input
-                                    type="date"
-                                    required
-                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                    value={expenseDate}
-                                    onChange={(e) => setExpenseDate(e.target.value)}
-                                />
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Notes (optional)</label>
+                                <input type="text" placeholder="e.g. Screen protectors batch #4"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                    value={expenseNotes} onChange={e => setExpenseNotes(e.target.value)} />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Screen protectors batch #4"
-                                    className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                    value={expenseNotes}
-                                    onChange={(e) => setExpenseNotes(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="mt-6 flex justify-end space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="bg-blue-600 border border-transparent rounded-md shadow-sm py-2 px-4 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50"
-                                >
-                                    {submitting ? 'Processing...' : 'Submit Expense'}
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setAddOpen(false)}
+                                    className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm transition hover:bg-gray-50">Cancel</button>
+                                <button type="submit" disabled={submitting}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold text-sm transition disabled:opacity-50">
+                                    {submitting ? 'Saving...' : 'Log Expense'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Review Modal */}
+            {reviewTarget && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setReviewTarget(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+                        <h3 className={`text-lg font-bold mb-1 ${reviewAction === 'approve' ? 'text-green-700' : 'text-red-700'}`}>
+                            {reviewAction === 'approve' ? '✓ Approve Expense' : '✕ Reject Expense'}
+                        </h3>
+                        <div className="bg-gray-50 rounded-xl p-4 mb-4 mt-3 text-sm space-y-1">
+                            <div className="flex justify-between"><span className="text-gray-400">Store</span><span className="font-semibold text-gray-900">{reviewTarget.store.name}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Category</span><span className="font-semibold">{reviewTarget.category}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Amount</span><span className="font-bold text-red-600">-${Number(reviewTarget.amount).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Submitted by</span><span>{reviewTarget.user.name}</span></div>
+                            {reviewTarget.notes && <div className="flex justify-between"><span className="text-gray-400">Notes</span><span className="italic">{reviewTarget.notes}</span></div>}
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                {reviewAction === 'reject' ? 'Reason for rejection (required)' : 'Comment (optional)'}
+                            </label>
+                            <textarea
+                                value={reviewNote}
+                                onChange={e => setReviewNote(e.target.value)}
+                                rows={2}
+                                placeholder={reviewAction === 'approve' ? 'Optional note...' : 'State the reason for rejection...'}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                            />
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setReviewTarget(null)}
+                                className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition">Cancel</button>
+                            <button
+                                onClick={handleReview}
+                                disabled={reviewing || (reviewAction === 'reject' && !reviewNote.trim())}
+                                className={`flex-1 text-white py-2.5 rounded-xl font-semibold text-sm transition disabled:opacity-50 ${reviewAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                                {reviewing ? 'Processing...' : reviewAction === 'approve' ? '✓ Confirm Approve' : '✕ Confirm Reject'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

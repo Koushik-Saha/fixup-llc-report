@@ -20,6 +20,7 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
     const [notes, setNotes] = useState("")
     const [existingImages, setExistingImages] = useState<any[]>([])
     const [files, setFiles] = useState<File[]>([])
+    const [saleItems, setSaleItems] = useState<{ category: string, description: string, quantity: number, unit_price: number | '' }[]>([])
 
     useEffect(() => {
         fetch(`/api/admin/reports/${id}`)
@@ -35,6 +36,9 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     setTimeOut(data.time_out || "")
                     setNotes(data.notes || "")
                     setExistingImages(data.images || [])
+                    if (data.sale_items && data.sale_items.length > 0) {
+                        setSaleItems(data.sale_items)
+                    }
                 }
                 setLoading(false)
             })
@@ -103,7 +107,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     time_out: timeOut,
                     notes,
                     keptImageIds,
-                    newImageUrls
+                    newImageUrls,
+                    sale_items: saleItems.filter(i => i.description.trim() !== "" && i.unit_price !== "")
                 })
             })
 
@@ -219,6 +224,36 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                                 ${(Number(cash || 0) - Number(expenses || 0) - Number(payouts || 0) + Number(card || 0)).toFixed(2)}
                             </span>
                         </div>
+                    </div>
+
+                    {/* ITEM SALES SECTION */}
+                    <div className="pt-6 border-t border-gray-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-900">Itemized Sales (Optional)</h3>
+                            <button type="button" onClick={() => setSaleItems([...saleItems, { category: 'Repair', description: '', quantity: 1, unit_price: '' }])} className="text-sm bg-purple-50 text-purple-600 px-3 py-1.5 rounded-md font-medium hover:bg-purple-100 transition">
+                                + Add Item
+                            </button>
+                        </div>
+                        {saleItems.length === 0 ? (
+                            <p className="text-sm text-gray-500">No individual items recorded. Click "Add Item" to itemize sales.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {saleItems.map((item, index) => (
+                                    <div key={index} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-gray-50 p-3 rounded border border-gray-100">
+                                        <select className="px-2 py-1.5 border border-gray-300 rounded text-sm w-full sm:w-auto focus:ring-purple-500 focus:border-purple-500" value={item.category} onChange={e => { const newItems = [...saleItems]; newItems[index].category = e.target.value; setSaleItems(newItems) }}>
+                                            <option value="Repair">Repair</option>
+                                            <option value="Accessory">Accessory</option>
+                                            <option value="Device">Device Sale</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <input type="text" placeholder="Description (e.g. iPhone 13 Screen)" className="px-2 py-1.5 border border-gray-300 rounded text-sm flex-1 w-full focus:ring-purple-500 focus:border-purple-500" value={item.description} onChange={e => { const newItems = [...saleItems]; newItems[index].description = e.target.value; setSaleItems(newItems) }} />
+                                        <input type="number" min="1" placeholder="Qty" className="px-2 py-1.5 border border-gray-300 rounded text-sm w-20 focus:ring-purple-500 focus:border-purple-500" value={item.quantity} onChange={e => { const newItems = [...saleItems]; newItems[index].quantity = Number(e.target.value); setSaleItems(newItems) }} />
+                                        <input type="number" min="0" step="0.01" placeholder="Price ($)" className="px-2 py-1.5 border border-gray-300 rounded text-sm w-28 focus:ring-purple-500 focus:border-purple-500" value={item.unit_price} onChange={e => { const newItems = [...saleItems]; newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value); setSaleItems(newItems) }} />
+                                        <button type="button" onClick={() => setSaleItems(saleItems.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-700 p-1 font-bold shrink-0">✕</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="pt-4 border-t">

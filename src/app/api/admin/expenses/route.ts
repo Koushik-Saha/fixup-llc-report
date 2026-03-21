@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
 
-    const where: any = {}
+    const where: any = { store: { company_id: session.user.companyId } }
 
     if (storeId) {
         where.store_id = storeId
@@ -60,6 +60,11 @@ export async function POST(req: Request) {
     if (!store_id || !category || amount === undefined) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    const validStore = await prisma.store.findFirst({
+        where: { id: store_id, company_id: session.user.companyId }
+    })
+    if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
 
     try {
         const expense = await prisma.$transaction(async (tx: any) => {

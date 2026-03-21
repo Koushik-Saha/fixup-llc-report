@@ -6,6 +6,7 @@ import { sendDailySummary } from '@/lib/email'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { evaluateReportForAnomalies } from '@/lib/anomaly-engine'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { cash_amount, card_amount, expenses_amount, payouts_amount, report_date, time_in, time_out, notes, imageUrls } = body
+    const { cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls, sale_items, inventory_usage } = body
 
     if (cash_amount === undefined || card_amount === undefined) {
         return NextResponse.json({ error: 'Cash and Card amounts are required' }, { status: 400 })
@@ -81,13 +82,43 @@ export async function POST(req: Request) {
                     card_amount: Number(card_amount),
                     expenses_amount: Number(expenses_amount) || 0,
                     payouts_amount: Number(payouts_amount) || 0,
+                    category_id: category_id || null,
                     total_amount: total,
                     time_in: time_in || null,
                     time_out: time_out || null,
                     notes: notes || null,
-                    status: 'Submitted'
+                    status: 'Submitted',
+                    sale_items: sale_items && sale_items.length > 0 ? {
+                        create: sale_items.map((item: any) => ({
+                            category: item.category,
+                            description: item.description,
+                            quantity: Number(item.quantity) || 1,
+                            unit_price: Number(item.unit_price) || 0
+                        }))
+                    } : undefined
                 }
             })
+
+            // Process Inventory Usage
+            if (inventory_usage && inventory_usage.length > 0) {
+                for (const usage of inventory_usage) {
+                    const qty = Number(usage.quantity) || 0
+                    if (qty <= 0) continue
+
+                    await tx.inventoryUsage.create({
+                        data: {
+                            report_id: newReport.id,
+                            item_id: usage.item_id,
+                            quantity_used: qty
+                        }
+                    })
+
+                    await tx.inventoryItem.update({
+                        where: { id: usage.item_id },
+                        data: { quantity: { decrement: qty } }
+                    })
+                }
+            }
 
             if (imageUrls && imageUrls.length > 0) {
                 await tx.reportImage.createMany({
@@ -121,11 +152,14 @@ export async function POST(req: Request) {
             return newReport
         })
 
-        return NextResponse.json(report)
-    } catch (err: any) {
-        console.error('Error creating report:', err)
+        // Fire and forget anomaly evaluation
+        evaluateReportForAnomalies(report.id).catch(console.error)
+
+        return NextResponse.json(report, { status: 201 })
+    } catch (error: any) {
+        console.error('Error creating report:', error)
         // To handle unique constraint technically just in case of race condition
-        if (err.code === 'P2002') {
+        if (error.code === 'P2002') {
             return NextResponse.json({ error: 'Report already exists for today' }, { status: 400 })
         }
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     }
 
     // Build the where clause for the SystemLog query
-    const where: any = {}
+    const where: any = { user: { company_id: session.user.companyId } }
 
     // Filtering by user who made the action
     if (userId) {

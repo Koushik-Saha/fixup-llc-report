@@ -8,7 +8,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     const router = useRouter()
     const { id } = use(params)
 
-    const [formData, setFormData] = useState({ name: "", email: "", role: "Staff", status: "Active", pay_type: "MONTHLY", password: "", base_salary: 0 })
+    const [formData, setFormData] = useState({ name: "", email: "", role: "Staff", status: "Active", pay_type: "MONTHLY", password: "", base_salary: 0, tax_classification: "W-2", tax_id: "" })
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -19,7 +19,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             .then(res => res.json())
             .then(data => {
                 // Cast base_salary to handle Prisma Decimal format (often returned as string)
-                setFormData({ ...data, password: "", pay_type: data.pay_type || "MONTHLY", base_salary: Number(data.base_salary || 0) })
+                setFormData({ ...data, password: "", pay_type: data.pay_type || "MONTHLY", base_salary: Number(data.base_salary || 0), tax_classification: data.tax_classification || "W-2", tax_id: data.tax_id || "" })
                 setLoading(false)
             })
     }, [id])
@@ -110,6 +110,19 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
                         </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Tax Classification</label>
+                        <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.tax_classification} onChange={e => setFormData({ ...formData, tax_classification: e.target.value })}>
+                            <option value="W-2">W-2 (Employee)</option>
+                            <option value="1099">1099 (Contractor)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Tax ID (SSN/EIN)</label>
+                        <input type="text" placeholder="Optional" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.tax_id} onChange={e => setFormData({ ...formData, tax_id: e.target.value })} />
                     </div>
                 </div>
                 <div className="flex space-x-4 pt-4">
