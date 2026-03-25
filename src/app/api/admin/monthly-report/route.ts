@@ -77,25 +77,61 @@ export async function GET(req: Request) {
         orderBy: { report_date: 'desc' }
     })
 
+    const adminExpenses = await prisma.storeExpense.findMany({
+        where: {
+            store_id: storeId,
+            expense_date: {
+                gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
+                lte: new Date(`${dates[0]}T00:00:00.000Z`)
+            },
+            approval_status: 'Approved'
+        },
+        select: { expense_date: true, amount: true, payment_method: true }
+    })
+
     const reportMap = new Map()
     reports.forEach(r => reportMap.set(r.report_date.toISOString().split('T')[0], r))
 
-    let totalCash = 0, totalCard = 0, totalAmount = 0
+    const adminExpMap = new Map()
+    adminExpenses.forEach(e => {
+        const key = e.expense_date.toISOString().split('T')[0]
+        if (!adminExpMap.has(key)) adminExpMap.set(key, [])
+        adminExpMap.get(key).push(e)
+    })
+
+    let totalCash = 0, totalCard = 0, totalAmount = 0, totalExpenses = 0
     let submittedCount = 0, missingCount = 0, verifiedCount = 0, unverifiedCount = 0
 
     const finalData = dates.map(dateStr => {
+        const dayAdminExps = adminExpMap.get(dateStr) || []
+        const cashAdminExp = dayAdminExps.filter((e: any) => e.payment_method === 'Cash').reduce((a: number, e: any) => a + Number(e.amount), 0)
+        const totalAdminExp = dayAdminExps.reduce((a: number, e: any) => a + Number(e.amount), 0)
+
         if (reportMap.has(dateStr)) {
             const r = reportMap.get(dateStr)
-            // Staff expenses and payouts always come from cash — subtract from totalCash
-            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            const staffExp = Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)
+            const netCash = Number(r.cash_amount) - staffExp - cashAdminExp
+            
             totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
+            totalExpenses += (Number(r.expenses_amount || 0) + totalAdminExp)
+            
             submittedCount++
             if (r.status === 'Verified') verifiedCount++
             else unverifiedCount++
-            return { ...r, net_cash: netCash, report_date: `${dateStr}T00:00:00.000Z` }
+            
+            return { 
+                ...r, 
+                report_date: `${dateStr}T00:00:00.000Z`,
+                net_cash: netCash 
+            }
         }
+        
+        // Even for missing days, admin expenses track
+        totalExpenses += totalAdminExp
+        totalCash -= cashAdminExp
+
         missingCount++
         return {
             id: `missing-${dateStr}`,
@@ -105,6 +141,7 @@ export async function GET(req: Request) {
             total_amount: null,
             expenses_amount: null,
             payouts_amount: null,
+            net_cash: -cashAdminExp,
             status: 'Missing',
             submitted_by: null
         }
@@ -112,7 +149,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
         data: finalData,
-        summary: { totalCash, totalCard, totalAmount, submittedCount, missingCount, verifiedCount, unverifiedCount },
+        summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount, verifiedCount, unverifiedCount },
         storeName: store.name,
         storeCity: store.city,
         month: baseMonth.format('MMMM YYYY')

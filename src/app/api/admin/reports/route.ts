@@ -272,8 +272,13 @@ export async function GET(req: Request) {
             prisma.dailyReport.count({ where })
         ])
 
+        const reportsWithNet = reports.map(r => ({
+            ...r,
+            net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+        }))
+
         return NextResponse.json({
-            data: reports,
+            data: reportsWithNet,
             pagination: {
                 total,
                 page,
@@ -350,7 +355,11 @@ export async function GET(req: Request) {
         if (reportMap.has(key)) {
             // If filtering by 'Missing', skip slots that have a real report
             if (statusFilter === 'Missing') return null
-            return reportMap.get(key)
+            const r = reportMap.get(key)
+            return {
+                ...r,
+                net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            }
         }
         // Slot has no report — only include if not filtering for real statuses
         if (statusFilter && statusFilter !== 'Missing') return null
@@ -363,6 +372,7 @@ export async function GET(req: Request) {
             cash_amount: 0,
             card_amount: 0,
             total_amount: 0,
+            net_cash: 0,
             status: 'Missing',
         }
     }).filter(Boolean)

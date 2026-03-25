@@ -21,6 +21,7 @@ type ExpenseData = {
     amount: number
     expense_date: string
     notes: string | null
+    payment_method: string
     approval_status: string
     review_note: string | null
     reviewed_at: string | null
@@ -53,10 +54,11 @@ function ExpensesDashboard() {
     const [addOpen, setAddOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [expenseStore, setExpenseStore] = useState("")
-    const [expensePaymentMethod, setExpensePaymentMethod] = useState("Cash")
+    const [expenseCategory, setExpenseCategory] = useState("Inventory")
     const [expenseAmount, setExpenseAmount] = useState("")
     const [expenseDate, setExpenseDate] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
     const [expenseNotes, setExpenseNotes] = useState("")
+    const [expensePaymentMethod, setExpensePaymentMethod] = useState("Cash")
 
     // Review modal
     const [reviewTarget, setReviewTarget] = useState<ExpenseData | null>(null)
@@ -96,7 +98,14 @@ function ExpensesDashboard() {
         const res = await fetch("/api/admin/expenses", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ store_id: expenseStore, category: expenseNotes || 'General', payment_method: expensePaymentMethod, amount: Number(expenseAmount), expense_date: expenseDate, notes: expenseNotes })
+            body: JSON.stringify({ 
+                store_id: expenseStore, 
+                category: expenseCategory, 
+                amount: Number(expenseAmount), 
+                expense_date: expenseDate, 
+                notes: expenseNotes,
+                payment_method: expensePaymentMethod
+            })
         })
         if (res.ok) { toast.success("Expense logged"); setAddOpen(false); fetchExpenses() }
         else { const d = await res.json(); toast.error(d.error || "Failed") }
@@ -199,7 +208,7 @@ function ExpensesDashboard() {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Store</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Method</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
@@ -215,6 +224,11 @@ function ExpensesDashboard() {
                                         <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">{exp.category}</span>
                                     </td>
                                     <td className="px-4 py-3 text-sm font-bold text-red-600 whitespace-nowrap">-${Number(exp.amount).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${exp.payment_method === 'Cash' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                                            {exp.payment_method}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{exp.user.name}</td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         {statusBadge(exp.approval_status)}
@@ -273,11 +287,11 @@ function ExpensesDashboard() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Payment Method</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
                                 <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                    value={expensePaymentMethod} onChange={e => setExpensePaymentMethod(e.target.value)}>
-                                    <option value="Cash">💵 Cash</option>
-                                    <option value="Card">💳 Card</option>
+                                    value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)}>
+                                    {['Inventory', 'Rent', 'Utilities', 'Maintenance', 'Marketing', 'Supplies', 'Other'].map(c =>
+                                        <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -293,6 +307,14 @@ function ExpensesDashboard() {
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
                                         value={expenseDate} onChange={e => setExpenseDate(e.target.value)} />
                                 </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Payment Method</label>
+                                <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                                    value={expensePaymentMethod} onChange={e => setExpensePaymentMethod(e.target.value)}>
+                                    <option value="Cash">Cash (Deduct from Store Cash)</option>
+                                    <option value="Card">Card / Direct (Bank Account)</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Notes (optional)</label>

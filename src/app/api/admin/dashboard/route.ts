@@ -45,6 +45,30 @@ export async function GET() {
 
     const allStoreIds = activeStores.map(s => s.id)
 
+    // ── Admin expenses (StoreExpense table) ──────────────────────────────────
+    const [todayAdminExpenses, monthAdminExpenses] = await Promise.all([
+        prisma.storeExpense.findMany({
+            where: {
+                expense_date: todayObj,
+                store_id: { in: allStoreIds },
+                approval_status: 'Approved'
+            },
+            select: { amount: true, payment_method: true }
+        }),
+        prisma.storeExpense.findMany({
+            where: {
+                expense_date: { gte: monthStartObj, lte: todayObj },
+                store_id: { in: allStoreIds },
+                approval_status: 'Approved'
+            },
+            select: { amount: true, payment_method: true }
+        })
+    ])
+
+    const todayAdminCashExp = todayAdminExpenses.filter(e => e.payment_method === 'Cash').reduce((a, e) => a + Number(e.amount), 0)
+    const monthAdminCashExp = monthAdminExpenses.filter(e => e.payment_method === 'Cash').reduce((a, e) => a + Number(e.amount), 0)
+    const monthTotalAdminExp = monthAdminExpenses.reduce((a, e) => a + Number(e.amount), 0)
+
     // ── Today's reports ────────────────────────────────────────────────────────
     const todaysReports = await prisma.dailyReport.findMany({
         where: { report_date: todayObj, store_id: { in: allStoreIds } },
@@ -53,17 +77,23 @@ export async function GET() {
             store_id: true,
             cash_amount: true,
             card_amount: true,
+            expenses_amount: true,
+            payouts_amount: true,
             total_amount: true,
             status: true,
             submitted_by: { select: { name: true } }
         }
     })
-    const todayCash = todaysReports.reduce((a, r) => a + Number(r.cash_amount), 0)
+    
+    // Today's Net Cash = Today's Report Cash - Report Expenses - Report Payouts - Today's Admin Cash Expenses
+    const todayStaffExp = todaysReports.reduce((a, r) => a + Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0), 0)
+    const todayGrossCash = todaysReports.reduce((a, r) => a + Number(r.cash_amount), 0)
+    const todayCash = todayGrossCash - todayStaffExp - todayAdminCashExp
     const todayCard = todaysReports.reduce((a, r) => a + Number(r.card_amount), 0)
     const todayTotal = todayCash + todayCard
     const reportedStoreIds = new Set(todaysReports.map(r => r.store_id))
     const missingToday = allStoreIds.filter(id => !reportedStoreIds.has(id)).length
-
+    
     // Build per-store today status list
     const reportByStoreId = new Map(todaysReports.map(r => [r.store_id, r]))
     const todayStatus = activeStores.map(store => {
@@ -104,13 +134,18 @@ export async function GET() {
     const weekRevenue = Number(weekReports._sum.total_amount || 0)
 
     // ── This month revenue ─────────────────────────────────────────────────────
-    const monthReports = await prisma.dailyReport.aggregate({
+    const monthReportsData = await prisma.dailyReport.findMany({
         where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
-        _sum: { total_amount: true, cash_amount: true, card_amount: true }
+        select: { total_amount: true, cash_amount: true, card_amount: true, expenses_amount: true, payouts_amount: true }
     })
-    const monthRevenue = Number(monthReports._sum.total_amount || 0)
-    const monthCash = Number(monthReports._sum.cash_amount || 0)
-    const monthCard = Number(monthReports._sum.card_amount || 0)
+    
+    const monthRevenue = monthReportsData.reduce((a, r) => a + Number(r.total_amount || 0), 0)
+    const monthGrossCash = monthReportsData.reduce((a, r) => a + Number(r.cash_amount || 0), 0)
+    const monthStaffExp = monthReportsData.reduce((a, r) => a + Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0), 0)
+    // Month Net Cash = Gross Cash - Staff Expenses/Payouts - Cash-based Admin Expenses
+    const monthCash = monthGrossCash - monthStaffExp - monthAdminCashExp
+    const monthCard = monthReportsData.reduce((a, r) => a + Number(r.card_amount || 0), 0)
+    const monthExpenses = monthStaffExp + monthTotalAdminExp
 
     // ── Unverified report count ────────────────────────────────────────────────
     const unverifiedCount = await prisma.dailyReport.count({
@@ -221,10 +256,12 @@ export async function GET() {
             todayCash,
             todayCard,
             todayTotal,
+            todayExpenses: todayStaffExp + todayAdminCashExp,
             weekRevenue,
             monthRevenue,
             monthCash,
             monthCard,
+            monthExpenses,
             totalStores,
             totalUsers,
             missingToday,

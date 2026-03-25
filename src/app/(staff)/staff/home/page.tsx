@@ -25,6 +25,7 @@ type DashData = {
         totalCash: number
         totalCard: number
         totalRevenue: number
+        totalExpenses: number
         totalPaid: number
         verifiedCount: number
     }
@@ -260,14 +261,21 @@ export default function StaffHomePage() {
                                 color="border-emerald-400"
                             />
                             <StatCard
-                                label="Total Cash"
+                                label="Net Cash"
                                 value={`$${data.month.totalCash.toFixed(2)}`}
+                                sub="after expenses"
                                 color="border-yellow-400"
                             />
                             <StatCard
                                 label="Total Card"
                                 value={`$${data.month.totalCard.toFixed(2)}`}
                                 color="border-purple-400"
+                            />
+                            <StatCard
+                                label="Expenses"
+                                value={`$${data.month.totalExpenses.toFixed(2)}`}
+                                sub="from cash"
+                                color="border-red-400"
                             />
                         </>
                     ) : null}

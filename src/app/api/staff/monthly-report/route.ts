@@ -80,6 +80,7 @@ export async function GET() {
     let totalCash = 0
     let totalCard = 0
     let totalAmount = 0
+    let totalExpenses = 0
     let submittedCount = 0
     let missingCount = 0
 
@@ -91,6 +92,7 @@ export async function GET() {
             totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
+            totalExpenses += Number(r.expenses_amount || 0)
             submittedCount++
             // Attach computed net_cash for the UI to display
             return { ...r, net_cash: netCash }
@@ -109,7 +111,7 @@ export async function GET() {
 
     return NextResponse.json({
         data: finalData,
-        summary: { totalCash, totalCard, totalAmount, submittedCount, missingCount },
+        summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount },
         storeName: store.name,
         month: nowTz.format('MMMM YYYY')
     })

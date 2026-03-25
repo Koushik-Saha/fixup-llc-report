@@ -28,6 +28,7 @@ type Summary = {
     totalCash: number
     totalCard: number
     totalAmount: number
+    totalExpenses: number
     submittedCount: number
     missingCount: number
     verifiedCount: number
@@ -101,7 +102,7 @@ function MonthlyReportContent() {
                     </p>
                 </div>
                 <Link href="/admin/todays-reports" className="text-blue-600 hover:text-blue-800 font-medium text-sm self-start sm:self-auto">
-                    ← Back to Today's Reports
+                    Back to Home
                 </Link>
             </div>
 
@@ -133,18 +134,22 @@ function MonthlyReportContent() {
 
             {/* Summary Cards — same as staff monthly report */}
             {summary && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-green-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Cash</p>
-                        <p className="text-xl font-bold text-green-600 mt-1">${summary.totalCash.toFixed(2)}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-yellow-500">
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Net Cash</p>
+                        <p className="text-xl font-bold text-yellow-600 mt-1">${summary.totalCash.toFixed(2)}</p>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4 border-t-4 border-blue-500">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Card</p>
                         <p className="text-xl font-bold text-blue-600 mt-1">${summary.totalCard.toFixed(2)}</p>
                     </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500 col-span-2 sm:col-span-1">
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Sales</p>
                         <p className="text-xl font-bold text-indigo-600 mt-1">${summary.totalAmount.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-500">
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Expenses</p>
+                        <p className="text-xl font-bold text-red-600 mt-1">${summary.totalExpenses.toFixed(2)}</p>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4 border-t-4 border-emerald-400">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Submitted</p>
@@ -153,14 +158,6 @@ function MonthlyReportContent() {
                     <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-400">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Missing</p>
                         <p className="text-xl font-bold text-red-500 mt-1">{summary.missingCount} days</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-teal-400">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Verified</p>
-                        <p className="text-xl font-bold text-teal-600 mt-1">{summary.verifiedCount} days</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-yellow-400">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Unverified</p>
-                        <p className="text-xl font-bold text-yellow-600 mt-1">{summary.unverifiedCount} days</p>
                     </div>
                 </div>
             )}
@@ -252,7 +249,7 @@ function MonthlyReportContent() {
                                 <tfoot className="bg-gray-50 border-t-2 border-gray-300">
                                     <tr>
                                         <td className="px-5 py-3 text-sm font-bold text-gray-700">Month Total</td>
-                                        <td className="px-5 py-3 text-sm font-bold text-right text-green-700">${summary.totalCash.toFixed(2)}</td>
+                                        <td className="px-5 py-3 text-sm font-bold text-right text-yellow-700">${summary.totalCash.toFixed(2)}</td>
                                         <td className="px-5 py-3 text-sm font-bold text-right text-blue-700">${summary.totalCard.toFixed(2)}</td>
                                         <td className="px-5 py-3 text-sm font-bold text-right text-indigo-700">${summary.totalAmount.toFixed(2)}</td>
                                         <td /><td />

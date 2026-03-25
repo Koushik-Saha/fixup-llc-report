@@ -353,7 +353,7 @@ function AdminReportsContent() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff / Assignees</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Cash</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -408,7 +408,7 @@ function AdminReportsContent() {
                                     <td className="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
                                         {report.status !== 'Missing' ? `${calculateDuration(report.time_in, report.time_out).toFixed(2)}h` : '-'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.cash_amount).toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-medium text-green-700">${Number(report.net_cash ?? report.cash_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.card_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap font-bold">${Number(report.total_amount).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -441,7 +441,7 @@ function AdminReportsContent() {
                         </tbody>
                         {reports.length > 0 && (() => {
                             const totalHours = reports.reduce((s, r) => s + (r.status !== 'Missing' ? calculateDuration(r.time_in, r.time_out) : 0), 0)
-                            const totalCash = reports.reduce((s, r) => s + Number(r.cash_amount || 0), 0)
+                            const totalCash = reports.reduce((s, r) => s + Number((r.net_cash ?? r.cash_amount) || 0), 0)
                             const totalCard = reports.reduce((s, r) => s + Number(r.card_amount || 0), 0)
                             const totalAmount = reports.reduce((s, r) => s + Number(r.total_amount || 0), 0)
                             return (
@@ -455,7 +455,7 @@ function AdminReportsContent() {
                                             {totalHours.toFixed(2)}h
                                         </td>
                                         <td className="px-6 py-3 text-left" />
-                                        <td className="px-6 py-3 text-left font-black text-gray-700">
+                                        <td className="px-6 py-3 text-left font-black text-green-700">
                                             ${totalCash.toFixed(2)}
                                         </td>
                                         <td className="px-6 py-3 text-left font-black text-gray-700">

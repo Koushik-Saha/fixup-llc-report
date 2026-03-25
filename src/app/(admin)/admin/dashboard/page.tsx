@@ -12,10 +12,12 @@ type DashboardData = {
         todayCash: number
         todayCard: number
         todayTotal: number
+        todayExpenses: number
         weekRevenue: number
         monthRevenue: number
         monthCash: number
         monthCard: number
+        monthExpenses: number
         totalStores: number
         totalUsers: number
         missingToday: number
@@ -102,10 +104,10 @@ export default function AdminDashboardPage() {
             {/* KPI Cards — Row 1: Revenue */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl shadow border-t-4 border-indigo-500 p-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Today's Total</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Today's Net</p>
                     <p className="text-2xl font-black text-indigo-700 mt-1">{fmt(kpi.todayTotal)}</p>
                     <div className="mt-2 flex gap-2 text-xs text-gray-500">
-                        <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-medium">Cash {fmt(kpi.todayCash)}</span>
+                        <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-medium">Net Cash {fmt(kpi.todayCash)}</span>
                         <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">Card {fmt(kpi.todayCard)}</span>
                     </div>
                 </div>
@@ -115,11 +117,18 @@ export default function AdminDashboardPage() {
                     <p className="text-xs text-gray-400 mt-2">Mon – Today</p>
                 </div>
                 <div className="bg-white rounded-xl shadow border-t-4 border-green-500 p-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">This Month</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">This Month Revenue</p>
                     <p className="text-2xl font-black text-green-700 mt-1">{fmt(kpi.monthRevenue)}</p>
                     <div className="mt-2 flex gap-2 text-xs text-gray-500">
-                        <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-medium">Cash {fmt(kpi.monthCash)}</span>
+                        <span className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium">Net Cash {fmt(kpi.monthCash)}</span>
                         <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">Card {fmt(kpi.monthCard)}</span>
+                    </div>
+                </div>
+                <div className="bg-white rounded-xl shadow border-t-4 border-red-500 p-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly Expenses</p>
+                    <p className="text-2xl font-black text-red-700 mt-1">{fmt(kpi.monthExpenses)}</p>
+                    <div className="mt-2 flex gap-1 text-[10px] text-gray-400 items-baseline">
+                        <span className="font-medium text-red-600">Today: {fmt(kpi.todayExpenses)}</span>
                     </div>
                 </div>
                 <div className={`bg-white rounded-xl shadow border-t-4 p-5 ${kpi.missingToday > 0 ? 'border-red-500' : 'border-green-400'}`}>

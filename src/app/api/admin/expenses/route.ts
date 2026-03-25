@@ -73,10 +73,10 @@ export async function POST(req: Request) {
                     store_id,
                     user_id: session.user.id,
                     category,
-                    payment_method: payment_method || 'Cash',
                     amount: Number(amount),
                     expense_date: expense_date ? new Date(expense_date) : new Date(),
-                    notes: notes || null
+                    notes: notes || null,
+                    payment_method: payment_method || 'Cash'
                 }
             })
 

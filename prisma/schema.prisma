@@ -295,8 +295,8 @@ model StoreExpense {
   store_id         String
   user_id          String    // Staff/Admin who submitted it
   category         String    // e.g., 'Inventory', 'Rent', 'Utilities', 'Maintenance', 'Other'
-  payment_method   String    @default("Cash") // 'Cash' | 'Card'
   amount           Decimal   @db.Decimal(10, 2)
+  payment_method   String    @default("Cash") // 'Cash' | 'Card'
   expense_date     DateTime  @db.Date
   notes            String?
   approval_status  String    @default("Pending") // 'Pending' | 'Approved' | 'Rejected'

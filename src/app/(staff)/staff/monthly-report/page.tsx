@@ -25,6 +25,7 @@ type Summary = {
     totalCash: number
     totalCard: number
     totalAmount: number
+    totalExpenses: number
     submittedCount: number
     missingCount: number
 }
@@ -86,18 +87,22 @@ export default function MonthlyReportPage() {
 
             {/* Summary Cards */}
             {summary && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-green-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Cash</p>
-                        <p className="text-xl font-bold text-green-600 mt-1">${summary.totalCash.toFixed(2)}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-yellow-500">
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Net Cash</p>
+                        <p className="text-xl font-bold text-yellow-600 mt-1">${summary.totalCash.toFixed(2)}</p>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4 border-t-4 border-blue-500">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Card</p>
                         <p className="text-xl font-bold text-blue-600 mt-1">${summary.totalCard.toFixed(2)}</p>
                     </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500 col-span-2 sm:col-span-1">
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Sales</p>
                         <p className="text-xl font-bold text-indigo-600 mt-1">${summary.totalAmount.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-500">
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Expenses</p>
+                        <p className="text-xl font-bold text-red-600 mt-1">${summary.totalExpenses.toFixed(2)}</p>
                     </div>
                     <div className="bg-white rounded-lg shadow p-4 border-t-4 border-emerald-400">
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Submitted</p>
