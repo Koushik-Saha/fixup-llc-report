@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { store_id, category, amount, expense_date, notes } = body
+    const { store_id, category, amount, expense_date, notes, payment_method } = body
 
     if (!store_id || !category || amount === undefined) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
                     store_id,
                     user_id: session.user.id,
                     category,
+                    payment_method: payment_method || 'Cash',
                     amount: Number(amount),
                     expense_date: expense_date ? new Date(expense_date) : new Date(),
                     notes: notes || null

@@ -53,7 +53,7 @@ function ExpensesDashboard() {
     const [addOpen, setAddOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [expenseStore, setExpenseStore] = useState("")
-    const [expenseCategory, setExpenseCategory] = useState("Inventory")
+    const [expensePaymentMethod, setExpensePaymentMethod] = useState("Cash")
     const [expenseAmount, setExpenseAmount] = useState("")
     const [expenseDate, setExpenseDate] = useState(dayjs().tz(TIMEZONE).format('YYYY-MM-DD'))
     const [expenseNotes, setExpenseNotes] = useState("")
@@ -96,7 +96,7 @@ function ExpensesDashboard() {
         const res = await fetch("/api/admin/expenses", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ store_id: expenseStore, category: expenseCategory, amount: Number(expenseAmount), expense_date: expenseDate, notes: expenseNotes })
+            body: JSON.stringify({ store_id: expenseStore, category: expenseNotes || 'General', payment_method: expensePaymentMethod, amount: Number(expenseAmount), expense_date: expenseDate, notes: expenseNotes })
         })
         if (res.ok) { toast.success("Expense logged"); setAddOpen(false); fetchExpenses() }
         else { const d = await res.json(); toast.error(d.error || "Failed") }
@@ -273,11 +273,11 @@ function ExpensesDashboard() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Category</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Payment Method</label>
                                 <select required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-blue-500 focus:border-blue-500"
-                                    value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)}>
-                                    {['Inventory', 'Rent', 'Utilities', 'Maintenance', 'Marketing', 'Supplies', 'Other'].map(c =>
-                                        <option key={c} value={c}>{c}</option>)}
+                                    value={expensePaymentMethod} onChange={e => setExpensePaymentMethod(e.target.value)}>
+                                    <option value="Cash">💵 Cash</option>
+                                    <option value="Card">💳 Card</option>
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-3">

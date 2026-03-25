@@ -66,6 +66,8 @@ export async function GET() {
             cash_amount: true,
             card_amount: true,
             total_amount: true,
+            expenses_amount: true,
+            payouts_amount: true,
             status: true,
             store: { select: { name: true } }
         },
@@ -84,11 +86,14 @@ export async function GET() {
     const finalData = dates.map(dateStr => {
         if (reportMap.has(dateStr)) {
             const r = reportMap.get(dateStr)
-            totalCash += Number(r.cash_amount)
+            // Staff expenses and payouts always come from cash
+            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
             submittedCount++
-            return r
+            // Attach computed net_cash for the UI to display
+            return { ...r, net_cash: netCash }
         }
         missingCount++
         return {

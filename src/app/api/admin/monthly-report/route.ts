@@ -86,13 +86,15 @@ export async function GET(req: Request) {
     const finalData = dates.map(dateStr => {
         if (reportMap.has(dateStr)) {
             const r = reportMap.get(dateStr)
-            totalCash += Number(r.cash_amount)
+            // Staff expenses and payouts always come from cash — subtract from totalCash
+            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
             submittedCount++
             if (r.status === 'Verified') verifiedCount++
             else unverifiedCount++
-            return { ...r, report_date: `${dateStr}T00:00:00.000Z` }
+            return { ...r, net_cash: netCash, report_date: `${dateStr}T00:00:00.000Z` }
         }
         missingCount++
         return {

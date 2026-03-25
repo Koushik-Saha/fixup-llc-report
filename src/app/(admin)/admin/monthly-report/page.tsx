@@ -15,6 +15,7 @@ type ReportRow = {
     id: string
     report_date: string
     cash_amount: number | null
+    net_cash: number | null   // cash - expenses - payouts
     card_amount: number | null
     total_amount: number | null
     expenses_amount: number | null
@@ -176,7 +177,7 @@ function MonthlyReportContent() {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Cash</th>
+                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Cash</th>
                                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Card</th>
                                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
@@ -198,7 +199,7 @@ function MonthlyReportContent() {
                                                 {dayjs.utc(row.report_date).format('ddd, MMM D')}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right text-green-700 font-medium">
-                                                {row.cash_amount != null ? `$${Number(row.cash_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                                {(row.net_cash ?? row.cash_amount) != null ? `$${Number(row.net_cash ?? row.cash_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right text-blue-700 font-medium">
                                                 {row.card_amount != null ? `$${Number(row.card_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}

@@ -14,6 +14,7 @@ type ReportRow = {
     id: string
     report_date: string
     cash_amount: number | null
+    net_cash: number | null   // cash - expenses - payouts (computed by API)
     card_amount: number | null
     total_amount: number | null
     status: string
@@ -116,7 +117,7 @@ export default function MonthlyReportPage() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Cash</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Cash</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Card</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -138,7 +139,7 @@ export default function MonthlyReportPage() {
                                             {dayjs.utc(row.report_date).format('ddd, MMM D')}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-right text-green-700 font-medium">
-                                            {row.cash_amount != null ? `$${Number(row.cash_amount).toFixed(2)}` : '—'}
+                                            {row.net_cash != null ? `$${Number(row.net_cash).toFixed(2)}` : (row.cash_amount != null ? `$${Number(row.cash_amount).toFixed(2)}` : '—')}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-right text-blue-700 font-medium">
                                             {row.card_amount != null ? `$${Number(row.card_amount).toFixed(2)}` : '—'}
