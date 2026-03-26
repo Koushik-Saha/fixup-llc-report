@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const id = (await params).id
 
     const report = await prisma.dailyReport.findFirst({
-        where: { id, store: { company_id: session.user.companyId } },
+        where: { id, store: { company_id: session.user.companyId }, deleted_at: null },
         include: {
             images: true,
             sale_items: true,
@@ -83,7 +83,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     try {
         const existingReport = await prisma.dailyReport.findFirst({
-            where: { id, store: { company_id: session.user.companyId } },
+            where: { id, store: { company_id: session.user.companyId }, deleted_at: null },
             include: { images: true, store: true }
         })
         if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -272,5 +272,49 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     } catch (error: any) {
         console.error(error)
         return NextResponse.json({ error: 'Failed to update report' }, { status: 500 })
+    }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== 'Admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const id = (await params).id
+
+    try {
+        const existingReport = await prisma.dailyReport.findFirst({
+            where: { id, store: { company_id: session.user.companyId }, deleted_at: null }
+        })
+
+        if (!existingReport) {
+            return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+        }
+
+        await prisma.$transaction([
+            prisma.dailyReport.update({
+                where: { id },
+                data: { deleted_at: new Date() }
+            }),
+            prisma.systemLog.create({
+                data: {
+                    user_id: session.user.id,
+                    action: 'REPORT_DELETE',
+                    entity: 'DailyReport',
+                    entity_id: id,
+                    details: JSON.stringify({
+                        store: existingReport.store_id,
+                        report_date: existingReport.report_date,
+                        cash: existingReport.cash_amount,
+                        card: existingReport.card_amount
+                    })
+                }
+            })
+        ])
+
+        return NextResponse.json({ success: true })
+    } catch (error: any) {
+        console.error('Delete error:', error)
+        return NextResponse.json({ error: 'Failed to delete report' }, { status: 500 })
     }
 }

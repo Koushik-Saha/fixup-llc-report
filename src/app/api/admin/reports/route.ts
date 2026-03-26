@@ -204,7 +204,7 @@ export async function GET(req: Request) {
     }
 
     // Build the where clause dynamically
-    const where: any = {}
+    const where: any = { deleted_at: null }
 
     if (allowedStoreIds) {
         if (storeId && !allowedStoreIds.includes(storeId)) {
@@ -317,72 +317,96 @@ export async function GET(req: Request) {
 
     const stores = await prisma.store.findMany({ where: storesQuery, select: { id: true, name: true, city: true } })
 
-    const allCombinations = [];
-    // Sort array by Date DESC, then Store Name ASC
-    for (const day of days) {
-        const sortedStores = [...stores].sort((a, b) => a.name.localeCompare(b.name));
-        for (const store of sortedStores) {
-            allCombinations.push({ date: day, store })
-        }
-    }
-
-    const total = allCombinations.length;
-    const paginatedCombinations = allCombinations.slice(skip, skip + limit);
-
-    // Fetch matching reports in one query using OR
-    let reports: any[] = [];
-    if (paginatedCombinations.length > 0) {
-        reports = await prisma.dailyReport.findMany({
-            where: {
-                OR: paginatedCombinations.map(c => ({
-                    store_id: c.store.id,
-                    report_date: new Date(`${c.date}T00:00:00.000Z`)
-                }))
+    // 1. Fetch ALL reports in the range for these stores
+    const reportsForRange = await prisma.dailyReport.findMany({
+        where: {
+            store_id: storesQuery.id,
+            report_date: {
+                gte: start.toDate(),
+                lte: end.toDate()
             },
-            include: {
-                store: { select: { name: true, city: true } },
-                submitted_by: { select: { name: true } },
-                assignees: { select: { name: true, role: true } }
-            }
-        })
-    }
+            deleted_at: null
+        },
+        include: {
+            store: { select: { name: true, city: true } },
+            submitted_by: { select: { name: true } },
+            assignees: { select: { name: true, role: true } }
+        }
+    })
 
     const reportMap = new Map()
-    reports.forEach(r => reportMap.set(`${r.store_id}_${r.report_date.toISOString().split('T')[0]}`, r))
+    reportsForRange.forEach(r => reportMap.set(`${r.store_id}_${r.report_date.toISOString().split('T')[0]}`, r))
 
-    const finalData = paginatedCombinations.map(c => {
-        const key = `${c.store.id}_${c.date}`
-        if (reportMap.has(key)) {
-            // If filtering by 'Missing', skip slots that have a real report
-            if (statusFilter === 'Missing') return null
-            const r = reportMap.get(key)
-            return {
-                ...r,
-                net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+    // 2. Build and FILTER all combinations
+    const filteredCombinations: any[] = []
+    for (const day of days) {
+        const sortedStores = [...stores].sort((a, b) => a.name.localeCompare(b.name))
+        for (const store of sortedStores) {
+            const key = `${store.id}_${day}`
+            const hasReport = reportMap.has(key)
+
+            if (statusFilter === 'Missing') {
+                if (!hasReport) {
+                    filteredCombinations.push({
+                        id: `missing-${key}`,
+                        report_date: new Date(`${day}T00:00:00.000Z`),
+                        store,
+                        store_id: store.id,
+                        submitted_by: null,
+                        cash_amount: 0,
+                        card_amount: 0,
+                        total_amount: 0,
+                        net_cash: 0,
+                        status: 'Missing',
+                    })
+                }
+            } else if (statusFilter) {
+                // If a specific real status is requested (Verified/Submitted), but we are in this logic block,
+                // it means search was not provided. We only include if report exists and matches status.
+                if (hasReport) {
+                    const r = reportMap.get(key)
+                    if (r.status === statusFilter) {
+                        filteredCombinations.push({
+                            ...r,
+                            net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+                        })
+                    }
+                }
+            } else {
+                // No status filter: include everything
+                if (hasReport) {
+                    const r = reportMap.get(key)
+                    filteredCombinations.push({
+                        ...r,
+                        net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+                    })
+                } else {
+                    filteredCombinations.push({
+                        id: `missing-${key}`,
+                        report_date: new Date(`${day}T00:00:00.000Z`),
+                        store,
+                        store_id: store.id,
+                        submitted_by: null,
+                        cash_amount: 0,
+                        card_amount: 0,
+                        total_amount: 0,
+                        net_cash: 0,
+                        status: 'Missing',
+                    })
+                }
             }
         }
-        // Slot has no report — only include if not filtering for real statuses
-        if (statusFilter && statusFilter !== 'Missing') return null
-        return {
-            id: `missing-${key}`,
-            report_date: new Date(`${c.date}T00:00:00.000Z`),
-            store: c.store,
-            store_id: c.store.id,
-            submitted_by: null,
-            cash_amount: 0,
-            card_amount: 0,
-            total_amount: 0,
-            net_cash: 0,
-            status: 'Missing',
-        }
-    }).filter(Boolean)
+    }
+
+    const totalCount = filteredCombinations.length
+    const paginatedData = filteredCombinations.slice(skip, skip + limit)
 
     return NextResponse.json({
-        data: finalData,
+        data: paginatedData,
         pagination: {
-            total: finalData.length,
+            total: totalCount,
             page,
-            totalPages: Math.ceil(finalData.length / limit) || 1
+            totalPages: Math.ceil(totalCount / limit) || 1
         }
     })
 }

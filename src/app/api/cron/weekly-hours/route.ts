@@ -53,7 +53,8 @@ export async function GET(req: Request) {
                     gte: lastWeek,
                     lte: now
                 },
-                status: { in: ['Submitted', 'Verified'] }
+                status: { in: ['Submitted', 'Verified'] },
+                deleted_at: null
             },
             include: {
                 assignees: { select: { id: true, name: true, role: true, pay_type: true } },

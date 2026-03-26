@@ -61,7 +61,8 @@ export async function GET(req: Request) {
             report_date: {
                 gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
                 lte: new Date(`${dates[0]}T00:00:00.000Z`)
-            }
+            },
+            deleted_at: null
         },
         select: {
             id: true,

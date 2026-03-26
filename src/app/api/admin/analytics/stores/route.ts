@@ -66,7 +66,8 @@ export async function GET(req: Request) {
     const reports = await prisma.dailyReport.findMany({
         where: {
             store_id: { in: allStoreIds },
-            report_date: { gte: startObj, lte: endObj }
+            report_date: { gte: startObj, lte: endObj },
+            deleted_at: null
         },
         select: {
             id: true,

@@ -42,7 +42,8 @@ export async function PATCH(req: Request) {
         const whereClause: any = {
             id: { in: reportIds },
             status: 'Submitted', // Ensure we only verify unverified reports
-            store_id: { in: allowedStoreIds }
+            store_id: { in: allowedStoreIds },
+            deleted_at: null
         }
 
         const updateResult = await prisma.dailyReport.updateMany({

@@ -13,8 +13,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const report_id = (await params).id
 
-    const report = await prisma.dailyReport.findUnique({
-        where: { id: report_id },
+    const report = await prisma.dailyReport.findFirst({
+        where: { id: report_id, deleted_at: null },
         include: {
             images: true,
             store: { select: { name: true, city: true, state: true } },
@@ -65,8 +65,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const store_id = session.user.storeId
 
     // Fetch current report to verify ownership and edit count
-    const existingReport = await prisma.dailyReport.findUnique({
-        where: { id: report_id },
+    const existingReport = await prisma.dailyReport.findFirst({
+        where: { id: report_id, deleted_at: null },
         include: { store: true }
     })
 

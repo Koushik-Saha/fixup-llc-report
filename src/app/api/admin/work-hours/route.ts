@@ -72,7 +72,8 @@ export async function GET(req: Request) {
             lte: endBuffer
         },
         status: { in: ['Submitted', 'Verified'] }, // Count valid reports
-        store: { company_id: session.user.companyId }
+        store: { company_id: session.user.companyId },
+        deleted_at: null
     }
 
     if (allowedStoreIds) {

@@ -45,7 +45,8 @@ export async function evaluateReportForAnomalies(reportId: string) {
         const pastReports = await prisma.dailyReport.findMany({
             where: {
                 store_id: report.store_id,
-                report_date: { lt: report.report_date }
+                report_date: { lt: report.report_date },
+                deleted_at: null
             },
             orderBy: { report_date: 'desc' },
             take: 30,

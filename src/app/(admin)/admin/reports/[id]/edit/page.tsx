@@ -96,7 +96,7 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
             const keptImageIds = existingImages.map(img => img.id)
 
             const res = await fetch(`/api/admin/reports/${id}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     cash_amount: cash,

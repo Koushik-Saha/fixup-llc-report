@@ -71,7 +71,7 @@ export async function GET() {
 
     // ── Today's reports ────────────────────────────────────────────────────────
     const todaysReports = await prisma.dailyReport.findMany({
-        where: { report_date: todayObj, store_id: { in: allStoreIds } },
+        where: { report_date: todayObj, store_id: { in: allStoreIds }, deleted_at: null },
         select: {
             id: true,
             store_id: true,
@@ -128,14 +128,14 @@ export async function GET() {
 
     // ── This week revenue ──────────────────────────────────────────────────────
     const weekReports = await prisma.dailyReport.aggregate({
-        where: { report_date: { gte: weekStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
+        where: { report_date: { gte: weekStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         _sum: { total_amount: true }
     })
     const weekRevenue = Number(weekReports._sum.total_amount || 0)
 
     // ── This month revenue ─────────────────────────────────────────────────────
     const monthReportsData = await prisma.dailyReport.findMany({
-        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
+        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         select: { total_amount: true, cash_amount: true, card_amount: true, expenses_amount: true, payouts_amount: true }
     })
     
@@ -149,14 +149,15 @@ export async function GET() {
 
     // ── Unverified report count ────────────────────────────────────────────────
     const unverifiedCount = await prisma.dailyReport.count({
-        where: { status: 'Submitted', store_id: { in: allStoreIds } }
+        where: { status: 'Submitted', store_id: { in: allStoreIds }, deleted_at: null }
     })
 
     // ── Last 30 days revenue trend ─────────────────────────────────────────────
     const last30Reports = await prisma.dailyReport.findMany({
         where: {
             report_date: { gte: last30StartObj, lte: todayObj },
-            store_id: { in: allStoreIds }
+            store_id: { in: allStoreIds },
+            deleted_at: null
         },
         select: { report_date: true, total_amount: true }
     })
@@ -180,7 +181,7 @@ export async function GET() {
     // ── Store performance (this month) ─────────────────────────────────────────
     const storeMonthReports = await prisma.dailyReport.groupBy({
         by: ['store_id'],
-        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
+        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         _sum: { total_amount: true, cash_amount: true, card_amount: true },
         _count: { id: true }
     })
@@ -202,7 +203,7 @@ export async function GET() {
     const cal14Start = now.subtract(13, 'day').startOf('day')
     const cal14Obj = new Date(`${cal14Start.format('YYYY-MM-DD')}T00:00:00.000Z`)
     const cal14Reports = await prisma.dailyReport.findMany({
-        where: { report_date: { gte: cal14Obj, lte: todayObj }, store_id: { in: allStoreIds } },
+        where: { report_date: { gte: cal14Obj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         select: { store_id: true, report_date: true }
     })
     const cal14Set = new Set(cal14Reports.map(r => `${r.store_id}_${dayjs.utc(r.report_date).format('YYYY-MM-DD')}`))
@@ -224,7 +225,7 @@ export async function GET() {
     // ── Top submitters (this month, by report count) ───────────────────────────
     const topSubmitters = await prisma.dailyReport.groupBy({
         by: ['submitted_by_user_id'],
-        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds } },
+        where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         _count: { id: true },
         _sum: { total_amount: true },
         orderBy: { _count: { id: 'desc' } },

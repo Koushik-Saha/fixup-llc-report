@@ -51,7 +51,8 @@ export async function GET(req: Request) {
                 gte: startDate,
                 lte: endDate
             },
-            store: { company_id: session.user.companyId }
+            store: { company_id: session.user.companyId },
+            deleted_at: null
         },
         select: {
             report_date: true,

@@ -50,7 +50,7 @@ export async function GET() {
 
     // Today's report
     const todayReport = await prisma.dailyReport.findFirst({
-        where: { store_id: storeId, report_date: todayObj },
+        where: { store_id: storeId, report_date: todayObj, deleted_at: null },
         select: { id: true, status: true, cash_amount: true, card_amount: true, total_amount: true }
     })
 
@@ -58,7 +58,8 @@ export async function GET() {
     const monthReports = await prisma.dailyReport.findMany({
         where: {
             store_id: storeId,
-            report_date: { gte: startObj, lte: endObj }
+            report_date: { gte: startObj, lte: endObj },
+            deleted_at: null
         },
         select: {
             id: true,

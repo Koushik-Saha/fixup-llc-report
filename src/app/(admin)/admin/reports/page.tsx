@@ -177,6 +177,19 @@ function AdminReportsContent() {
         }
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this report? This action will be logged and the date will be marked as Missing.')) return
+        try {
+            const res = await fetch(`/api/admin/reports/${id}`, { method: 'DELETE' })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to delete report')
+            toast.success('Report deleted successfully')
+            fetchReports()
+        } catch (err: any) {
+            toast.error(err.message)
+        }
+    }
+
     const handleExportCSV = () => {
         const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
         const rows = reports.map(r => [
@@ -427,7 +440,8 @@ function AdminReportsContent() {
                                         ) : (
                                             <>
                                                 <Link href={`/admin/reports/${report.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">View</Link>
-                                                <Link href={`/admin/reports/${report.id}/edit`} className="text-orange-600 hover:text-orange-900">Edit</Link>
+                                                <Link href={`/admin/reports/${report.id}/edit`} className="text-orange-600 hover:text-orange-900 mr-4">Edit</Link>
+                                                <button onClick={() => handleDelete(report.id)} className="text-red-600 hover:text-red-900">Delete</button>
                                             </>
                                         )}
                                     </td>
