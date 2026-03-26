@@ -52,31 +52,54 @@ export async function GET() {
         })
     }
 
-    const reports = await prisma.dailyReport.findMany({
-        where: {
-            store_id: storeId,
-            report_date: {
-                gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
-                lte: new Date(`${dates[0]}T00:00:00.000Z`)
+    const [reports, adminExpenses] = await Promise.all([
+        prisma.dailyReport.findMany({
+            where: {
+                store_id: storeId,
+                report_date: {
+                    gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
+                    lte: new Date(`${dates[0]}T00:00:00.000Z`)
+                },
+                deleted_at: null
             },
-            deleted_at: null
-        },
-        select: {
-            id: true,
-            report_date: true,
-            cash_amount: true,
-            card_amount: true,
-            total_amount: true,
-            expenses_amount: true,
-            payouts_amount: true,
-            status: true,
-            store: { select: { name: true } }
-        },
-        orderBy: { report_date: 'desc' }
-    })
+            select: {
+                id: true,
+                report_date: true,
+                cash_amount: true,
+                card_amount: true,
+                total_amount: true,
+                expenses_amount: true,
+                payouts_amount: true,
+                status: true,
+                store: { select: { name: true } }
+            },
+            orderBy: { report_date: 'desc' }
+        }),
+        prisma.storeExpense.findMany({
+            where: {
+                store_id: storeId,
+                expense_date: {
+                    gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
+                    lte: new Date(`${dates[0]}T00:00:00.000Z`)
+                },
+                payment_method: 'Cash',
+                approval_status: 'Approved'
+            },
+            select: {
+                amount: true,
+                expense_date: true
+            }
+        })
+    ])
 
     const reportMap = new Map()
     reports.forEach(r => reportMap.set(r.report_date.toISOString().split('T')[0], r))
+
+    const adminExpMap = new Map()
+    adminExpenses.forEach(e => {
+        const dateKey = e.expense_date.toISOString().split('T')[0]
+        adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
+    })
 
     let totalCash = 0
     let totalCard = 0
@@ -86,16 +109,16 @@ export async function GET() {
     let missingCount = 0
 
     const finalData = dates.map(dateStr => {
+        const adminCash = adminExpMap.get(dateStr) || 0
         if (reportMap.has(dateStr)) {
             const r = reportMap.get(dateStr)
-            // Staff expenses and payouts always come from cash
-            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            // Net Cash = Report Cash - Report Staff Exp - Report Payouts - Admin Cash Exp
+            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0) - adminCash
             totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
-            totalExpenses += Number(r.expenses_amount || 0)
+            totalExpenses += Number(r.expenses_amount || 0) + adminCash
             submittedCount++
-            // Attach computed net_cash for the UI to display
             return { ...r, net_cash: netCash }
         }
         missingCount++

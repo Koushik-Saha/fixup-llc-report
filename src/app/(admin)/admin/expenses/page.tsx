@@ -28,6 +28,8 @@ type ExpenseData = {
     store: { name: string }
     user: { name: string }
     reviewed_by?: { name: string } | null
+    source?: 'StoreExpense' | 'DailyReport'
+    report_id?: string
 }
 
 function statusBadge(status: string) {
@@ -137,8 +139,9 @@ function ExpensesDashboard() {
     const paged = displayed.slice((page - 1) * limit, page * limit)
     const totalPages = Math.ceil(displayed.length / limit)
 
-    const pendingCount = expenses.filter(e => e.approval_status === 'Pending').length
-    const totalAmount = expenses.filter(e => e.approval_status === 'Approved').reduce((a, e) => a + Number(e.amount), 0)
+    const pendingCount = expenses.filter(e => e.approval_status === 'Pending' && e.source !== 'DailyReport').length
+    const approvedExpenses = expenses.filter(e => e.approval_status === 'Approved')
+    const totalAmount = approvedExpenses.reduce((a, e) => a + Number(e.amount), 0)
 
     return (
         <div className="space-y-5">
@@ -212,6 +215,7 @@ function ExpensesDashboard() {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
                                 {tab === 'Pending' && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>}
                             </tr>
                         </thead>
@@ -236,9 +240,20 @@ function ExpensesDashboard() {
                                         {exp.review_note && <p className="text-xs text-gray-400 italic mt-0.5">"{exp.review_note}"</p>}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-gray-500 max-w-[180px] truncate">{exp.notes || <span className="italic text-gray-300">—</span>}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-xs">
+                                        {exp.source === 'DailyReport' ? (
+                                            <button 
+                                                onClick={() => router.push(`/admin/reports/${exp.report_id}`)}
+                                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-1 rounded">
+                                                <span>📋 Daily Report</span>
+                                            </button>
+                                        ) : (
+                                            <span className="text-gray-400 font-medium px-2 py-1">Admin Log</span>
+                                        )}
+                                    </td>
                                     {tab === 'Pending' && (
                                         <td className="px-4 py-3 whitespace-nowrap">
-                                            {exp.approval_status === 'Pending' && (
+                                            {exp.approval_status === 'Pending' && exp.source !== 'DailyReport' && (
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => { setReviewTarget(exp); setReviewAction('approve'); setReviewNote("") }}
@@ -251,6 +266,9 @@ function ExpensesDashboard() {
                                                         ✕ Reject
                                                     </button>
                                                 </div>
+                                            )}
+                                            {exp.source === 'DailyReport' && (
+                                                <span className="text-xs text-gray-400 italic">Verify via Report</span>
                                             )}
                                         </td>
                                     )}

@@ -35,17 +35,90 @@ export async function GET(req: Request) {
     }
 
     try {
-        const expenses = await prisma.storeExpense.findMany({
-            where,
-            orderBy: { expense_date: 'desc' },
-            include: {
-                store: { select: { name: true } },
-                user: { select: { name: true } } // The admin who logged it
+        const [expenses, dailyReports] = await Promise.all([
+            prisma.storeExpense.findMany({
+                where,
+                orderBy: { expense_date: 'desc' },
+                include: {
+                    store: { select: { name: true } },
+                    user: { select: { name: true } }, // Admin entry
+                    reviewed_by: { select: { name: true } }
+                }
+            }),
+            prisma.dailyReport.findMany({
+                where: {
+                    store_id: where.store_id,
+                    report_date: where.expense_date,
+                    deleted_at: null,
+                    OR: [
+                        { expenses_amount: { gt: 0 } },
+                        { payouts_amount: { gt: 0 } }
+                    ],
+                    store: { company_id: session.user.companyId }
+                },
+                include: {
+                    store: { select: { name: true } },
+                    submitted_by: { select: { name: true } }
+                }
+            })
+        ])
+
+        // Transform StoreExpense to include common fields
+        const directExpenses = expenses.map(e => ({
+            ...e,
+            source: 'StoreExpense'
+        }))
+
+        // Transform DailyReport entries
+        const reportDerivedExpenses: any[] = []
+        dailyReports.forEach(r => {
+            if (Number(r.expenses_amount) > 0) {
+                reportDerivedExpenses.push({
+                    id: `dr-exp-${r.id}`,
+                    store_id: r.store_id,
+                    user_id: r.submitted_by_user_id,
+                    category: 'Daily Petty Cash',
+                    amount: Number(r.expenses_amount),
+                    expense_date: r.report_date,
+                    notes: r.notes,
+                    payment_method: 'Cash',
+                    approval_status: r.status === 'Verified' ? 'Approved' : 'Pending',
+                    review_note: r.status === 'Verified' ? 'Verified as part of daily report' : null,
+                    reviewed_at: r.updatedAt,
+                    source: 'DailyReport',
+                    store: r.store,
+                    user: r.submitted_by,
+                    report_id: r.id
+                })
+            }
+            if (Number(r.payouts_amount) > 0) {
+              reportDerivedExpenses.push({
+                  id: `dr-pay-${r.id}`,
+                  store_id: r.store_id,
+                  user_id: r.submitted_by_user_id,
+                  category: 'Daily Payout',
+                  amount: Number(r.payouts_amount),
+                  expense_date: r.report_date,
+                  notes: r.payouts_details,
+                  payment_method: 'Cash',
+                  approval_status: r.status === 'Verified' ? 'Approved' : 'Pending',
+                  review_note: r.status === 'Verified' ? 'Verified as part of daily report' : null,
+                  reviewed_at: r.updatedAt,
+                  source: 'DailyReport',
+                  store: r.store,
+                  user: r.submitted_by,
+                  report_id: r.id
+              })
             }
         })
 
-        return NextResponse.json(expenses)
+        const combined = [...directExpenses, ...reportDerivedExpenses].sort((a, b) => {
+            return new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
+        })
+
+        return NextResponse.json(combined)
     } catch (err: any) {
+        console.error('Expenses Fetch Error:', err)
         return NextResponse.json({ error: 'Failed to fetch expenses' }, { status: 500 })
     }
 }
