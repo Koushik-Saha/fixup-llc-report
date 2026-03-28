@@ -321,7 +321,7 @@ function AdminScheduleContent() {
                                     {modal.shiftId ? 'Edit Shift' : 'Assign Shift'}
                                 </h2>
                                 <p className="text-sm text-gray-400 mt-0.5">
-                                    {members.find(m => m.user.id === modal.userId)?.user.name} · {dayjs(modal.dateStr).format('ddd, MMM D')}
+                                    {members.find(m => m.user.id === modal.userId)?.user.name} · {dayjs(modal.dateStr).format('ddd, M/D/YYYY')}
                                 </p>
                             </div>
                             <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>

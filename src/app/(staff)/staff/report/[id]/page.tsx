@@ -89,7 +89,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="space-y-1">
                         <p className="text-xl font-bold text-gray-900">
-                            {dayjs.utc(report.report_date).tz(TIMEZONE).format('M/D/YYYY')}
+                            {dayjs.utc(report.report_date).tz(TIMEZONE).format('ddd, M/D/YYYY')}
                         </p>
                         <p className="text-sm text-gray-600">
                             Shift: <span className="font-semibold">{report.time_in && report.time_out ? `${report.time_in} - ${report.time_out}` : 'N/A'}</span>

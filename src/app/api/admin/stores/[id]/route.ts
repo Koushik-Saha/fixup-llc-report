@@ -24,7 +24,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const id = (await params).id
     const body = await req.json()
-    const { name, address, city, state, zip_code, block, max_members, status } = body
+    const { name, address, city, state, zip_code, block, max_members, status, operating_hours } = body
 
     const existingStore = await prisma.store.findFirst({
         where: { id, company_id: session.user.companyId }
@@ -41,7 +41,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             zip_code,
             block: block || null,
             max_members: Number(max_members),
-            status
+            status,
+            operating_hours
         }
     })
 

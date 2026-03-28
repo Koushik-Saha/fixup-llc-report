@@ -297,7 +297,7 @@ export default function StaffHomePage() {
                                     className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
                                     <div>
                                         <p className="text-sm font-semibold text-gray-900">
-                                            {dayjs.utc(r.report_date).format('ddd, MMM D')}
+                                            {dayjs.utc(r.report_date).format('ddd, M/D/YYYY')}
                                         </p>
                                         <p className="text-xs text-gray-400">
                                             Cash ${Number(r.cash_amount).toFixed(2)} · Card ${Number(r.card_amount).toFixed(2)}

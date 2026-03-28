@@ -54,6 +54,7 @@ model Store {
   max_members Int           @default(3)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  operating_hours Json?     @default("{\"Monday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Tuesday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Wednesday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Thursday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Friday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Saturday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}, \"Sunday\": {\"isOpen\": true, \"open\": \"10:00\", \"close\": \"20:00\"}}")
 
   company     Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
   members     StoreMember[]

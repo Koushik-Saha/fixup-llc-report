@@ -234,7 +234,7 @@ function ReconciliationContent() {
                                 ) : reports.map(r => (
                                     <tr key={r.id} className={`hover:bg-gray-50 ${r.variance !== null && Math.abs(r.variance) > 50 ? 'bg-red-50' : ''}`}>
                                         <td className="px-5 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                            {dayjs.utc(r.date).format('ddd, MMM D')}
+                                            {dayjs.utc(r.date).format('ddd, M/D/YYYY')}
                                         </td>
                                         <td className="px-5 py-3 text-sm text-gray-700">{r.store_name}</td>
                                         <td className="px-5 py-3 text-sm text-right font-semibold text-gray-900">${r.cash_amount.toFixed(2)}</td>

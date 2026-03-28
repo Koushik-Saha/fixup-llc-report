@@ -37,7 +37,7 @@ export async function GET() {
     const [activeStores, totalUsers, totalStores] = await Promise.all([
         prisma.store.findMany({
             where: { company_id: session.user.companyId, status: 'Active' },
-            select: { id: true, name: true, city: true }
+            select: { id: true, name: true, city: true, operating_hours: true }
         }),
         prisma.user.count({ where: { company_id: session.user.companyId, status: 'Active' } }),
         prisma.store.count({ where: { company_id: session.user.companyId, status: 'Active' } })
@@ -92,7 +92,13 @@ export async function GET() {
     const todayCard = todaysReports.reduce((a, r) => a + Number(r.card_amount), 0)
     const todayTotal = todayCash + todayCard
     const reportedStoreIds = new Set(todaysReports.map(r => r.store_id))
-    const missingToday = allStoreIds.filter(id => !reportedStoreIds.has(id)).length
+    const todayDayName = todayObj.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
+    const missingToday = activeStores.filter(store => {
+        if (reportedStoreIds.has(store.id)) return false;
+        const ops: any = typeof store.operating_hours === 'string' && store.operating_hours ? JSON.parse(store.operating_hours) : store.operating_hours;
+        if (!ops || !ops[todayDayName]) return true;
+        return ops[todayDayName].isOpen;
+    }).length
     
     // Build per-store today status list
     const reportByStoreId = new Map(todaysReports.map(r => [r.store_id, r]))
@@ -110,6 +116,10 @@ export async function GET() {
                 status: report.status
             }
         }
+        
+        const ops: any = typeof store.operating_hours === 'string' && store.operating_hours ? JSON.parse(store.operating_hours) : store.operating_hours;
+        const isOpen = !ops || !ops[todayDayName] || ops[todayDayName].isOpen;
+
         return {
             store_id: store.id,
             store_name: store.name,
@@ -118,7 +128,7 @@ export async function GET() {
             report_id: null,
             submitted_by: null,
             total_amount: null,
-            status: 'Missing'
+            status: isOpen ? 'Missing' : 'Closed'
         }
     }).sort((a, b) => {
         if (!a.submitted && b.submitted) return -1
@@ -211,14 +221,23 @@ export async function GET() {
     for (let i = 13; i >= 0; i--) {
         const d = now.subtract(i, 'day')
         const dateStr = d.format('YYYY-MM-DD')
-        const submitted = allStoreIds.filter(id => cal14Set.has(`${id}_${dateStr}`)).length
+        const dayName = d.format('dddd')
+        
+        const validStores = activeStores.filter(store => {
+            const ops: any = typeof store.operating_hours === 'string' && store.operating_hours ? JSON.parse(store.operating_hours) : store.operating_hours;
+            if (!ops || !ops[dayName]) return true;
+            return ops[dayName].isOpen;
+        })
+        
+        const submitted = validStores.filter(s => cal14Set.has(`${s.id}_${dateStr}`)).length
+        
         calendarDays.push({
             date: dateStr,
             label: d.format('MMM D'),
-            dayName: d.format('ddd'),
+            dayName: dayName,
             submitted,
-            total: allStoreIds.length,
-            missing: allStoreIds.length - submitted
+            total: validStores.length,
+            missing: validStores.length - submitted
         })
     }
 

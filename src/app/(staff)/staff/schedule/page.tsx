@@ -96,7 +96,7 @@ export default function StaffSchedulePage() {
                                 <div key={s.id} className={`px-4 py-3 flex items-center justify-between gap-3 ${isToday ? 'bg-indigo-50' : isPast ? 'opacity-50' : ''}`}>
                                     <div>
                                         <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                            {dayjs.utc(s.shift_date).format('ddd, MMM D')}
+                                            {dayjs.utc(s.shift_date).format('ddd, M/D/YYYY')}
                                             {isToday && <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-semibold">Today</span>}
                                         </p>
                                         {s.notes && <p className="text-xs text-gray-400 mt-0.5 italic">{s.notes}</p>}

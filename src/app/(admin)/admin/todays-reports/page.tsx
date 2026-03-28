@@ -98,7 +98,7 @@ function TodaysReportsContent() {
 
     const handleExportCSV = () => {
         const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
-        const rows = reports.map(r => [dayjs.utc(r.report_date).format('M/D/YYYY'), `"${r.store.name}"`, `"${r.store.city}"`, r.cash_amount, r.card_amount, r.total_amount, `"${r.submitted_by?.name || 'Unknown'}"`, calculateDuration(r.time_in, r.time_out).toFixed(2), r.status])
+        const rows = reports.map(r => [dayjs.utc(r.report_date).format('ddd, M/D/YYYY'), `"${r.store.name}"`, `"${r.store.city}"`, r.cash_amount, r.card_amount, r.total_amount, `"${r.submitted_by?.name || 'Unknown'}"`, calculateDuration(r.time_in, r.time_out).toFixed(2), r.status])
         const csv = [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
         const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
         const a = document.createElement('a'); a.href = url; a.download = `todays_reports_${dayjs().tz(TIMEZONE).format('YYYY-MM-DD')}.csv`; a.click()
@@ -167,7 +167,7 @@ function TodaysReportsContent() {
                             {reports.map((report: any) => (
                                 <tr key={report.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 text-center">{report.status === 'Submitted' && <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 cursor-pointer" checked={selectedReports.includes(report.id)} onChange={() => handleSelectRow(report.id)} />}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{dayjs.utc(report.report_date).format('M/D/YYYY')}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{dayjs.utc(report.report_date).format('ddd, M/D/YYYY')}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {report.assignees?.length > 0 ? <div className="flex flex-wrap gap-1">{report.assignees.map((a: any, i: number) => <span key={i} className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{a.name}</span>)}</div>

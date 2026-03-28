@@ -121,14 +121,19 @@ export async function GET() {
             submittedCount++
             return { ...r, net_cash: netCash }
         }
-        missingCount++
+        
+        const dayName = dayjs.utc(dateStr).format('dddd')
+        const ops: any = typeof store.operating_hours === 'string' && store.operating_hours ? JSON.parse(store.operating_hours) : store.operating_hours;
+        const isOpen = !ops || !ops[dayName] || ops[dayName].isOpen;
+
+        if (isOpen) missingCount++
         return {
             id: `missing-${dateStr}`,
             report_date: new Date(`${dateStr}T00:00:00.000Z`),
             cash_amount: null,
             card_amount: null,
             total_amount: null,
-            status: 'Missing',
+            status: isOpen ? 'Missing' : 'Closed',
             store: { name: store.name }
         }
     })

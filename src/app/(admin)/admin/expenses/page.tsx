@@ -222,7 +222,7 @@ function ExpensesDashboard() {
                         <tbody className="bg-white divide-y divide-gray-100">
                             {paged.map(exp => (
                                 <tr key={exp.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{dayjs.utc(exp.expense_date).format('M/D/YY')}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{dayjs.utc(exp.expense_date).format('ddd, M/D/YYYY')}</td>
                                     <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">{exp.store.name}</td>
                                     <td className="px-4 py-3 text-sm whitespace-nowrap">
                                         <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">{exp.category}</span>

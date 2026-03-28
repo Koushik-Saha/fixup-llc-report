@@ -193,7 +193,7 @@ function MonthlyReportContent() {
                                     return (
                                         <tr key={row.id} className={`${isMissing ? 'bg-red-50' : 'hover:bg-gray-50'} transition`}>
                                             <td className="px-5 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                                {dayjs.utc(row.report_date).format('ddd, MMM D')}
+                                                {dayjs.utc(row.report_date).format('ddd, M/D/YYYY')}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right text-green-700 font-medium">
                                                 {(row.net_cash ?? row.cash_amount) != null ? `$${Number(row.net_cash ?? row.cash_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}

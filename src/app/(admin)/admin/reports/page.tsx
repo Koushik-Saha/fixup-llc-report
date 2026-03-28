@@ -193,7 +193,7 @@ function AdminReportsContent() {
     const handleExportCSV = () => {
         const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
         const rows = reports.map(r => [
-            dayjs.utc(r.report_date).format('M/D/YYYY'),
+            dayjs.utc(r.report_date).format('ddd, M/D/YYYY'),
             `"${r.store.name}"`,
             `"${r.store.city}"`,
             r.cash_amount,
@@ -388,7 +388,7 @@ function AdminReportsContent() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-2">
-                                            <span>{dayjs.utc(report.report_date).format('M/D/YYYY')}</span>
+                                            <span>{dayjs.utc(report.report_date).format('ddd, M/D/YYYY')}</span>
                                             {report.anomalies && report.anomalies.length > 0 && (
                                                 <Link href="/admin/anomalies" title={`${report.anomalies.length} unresolved anomalies`} className="text-rose-600 bg-rose-50 rounded-full px-1.5 py-0.5 text-[10px] border border-rose-200 cursor-pointer font-bold animate-pulse hover:bg-rose-100 transition inline-block">
                                                     ⚠️ {report.anomalies.length} Flag{report.anomalies.length > 1 ? 's' : ''}

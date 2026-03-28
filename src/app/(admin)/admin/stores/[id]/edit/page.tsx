@@ -4,10 +4,20 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
+const defaultHours = {
+    Monday: { isOpen: true, open: "10:00", close: "20:00" },
+    Tuesday: { isOpen: true, open: "10:00", close: "20:00" },
+    Wednesday: { isOpen: true, open: "10:00", close: "20:00" },
+    Thursday: { isOpen: true, open: "10:00", close: "20:00" },
+    Friday: { isOpen: true, open: "10:00", close: "20:00" },
+    Saturday: { isOpen: true, open: "10:00", close: "20:00" },
+    Sunday: { isOpen: true, open: "10:00", close: "20:00" }
+}
+
 export default function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
-    const [formData, setFormData] = useState({ name: "", address: "", city: "", state: "", zip_code: "", block: "", max_members: 3, status: "Active" })
+    const [formData, setFormData] = useState<any>({ name: "", address: "", city: "", state: "", zip_code: "", block: "", max_members: 3, status: "Active", operating_hours: defaultHours })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
@@ -19,7 +29,8 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
                     ...data,
                     address: data.address || "",
                     zip_code: data.zip_code || "",
-                    block: data.block || ""
+                    block: data.block || "",
+                    operating_hours: data.operating_hours && Object.keys(data.operating_hours).length > 0 ? data.operating_hours : defaultHours
                 })
                 setLoading(false)
             })
@@ -88,7 +99,29 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
                         <input type="number" min="1" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.max_members} onChange={e => setFormData({ ...formData, max_members: Number(e.target.value) })} />
                     </div>
                 </div>
-                <div className="flex space-x-4 pt-4">
+
+                <div className="pt-4 border-t border-gray-200 mt-6 !mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Operating Hours</h3>
+                    <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                            <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                <div className="w-full sm:w-32">
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={formData.operating_hours[day]?.isOpen || false} onChange={e => setFormData({ ...formData, operating_hours: { ...formData.operating_hours, [day]: { ...formData.operating_hours[day], isOpen: e.target.checked } } })} className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 w-4 h-4" />
+                                        <span className="ml-2 text-sm font-medium text-gray-700">{day}</span>
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input type="time" disabled={!formData.operating_hours[day]?.isOpen} value={formData.operating_hours[day]?.open || "10:00"} onChange={e => setFormData({ ...formData, operating_hours: { ...formData.operating_hours, [day]: { ...formData.operating_hours[day], open: e.target.value } } })} className="border border-gray-300 rounded px-3 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400 focus:ring-blue-500 focus:border-blue-500" />
+                                    <span className="text-gray-500 text-sm font-medium">to</span>
+                                    <input type="time" disabled={!formData.operating_hours[day]?.isOpen} value={formData.operating_hours[day]?.close || "20:00"} onChange={e => setFormData({ ...formData, operating_hours: { ...formData.operating_hours, [day]: { ...formData.operating_hours[day], close: e.target.value } } })} className="border border-gray-300 rounded px-3 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400 focus:ring-blue-500 focus:border-blue-500" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex space-x-4 pt-6">
                     <button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">{saving ? "Saving..." : "Save Changes"}</button>
                     <Link href="/admin/stores" className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded">Cancel</Link>
                 </div>

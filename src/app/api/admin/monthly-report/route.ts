@@ -133,7 +133,11 @@ export async function GET(req: Request) {
         totalExpenses += totalAdminExp
         totalCash -= cashAdminExp
 
-        missingCount++
+        const dayName = dayjs.utc(dateStr).format('dddd')
+        const ops: any = typeof store.operating_hours === 'string' && store.operating_hours ? JSON.parse(store.operating_hours) : store.operating_hours;
+        const isOpen = !ops || !ops[dayName] || ops[dayName].isOpen;
+
+        if (isOpen) missingCount++
         return {
             id: `missing-${dateStr}`,
             report_date: `${dateStr}T00:00:00.000Z`,
@@ -143,7 +147,7 @@ export async function GET(req: Request) {
             expenses_amount: null,
             payouts_amount: null,
             net_cash: -cashAdminExp,
-            status: 'Missing',
+            status: isOpen ? 'Missing' : 'Closed',
             submitted_by: null
         }
     })

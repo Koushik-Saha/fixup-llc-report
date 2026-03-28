@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { name, address, city, state, zip_code, block, max_members, status } = body
+    const { name, address, city, state, zip_code, block, max_members, status, operating_hours } = body
 
     if (!name || !address || !city || !state || !zip_code) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -62,6 +62,7 @@ export async function POST(req: Request) {
             block: block || null,
             max_members: Number(max_members) || 3,
             status: status || 'Active',
+            operating_hours: operating_hours || undefined
         }
     })
 
