@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import dayjs from "dayjs"
@@ -31,7 +31,7 @@ type Summary = {
     missingCount: number
 }
 
-export default function MonthlyReportPage() {
+function MonthlyReportContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     
@@ -258,5 +258,21 @@ export default function MonthlyReportPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function MonthlyReportPage() {
+    return (
+        <Suspense fallback={
+            <div className="max-w-4xl mx-auto space-y-4 animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2" />
+                <div className="grid grid-cols-3 gap-4 mt-8">
+                    {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-lg" />)}
+                </div>
+                <div className="h-64 bg-gray-200 rounded-lg" />
+            </div>
+        }>
+            <MonthlyReportContent />
+        </Suspense>
     )
 }
