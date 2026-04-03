@@ -69,7 +69,7 @@ export async function GET(req: Request) {
     if (dates.length === 0) {
         return NextResponse.json({
             data: [],
-            summary: { totalCash: 0, totalCard: 0, totalAmount: 0, submittedCount: 0, missingCount: 0, verifiedCount: 0, unverifiedCount: 0 },
+            summary: { totalCash: 0, totalCard: 0, totalAmount: 0, totalExpenses: 0, submittedCount: 0, missingCount: 0, verifiedCount: 0, unverifiedCount: 0 },
             storeName: store.name,
             storeCity: store.city,
             month: baseMonth.format('MMMM YYYY')

@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     if (dates.length === 0) {
         return NextResponse.json({
             data: [],
-            summary: { totalCash: 0, totalCard: 0, totalAmount: 0, submittedCount: 0, missingCount: 0 },
+            summary: { totalCash: 0, totalCard: 0, totalAmount: 0, totalExpenses: 0, submittedCount: 0, missingCount: 0 },
             storeName: store.name,
             month: nowTz.format('MMMM YYYY')
         })
