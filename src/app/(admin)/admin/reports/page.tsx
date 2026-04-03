@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, Suspense } from "react"
+import { useState, useEffect, useCallback, Suspense, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
@@ -63,6 +63,8 @@ function AdminReportsContent() {
 
     const [selectedReports, setSelectedReports] = useState<string[]>([])
     const [verifying, setVerifying] = useState(false)
+    const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false)
+    const storeDropdownRef = useRef<HTMLDivElement>(null)
 
     // Sync state → URL whenever any filter changes
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
@@ -110,6 +112,16 @@ function AdminReportsContent() {
             pushParams({ month: '', startDate: '', endDate: '', page: '1' })
         }
     }
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (storeDropdownRef.current && !storeDropdownRef.current.contains(event.target as Node)) {
+                setIsStoreDropdownOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
 
     const handleClear = () => {
         setStoreIds([]); setUserId(''); setStartDate(''); setEndDate('')
@@ -266,24 +278,29 @@ function AdminReportsContent() {
                 {/* Filter Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 items-end">
                     {/* Multi-Store Selection */}
-                    <div className="relative group lg:col-span-1">
+                    <div className="relative lg:col-span-1" ref={storeDropdownRef}>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Store(s)</label>
-                        <div className="border border-gray-300 rounded text-sm px-3 py-2 bg-gray-50 cursor-pointer hover:border-blue-400 truncate">
+                        <div 
+                            className={`border rounded text-sm px-3 py-2 bg-gray-50 cursor-pointer hover:border-blue-400 truncate transition-colors ${isStoreDropdownOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-300'}`}
+                            onClick={() => setIsStoreDropdownOpen(!isStoreDropdownOpen)}
+                        >
                             {storeIds.length === 0 ? "All Stores" : `${storeIds.length} stores selected`}
                         </div>
-                        <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-xl hidden group-hover:block scrollbar-thin">
-                            {stores.map(store => (
-                                <label key={store.id} className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
-                                        checked={storeIds.includes(store.id)}
-                                        onChange={(e) => handleStoreId(store.id, e.target.checked)}
-                                    />
-                                    <span className="text-sm text-gray-700 truncate">{store.name}</span>
-                                </label>
-                            ))}
-                        </div>
+                        {isStoreDropdownOpen && (
+                            <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-xl scrollbar-thin animate-in fade-in zoom-in duration-100">
+                                {stores.map(store => (
+                                    <label key={store.id} className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
+                                            checked={storeIds.includes(store.id)}
+                                            onChange={(e) => handleStoreId(store.id, e.target.checked)}
+                                        />
+                                        <span className="text-sm text-gray-700 truncate">{store.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Status */}
