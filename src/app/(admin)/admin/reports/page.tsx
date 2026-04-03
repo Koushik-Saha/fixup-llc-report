@@ -484,26 +484,6 @@ function AdminReportsContent() {
                             const totalAmount = reports.reduce((s, r) => s + Number(r.total_amount || 0), 0)
                             return (
                                 <tfoot>
-                                    <tr className="bg-gray-100 border-t-2 border-gray-300">
-                                        <td colSpan={4} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                            Page Totals ({reports.filter(r => r.status !== 'Missing').length} submitted)
-                                        </td>
-                                        <td className="px-6 py-3 text-left" />
-                                        <td className="px-6 py-3 text-left font-black text-indigo-700">
-                                            {totalHours.toFixed(2)}h
-                                        </td>
-                                        <td className="px-6 py-3 text-left" />
-                                        <td className="px-6 py-3 text-left font-black text-green-700">
-                                            ${totalCash.toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-3 text-left font-black text-gray-700">
-                                            ${totalCard.toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-3 text-left font-black text-blue-800 text-base">
-                                            ${totalAmount.toFixed(2)}
-                                        </td>
-                                        <td colSpan={2} />
-                                    </tr>
                                 </tfoot>
                             )
                         })()}

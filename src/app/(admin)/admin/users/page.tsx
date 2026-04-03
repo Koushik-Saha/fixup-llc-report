@@ -12,15 +12,17 @@ function UsersPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [users, setUsers] = useState<any[]>([])
+    const [stores, setStores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "")
     const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || "All")
     const [roleFilter, setRoleFilter] = useState(searchParams.get('role') || "All")
+    const [storeFilter, setStoreFilter] = useState(searchParams.get('storeId') || "All")
     const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
     const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
 
     const pushParams = (overrides: Record<string, string> = {}) => {
-        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, role: roleFilter, page: page.toString(), limit: limit.toString(), ...overrides }
+        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, role: roleFilter, storeId: storeFilter, page: page.toString(), limit: limit.toString(), ...overrides }
         const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v && v !== 'All') p.set(k, v); if (k === 'page' && v !== '1') p.set(k, v); if (k === 'limit' && v !== '10') p.set(k, v) })
         router.replace(`/admin/users?${p.toString()}`, { scroll: false })
     }
@@ -32,12 +34,15 @@ function UsersPage() {
     const [infoModalData, setInfoModalData] = useState<{ title: string, items: string[] }>({ title: '', items: [] })
 
     useEffect(() => {
-        fetch('/api/admin/users')
-            .then(res => res.json())
-            .then(data => {
-                setUsers(data)
-                setLoading(false)
-            })
+        setLoading(true)
+        Promise.all([
+            fetch('/api/admin/users').then(res => res.json()),
+            fetch('/api/admin/stores').then(res => res.json())
+        ]).then(([usersData, storesData]) => {
+            setUsers(Array.isArray(usersData) ? usersData : [])
+            setStores(Array.isArray(storesData) ? storesData : [])
+            setLoading(false)
+        })
     }, [])
 
     const requestDelete = (id: string) => {
@@ -114,9 +119,30 @@ function UsersPage() {
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
                     </select>
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={storeFilter} onChange={(e) => { setStoreFilter(e.target.value); setPage(1); pushParams({ storeId: e.target.value, page: '1' }) }}>
+                        <option value="All">All Stores</option>
+                        {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
                     <Link href="/admin/users/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap">
                         Create User
                     </Link>
+                </div>
+            </div>
+
+            {/* Metrics cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-emerald-500">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Active Users</p>
+                    <p className="text-2xl font-black text-emerald-700 mt-1">{users.filter(u => u.status === 'Active').length}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-rose-500">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Inactive Users</p>
+                    <p className="text-2xl font-black text-rose-700 mt-1">{users.filter(u => u.status === 'Inactive').length}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-amber-500">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Unassigned Users</p>
+                    <p className="text-2xl font-black text-amber-700 mt-1">{users.filter(u => !u.storeMembers || u.storeMembers.length === 0).length}</p>
                 </div>
             </div>
 
@@ -140,7 +166,8 @@ function UsersPage() {
                                 const matchesSearch = user.name?.toLowerCase().includes(term) || user.email?.toLowerCase().includes(term)
                                 const matchesStatus = statusFilter === "All" || user.status === statusFilter
                                 const matchesRole = roleFilter === "All" || user.role === roleFilter
-                                return matchesSearch && matchesStatus && matchesRole
+                                const matchesStore = storeFilter === "All" || (user.storeMembers && user.storeMembers.some((m: any) => m.store_id === storeFilter))
+                                return matchesSearch && matchesStatus && matchesRole && matchesStore
                             })
                             const paged = filtered.slice((page - 1) * limit, page * limit)
                             const totalPages = Math.ceil(filtered.length / limit)

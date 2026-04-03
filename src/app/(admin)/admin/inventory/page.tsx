@@ -39,8 +39,6 @@ export default function AdminInventoryPage() {
                 fetch('/api/admin/stores').then(r => r.json())
             ])
 
-            if (invRes.success) setInventory(invRes.data)
-            if (storesRes.success) setStores(storesRes.data)
         } catch (error) {
             toast.error("Failed to load inventory")
         } finally {

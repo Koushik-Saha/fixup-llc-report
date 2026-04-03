@@ -21,6 +21,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const storeId = searchParams.get('storeId')
     const monthParam = searchParams.get('month') // YYYY-MM
+    const startDateParam = searchParams.get('startDate') // YYYY-MM-DD
+    const endDateParam = searchParams.get('endDate') // YYYY-MM-DD
 
     if (!storeId) {
         return NextResponse.json({ error: 'storeId required' }, { status: 400 })
@@ -36,12 +38,31 @@ export async function GET(req: Request) {
     const isCurrentMonth = baseMonth.format('YYYY-MM') === nowTz.format('YYYY-MM')
 
     const monthStart = baseMonth.startOf('month')
-    const effectiveStart = monthStart.isBefore(SYSTEM_EPOCH) ? SYSTEM_EPOCH : monthStart
     const monthEnd = isCurrentMonth ? nowTz.startOf('day') : baseMonth.endOf('month').startOf('day')
+
+    // Clamp external filters to the selected month's boundaries
+    let effectiveStart = monthStart
+    let effectiveEnd = monthEnd
+
+    if (startDateParam) {
+        const s = dayjs.tz(startDateParam, TIMEZONE).startOf('day')
+        if (s.isAfter(monthStart) || s.isSame(monthStart, 'day')) {
+            effectiveStart = s
+        }
+    }
+    if (endDateParam) {
+        const e = dayjs.tz(endDateParam, TIMEZONE).startOf('day')
+        if (e.isBefore(monthEnd) || e.isSame(monthEnd, 'day')) {
+            effectiveEnd = e
+        }
+    }
+
+    // Never go before system epoch
+    if (effectiveStart.isBefore(SYSTEM_EPOCH)) effectiveStart = SYSTEM_EPOCH
 
     // Build dates array newest first
     const dates: string[] = []
-    for (let d = monthEnd; d.isAfter(effectiveStart) || d.isSame(effectiveStart, 'day'); d = d.subtract(1, 'day')) {
+    for (let d = effectiveEnd; d.isAfter(effectiveStart) || d.isSame(effectiveStart, 'day'); d = d.subtract(1, 'day')) {
         dates.push(d.format('YYYY-MM-DD'))
     }
 

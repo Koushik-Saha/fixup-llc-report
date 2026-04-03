@@ -42,6 +42,8 @@ function MonthlyReportContent() {
     const [stores, setStores] = useState<any[]>([])
     const [storeId, setStoreId] = useState(searchParams.get('storeId') || '')
     const [month, setMonth] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
+    const [startDate, setStartDate] = useState(searchParams.get('startDate') || '')
+    const [endDate, setEndDate] = useState(searchParams.get('endDate') || '')
     const [data, setData] = useState<ReportRow[]>([])
     const [summary, setSummary] = useState<Summary | null>(null)
     const [storeName, setStoreName] = useState('')
@@ -51,11 +53,11 @@ function MonthlyReportContent() {
     const [error, setError] = useState('')
 
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
-        const vals = { storeId, month, ...overrides }
+        const vals = { storeId, month, startDate, endDate, ...overrides }
         const p = new URLSearchParams()
         Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v) })
         router.replace(`/admin/monthly-report?${p.toString()}`, { scroll: false })
-    }, [storeId, month, router])
+    }, [storeId, month, startDate, endDate, router])
 
     // Load stores
     useEffect(() => {
@@ -77,6 +79,8 @@ function MonthlyReportContent() {
         setLoading(true)
         setError('')
         const p = new URLSearchParams({ storeId, month })
+        if (startDate) p.append('startDate', startDate)
+        if (endDate) p.append('endDate', endDate)
         fetch(`/api/admin/monthly-report?${p.toString()}`)
             .then(r => r.json())
             .then(d => {
@@ -89,7 +93,21 @@ function MonthlyReportContent() {
             })
             .catch(() => setError('Failed to load report'))
             .finally(() => setLoading(false))
-    }, [storeId, month])
+    }, [storeId, month, startDate, endDate])
+
+    const handleShortcuts = (type: '1-15' | '16-End' | 'Full') => {
+        if (type === 'Full') {
+            setStartDate('')
+            setEndDate('')
+            pushParams({ startDate: '', endDate: '' })
+            return
+        }
+        const s = type === '1-15' ? `${month}-01` : `${month}-16`
+        const e = type === '1-15' ? `${month}-15` : dayjs(month).endOf('month').format('YYYY-MM-DD')
+        setStartDate(s)
+        setEndDate(e)
+        pushParams({ startDate: s, endDate: e })
+    }
 
     return (
         <div className="space-y-5">
@@ -124,9 +142,32 @@ function MonthlyReportContent() {
                     <input
                         type="month"
                         value={month}
-                        onChange={e => { setMonth(e.target.value); pushParams({ month: e.target.value }) }}
+                        onChange={e => { setMonth(e.target.value); pushParams({ month: e.target.value, startDate: '', endDate: '' }); setStartDate(''); setEndDate('') }}
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"
                     />
+                </div>
+
+                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                    <button
+                        onClick={() => handleShortcuts('1-15')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                    >
+                        1-15
+                    </button>
+                    <button
+                        onClick={() => handleShortcuts('16-End')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-16') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                    >
+                        16-End
+                    </button>
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => handleShortcuts('Full')}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+                        >
+                            Clear
+                        </button>
+                    )}
                 </div>
             </div>
 
