@@ -172,35 +172,48 @@ function MonthlyReportContent() {
 
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
-            {/* Summary Cards — same as staff monthly report */}
-            {summary && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-yellow-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Net Cash</p>
-                        <p className="text-xl font-bold text-yellow-600 mt-1">${summary.totalCash.toFixed(2)}</p>
+            {/* Summary Cards */}
+            {summary && data.length > 0 && (() => {
+                const submittedReports = data.filter(r => r.status !== 'Missing');
+                const tRevenue = submittedReports.reduce((s, r) => s + (Number(r.cash_amount || 0) + Number(r.card_amount || 0)), 0);
+                const tCash = submittedReports.reduce((s, r) => s + Number(r.cash_amount || 0), 0);
+                const tCard = submittedReports.reduce((s, r) => s + Number(r.card_amount || 0), 0);
+                const tExp = submittedReports.reduce((s, r) => s + (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)), 0);
+                const balance = tRevenue - tExp;
+
+                return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Revenue</p>
+                            <p className="text-xl font-bold text-indigo-600 mt-1">${tRevenue.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-orange-400 font-medium">
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">Cash</p>
+                            <p className="text-xl font-bold text-orange-600 mt-1">${tCash.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-blue-500">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Card</p>
+                            <p className="text-xl font-bold text-blue-600 mt-1">${tCard.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-500">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Expenses</p>
+                            <p className="text-xl font-bold text-red-600 mt-1">${tExp.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-emerald-500">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Balance</p>
+                            <p className="text-xl font-bold text-emerald-600 mt-1">${balance.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-emerald-400">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Submitted</p>
+                            <p className="text-xl font-bold text-emerald-600 mt-1">{summary.submittedCount} days</p>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-4 border-t-4 border-rose-400">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Missing</p>
+                            <p className="text-xl font-bold text-rose-500 mt-1">{summary.missingCount} days</p>
+                        </div>
                     </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-blue-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Card</p>
-                        <p className="text-xl font-bold text-blue-600 mt-1">${summary.totalCard.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-indigo-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Sales</p>
-                        <p className="text-xl font-bold text-indigo-600 mt-1">${summary.totalAmount.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-500">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Expenses</p>
-                        <p className="text-xl font-bold text-red-600 mt-1">${summary.totalExpenses.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-emerald-400">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Submitted</p>
-                        <p className="text-xl font-bold text-emerald-600 mt-1">{summary.submittedCount} days</p>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4 border-t-4 border-red-400">
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Missing</p>
-                        <p className="text-xl font-bold text-red-500 mt-1">{summary.missingCount} days</p>
-                    </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Table */}
             <div className="bg-white shadow rounded-xl overflow-hidden">
@@ -214,9 +227,11 @@ function MonthlyReportContent() {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Cash</th>
+                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue</th>
+                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Cash</th>
                                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Card</th>
-                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Expenses</th>
+                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
                                     <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
@@ -224,7 +239,7 @@ function MonthlyReportContent() {
                             <tbody className="bg-white divide-y divide-gray-100">
                                 {data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-10 text-center text-gray-400">No data for this month yet.</td>
+                                        <td colSpan={8} className="px-5 py-10 text-center text-gray-400">No data for this month yet.</td>
                                     </tr>
                                 ) : data.map(row => {
                                     const isMissing = row.status === 'Missing'
@@ -235,14 +250,20 @@ function MonthlyReportContent() {
                                             <td className="px-5 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">
                                                 {dayjs.utc(row.report_date).format('ddd, M/D/YYYY')}
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-right text-green-700 font-medium">
-                                                {(row.net_cash ?? row.cash_amount) != null ? `$${Number(row.net_cash ?? row.cash_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                            <td className="px-5 py-3 text-sm text-right font-black text-indigo-700">
+                                                {!isMissing ? `$${(Number(row.cash_amount || 0) + Number(row.card_amount || 0)).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                            </td>
+                                            <td className="px-5 py-3 text-sm text-right text-slate-600 font-medium">
+                                                {!isMissing ? `$${Number(row.cash_amount || 0).toFixed(2)}` : <span className="text-gray-300">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right text-blue-700 font-medium">
-                                                {row.card_amount != null ? `$${Number(row.card_amount).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                                {!isMissing ? `$${Number(row.card_amount || 0).toFixed(2)}` : <span className="text-gray-300">—</span>}
                                             </td>
-                                            <td className="px-5 py-3 text-sm text-right font-bold text-gray-900">
-                                                {row.total_amount != null ? `$${Number(row.total_amount).toFixed(2)}` : <span className="text-gray-300 font-normal">—</span>}
+                                            <td className="px-5 py-3 text-sm text-right text-red-600 font-medium">
+                                                {!isMissing ? `$${(Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0)).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                            </td>
+                                            <td className="px-5 py-3 text-sm text-right font-black text-emerald-700 underline decoration-emerald-200">
+                                                {!isMissing ? `$${((Number(row.cash_amount || 0) + Number(row.card_amount || 0)) - (Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0))).toFixed(2)}` : <span className="text-gray-300 font-normal">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-gray-500">
                                                 {row.submitted_by?.name || <span className="italic text-gray-300">—</span>}
@@ -283,19 +304,28 @@ function MonthlyReportContent() {
                                     )
                                 })}
                             </tbody>
+                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                <tr>
+                                    <td className="px-5 py-4 text-sm font-black text-slate-700 uppercase tracking-wider">Monthly Totals</td>
+                                    <td className="px-5 py-4 text-sm text-right font-black text-indigo-800">
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.cash_amount || 0) + Number(r.card_amount || 0)) : 0), 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-5 py-4 text-sm text-right font-black text-slate-700">
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.cash_amount || 0) : 0), 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-5 py-4 text-sm text-right font-black text-blue-700">
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.card_amount || 0) : 0), 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-5 py-4 text-sm text-right font-black text-red-700">
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0), 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-5 py-4 text-sm text-right font-black text-emerald-800">
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? ((Number(r.cash_amount || 0) + Number(r.card_amount || 0)) - (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0))) : 0), 0).toFixed(2)}
+                                    </td>
+                                    <td colSpan={2} />
+                                </tr>
+                            </tfoot>
 
-                            {/* Footer totals */}
-                            {summary && summary.submittedCount > 0 && (
-                                <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                                    <tr>
-                                        <td className="px-5 py-3 text-sm font-bold text-gray-700">Month Total</td>
-                                        <td className="px-5 py-3 text-sm font-bold text-right text-yellow-700">${summary.totalCash.toFixed(2)}</td>
-                                        <td className="px-5 py-3 text-sm font-bold text-right text-blue-700">${summary.totalCard.toFixed(2)}</td>
-                                        <td className="px-5 py-3 text-sm font-bold text-right text-indigo-700">${summary.totalAmount.toFixed(2)}</td>
-                                        <td /><td />
-                                    </tr>
-                                </tfoot>
-                            )}
                         </table>
                     </div>
                 )}

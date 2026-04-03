@@ -404,12 +404,13 @@ function AdminReportsContent() {
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff / Assignees</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Hours</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Cash</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Card</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hours</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cash</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Card</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Expenses</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
@@ -438,33 +439,27 @@ function AdminReportsContent() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown Store'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {report.assignees && report.assignees.length > 0 ? (
-                                            <div className="flex flex-wrap gap-1">
-                                                {report.assignees.map((a: any, i: number) => (
-                                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{a.name}</span>
-                                                ))}
-                                            </div>
-                                        ) : report.status === 'Missing' && userId ? (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                {users.find(u => u.id === userId)?.name || 'Filtered User'}
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-500">None</span>
-                                        )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        {report.submitted_by?.name || <span className="italic text-gray-300">Unknown</span>}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {report.submitted_by?.name ? report.submitted_by.name
-                                            : report.status === 'Missing' && userId ? (
-                                                <span className="italic text-gray-400">Waiting on {users.find(u => u.id === userId)?.name?.split(' ')[0] || 'User'}</span>
-                                            ) : 'Unknown'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
+                                    <td className="px-6 py-4 whitespace-nowrap text-right font-medium text-indigo-600">
                                         {report.status !== 'Missing' ? `${calculateDuration(report.time_in, report.time_out).toFixed(2)}h` : '-'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-medium text-green-700">${Number(report.net_cash ?? report.cash_amount).toFixed(2)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">${Number(report.card_amount).toFixed(2)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-bold">${Number(report.total_amount).toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right font-black text-indigo-700">
+                                        {report.status !== 'Missing' ? `$${(Number(report.cash_amount || 0) + Number(report.card_amount || 0)).toFixed(2)}` : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-slate-600">
+                                        {report.status !== 'Missing' ? `$${Number(report.cash_amount).toFixed(2)}` : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-blue-700">
+                                        {report.status !== 'Missing' ? `$${Number(report.card_amount).toFixed(2)}` : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-red-600">
+                                        {report.status !== 'Missing' ? `$${(Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0)).toFixed(2)}` : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right font-black text-emerald-700 underline decoration-emerald-200">
+                                        {report.status !== 'Missing' ? `$${((Number(report.cash_amount || 0) + Number(report.card_amount || 0)) - (Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0))).toFixed(2)}` : '-'}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             ${report.status === 'Verified' ? 'bg-green-100 text-green-800' :
@@ -496,27 +491,34 @@ function AdminReportsContent() {
                         </tbody>
                         {reports.length > 0 && (() => {
                             const totalHours = reports.reduce((s, r) => s + (r.status !== 'Missing' ? calculateDuration(r.time_in, r.time_out) : 0), 0)
-                            const totalCash = reports.reduce((s, r) => s + Number((r.net_cash ?? r.cash_amount) || 0), 0)
-                            const totalCard = reports.reduce((s, r) => s + Number(r.card_amount || 0), 0)
-                            const totalAmount = reports.reduce((s, r) => s + Number(r.total_amount || 0), 0)
+                            const tRevenue = reports.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.cash_amount || 0) + Number(r.card_amount || 0)) : 0), 0)
+                            const tCash = reports.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.cash_amount || 0) : 0), 0)
+                            const tCard = reports.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.card_amount || 0) : 0), 0)
+                            const totalExp = reports.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0), 0)
+                            const tBalance = tRevenue - totalExp;
                             return (
                                 <tfoot>
                                     <tr className="bg-gray-100 border-t-2 border-gray-300">
                                         <td colSpan={4} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                             Page Totals ({reports.filter(r => r.status !== 'Missing').length} submitted)
                                         </td>
-                                        <td className="px-6 py-3 text-left" />
-                                        <td className="px-6 py-3 text-left font-black text-indigo-700">
+                                        <td className="px-6 py-3 text-right font-black text-indigo-700 text-sm">
                                             {totalHours.toFixed(2)}h
                                         </td>
-                                        <td className="px-6 py-3 text-left font-black text-green-700">
-                                            ${totalCash.toFixed(2)}
+                                        <td className="px-6 py-3 text-right font-black text-indigo-800 text-sm">
+                                            ${tRevenue.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-left font-black text-gray-700">
-                                            ${totalCard.toFixed(2)}
+                                        <td className="px-6 py-3 text-right font-black text-slate-700 text-sm">
+                                            ${tCash.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-left font-black text-blue-800 text-base">
-                                            ${totalAmount.toFixed(2)}
+                                        <td className="px-6 py-3 text-right font-black text-blue-700 text-sm">
+                                            ${tCard.toFixed(2)}
+                                        </td>
+                                        <td className="px-6 py-3 text-right font-black text-red-700 text-sm">
+                                            ${totalExp.toFixed(2)}
+                                        </td>
+                                        <td className="px-6 py-3 text-right font-black text-emerald-800 text-sm">
+                                            ${tBalance.toFixed(2)}
                                         </td>
                                         <td colSpan={2} />
                                     </tr>

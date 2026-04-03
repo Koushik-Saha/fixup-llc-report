@@ -33,8 +33,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Cash and Card amounts are required' }, { status: 400 })
     }
 
+    const total = Number(cash_amount) + Number(card_amount)
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
-    const total = netCash + Number(card_amount)
 
     const nowTz = dayjs().tz(TIMEZONE)
     const todayStr = nowTz.format('YYYY-MM-DD')
