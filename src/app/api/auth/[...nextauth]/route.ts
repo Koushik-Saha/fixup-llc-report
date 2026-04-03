@@ -105,13 +105,37 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.role = user.role
                 token.id = user.id
+                token.status = (user as any).status
                 token.storeId = user.storeId
                 token.companyId = (user as any).companyId
             }
+
+            // Re-sync status from DB every 5 minutes to catch deactivated users
+            const now = Math.floor(Date.now() / 1000)
+            const tokenAge = now - Number(token.iat || 0)
+            if (tokenAge > 300) {
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: token.id as string },
+                        select: { status: true }
+                    })
+                    if (dbUser) {
+                        token.status = dbUser.status
+                    }
+                } catch (error) {
+                    console.error('Failed to re-sync status in JWT context', error)
+                }
+            }
+
             return token
         },
         async session({ session, token }) {
             if (token) {
+                // If the user's status is not Active, invalidate the session immediately
+                if (token.status !== 'Active') {
+                    return null as any
+                }
+
                 session.user.role = token.role as string
                 session.user.id = token.id as string
                 session.user.storeId = token.storeId as string | null

@@ -51,16 +51,31 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
         }
     }
 
-    const handleUpdateMember = async (memberId: string, status: string, isReporter: boolean) => {
+    const handleRemoveMember = async (memberId: string) => {
+        if (!confirm("Are you sure you want to remove this user from the store?")) return
+
         const res = await fetch(`/api/admin/stores/members/${memberId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status, is_reporter: isReporter })
+            method: "DELETE"
         })
 
         if (res.ok) {
-            setMembers(members.map(m => m.id === memberId ? { ...m, status: status, is_reporter: isReporter } : m))
-            toast.success("Member status updated")
+            setMembers(members.filter(m => m.id !== memberId))
+            toast.success("Member removed from store")
+        } else {
+            toast.error("Failed to remove member")
+        }
+    }
+
+    const handleToggleReporter = async (member: any) => {
+        const res = await fetch(`/api/admin/stores/members/${member.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: member.status, is_reporter: !member.is_reporter })
+        })
+
+        if (res.ok) {
+            setMembers(members.map(m => m.id === member.id ? { ...m, is_reporter: !m.is_reporter } : m))
+            toast.success("Reporter status updated")
         } else toast.error("Failed to update status")
     }
 
@@ -114,7 +129,7 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {members.map(member => (
+                        {members.filter(m => m.status === 'Active').map(member => (
                             <tr key={member.id}>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-gray-900">{member.user?.name || 'Deleted User'}</div>
@@ -126,17 +141,13 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {member.status}
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Active
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                    {member.status === 'Active' ? (
-                                        <button onClick={() => handleUpdateMember(member.id, 'Inactive', member.is_reporter)} className="text-red-600 hover:text-red-900">Remove</button>
-                                    ) : (
-                                        <button onClick={() => handleUpdateMember(member.id, 'Active', member.is_reporter)} className="text-green-600 hover:text-green-900">Reactivate</button>
-                                    )}
-                                    <button onClick={() => handleUpdateMember(member.id, member.status, !member.is_reporter)} className="text-indigo-600 hover:text-indigo-900">
+                                    <button onClick={() => handleRemoveMember(member.id)} className="text-red-600 hover:text-red-900">Remove</button>
+                                    <button onClick={() => handleToggleReporter(member)} className="text-indigo-600 hover:text-indigo-900">
                                         Toggle Reporter
                                     </button>
                                 </td>

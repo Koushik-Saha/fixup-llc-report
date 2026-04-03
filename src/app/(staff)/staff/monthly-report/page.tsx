@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -31,6 +32,9 @@ type Summary = {
 }
 
 export default function MonthlyReportPage() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    
     const [data, setData] = useState<ReportRow[]>([])
     const [summary, setSummary] = useState<Summary | null>(null)
     const [storeName, setStoreName] = useState("")
@@ -38,8 +42,41 @@ export default function MonthlyReportPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
 
+    const startDate = searchParams.get('startDate') || ""
+    const endDate = searchParams.get('endDate') || ""
+
+    const setPeriod = (period: '1-15' | '16-end') => {
+        const now = dayjs().tz(TIMEZONE)
+        const monthYear = now.format('YYYY-MM')
+        
+        let s = ""
+        let e = ""
+        
+        if (period === '1-15') {
+            s = `${monthYear}-01`
+            e = `${monthYear}-15`
+        } else {
+            s = `${monthYear}-16`
+            e = now.endOf('month').format('YYYY-MM-DD')
+        }
+        
+        const params = new URLSearchParams()
+        params.set('startDate', s)
+        params.set('endDate', e)
+        router.push(`/staff/monthly-report?${params.toString()}`)
+    }
+
+    const clearPeriod = () => {
+        router.push('/staff/monthly-report')
+    }
+
     useEffect(() => {
-        fetch("/api/staff/monthly-report")
+        setLoading(true)
+        const params = new URLSearchParams()
+        if (startDate) params.set('startDate', startDate)
+        if (endDate) params.set('endDate', endDate)
+
+        fetch(`/api/staff/monthly-report?${params.toString()}`)
             .then(res => res.json())
             .then(d => {
                 if (d.error) {
@@ -56,7 +93,7 @@ export default function MonthlyReportPage() {
                 setError("Failed to load monthly report")
                 setLoading(false)
             })
-    }, [])
+    }, [startDate, endDate])
 
     if (loading) {
         return (
@@ -75,14 +112,41 @@ export default function MonthlyReportPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex flex-wrap justify-between items-center gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Monthly Report</h1>
-                    <p className="text-sm text-gray-500 mt-1">{storeName} — {month}</p>
+            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Monthly Report</h1>
+                        <p className="text-sm text-gray-500 mt-1">{storeName} — {month}</p>
+                    </div>
                 </div>
-                <Link href="/staff/home" className="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                    Back to Home
-                </Link>
+                
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                        <button 
+                            onClick={() => setPeriod('1-15')}
+                            className={`px-4 py-1.5 text-xs font-bold rounded-md transition ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            1-15
+                        </button>
+                        <button 
+                            onClick={() => setPeriod('16-end')}
+                            className={`px-4 py-1.5 text-xs font-bold rounded-md transition ${startDate.endsWith('-16') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            16+
+                        </button>
+                        {startDate && (
+                            <button 
+                                onClick={clearPeriod}
+                                className="px-3 py-1.5 text-xs font-bold text-red-500 hover:text-red-700 ml-1"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                    <Link href="/staff/home" className="text-gray-600 hover:text-gray-900 font-medium text-sm border-l pl-3 border-gray-200">
+                        Back to Home
+                    </Link>
+                </div>
             </div>
 
             {/* Summary Cards */}

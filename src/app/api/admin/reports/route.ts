@@ -40,6 +40,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'At least one staff member must be assigned to the report' }, { status: 400 })
     }
 
+    // Verify all staff_ids are actually members of this store
+    const validMemberships = await prisma.storeMember.findMany({
+        where: { store_id, user_id: { in: staff_ids }, status: 'Active' },
+        select: { user_id: true }
+    })
+    const validUserIds = validMemberships.map(m => m.user_id)
+    const invalidIds = staff_ids.filter(id => !validUserIds.includes(id))
+    if (invalidIds.length > 0) {
+        return NextResponse.json({ error: `Some staff members are not assigned to this store: ${invalidIds.join(', ')}` }, { status: 400 })
+    }
+
     if (session.user.role === 'Manager') {
         const isMember = await prisma.storeMember.findFirst({
             where: { store_id, user_id: session.user.id, status: 'Active' }
@@ -180,7 +191,9 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const storeId = searchParams.get('storeId')
+    const storeIdsParam = searchParams.get('storeIds') // comma-separated list e.g. "id1,id2,id3"
+    const storeId = searchParams.get('storeId')          // legacy single-store filter
+    const storeIds = storeIdsParam ? storeIdsParam.split(',').filter(Boolean) : storeId ? [storeId] : []
     const userId = searchParams.get('userId')
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
@@ -207,12 +220,11 @@ export async function GET(req: Request) {
     const where: any = { deleted_at: null }
 
     if (allowedStoreIds) {
-        if (storeId && !allowedStoreIds.includes(storeId)) {
-            return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
-        }
-        where.store_id = storeId ? storeId : { in: allowedStoreIds }
-    } else if (storeId) {
-        where.store_id = storeId
+        const filtered = storeIds.length > 0 ? storeIds.filter(id => allowedStoreIds!.includes(id)) : allowedStoreIds
+        if (filtered.length === 0) return NextResponse.json({ data: [], pagination: { total: 0, page: 1, totalPages: 0 } })
+        where.store_id = filtered.length === 1 ? filtered[0] : { in: filtered }
+    } else if (storeIds.length > 0) {
+        where.store_id = storeIds.length === 1 ? storeIds[0] : { in: storeIds }
     }
 
     // Retrieve Store IDs associated with the requested User Filter
@@ -253,9 +265,10 @@ export async function GET(req: Request) {
             where.status = statusFilter
         }
         if (finalStoreIds) {
-            where.store_id = storeId && finalStoreIds.includes(storeId) ? storeId : { in: finalStoreIds }
-        } else if (storeId) {
-            where.store_id = storeId
+            const allowed = storeIds.length > 0 ? storeIds.filter(id => finalStoreIds!.includes(id)) : finalStoreIds
+            where.store_id = allowed.length === 1 ? allowed[0] : { in: allowed }
+        } else if (storeIds.length > 0) {
+            where.store_id = storeIds.length === 1 ? storeIds[0] : { in: storeIds }
         }
         const [reports, total] = await Promise.all([
             prisma.dailyReport.findMany({
@@ -306,13 +319,10 @@ export async function GET(req: Request) {
 
     const storesQuery: any = { status: 'Active' }
     if (finalStoreIds) {
-        if (storeId && !finalStoreIds.includes(storeId)) {
-            storesQuery.id = 'NO_ACCESS'
-        } else {
-            storesQuery.id = storeId ? storeId : { in: finalStoreIds }
-        }
-    } else if (storeId) {
-        storesQuery.id = storeId
+        const allowed = storeIds.length > 0 ? storeIds.filter(id => finalStoreIds!.includes(id)) : finalStoreIds
+        storesQuery.id = allowed.length === 0 ? 'NO_ACCESS' : allowed.length === 1 ? allowed[0] : { in: allowed }
+    } else if (storeIds.length > 0) {
+        storesQuery.id = storeIds.length === 1 ? storeIds[0] : { in: storeIds }
     }
 
     const stores = await prisma.store.findMany({ where: storesQuery, select: { id: true, name: true, city: true } })

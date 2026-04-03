@@ -64,6 +64,26 @@ function UsersPage() {
         }
     }
 
+    const handleImpersonate = async (userId: string) => {
+        try {
+            const res = await fetch('/api/admin/impersonate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            })
+            const data = await res.json()
+            if (res.ok) {
+                toast.success('Redirecting to user session...')
+                // Give the cookie a moment to settle across tabs if needed, though replace works fine.
+                window.location.href = data.redirectTo
+            } else {
+                toast.error(data.error || 'Failed to impersonate')
+            }
+        } catch (e) {
+            toast.error('Error occurred')
+        }
+    }
+
     const openStoreDetails = (user: any) => {
         setInfoModalData({
             title: `Stores Assigned to ${user.name}`,
@@ -145,7 +165,12 @@ function UsersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                                 <Link href={`/admin/users/${user.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
-                                                {user.status === 'Active' && <button onClick={() => requestDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>}
+                                                {user.status === 'Active' && (
+                                                    <>
+                                                        <button onClick={() => handleImpersonate(user.id)} className="text-indigo-600 hover:text-indigo-900">Login As</button>
+                                                        <button onClick={() => requestDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>
+                                                    </>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
