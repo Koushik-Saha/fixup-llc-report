@@ -31,3 +31,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ member_i
 
     return NextResponse.json(member)
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ member_id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const member_id = (await params).member_id
+
+    const member = await prisma.storeMember.delete({
+        where: { id: member_id }
+    })
+
+    await prisma.systemLog.create({
+        data: {
+            user_id: session.user.id,
+            action: 'MEMBER_REMOVE',
+            entity: 'StoreMember',
+            entity_id: member_id,
+            details: JSON.stringify({ store_id: member.store_id, user_email: member.user_id })
+        }
+    })
+
+    return NextResponse.json({ success: true })
+}

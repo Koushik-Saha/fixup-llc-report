@@ -13,7 +13,7 @@ const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -29,17 +29,29 @@ export async function GET() {
         return NextResponse.json({ error: 'Store not found' }, { status: 404 })
     }
 
+    const { searchParams } = new URL(req.url)
+    const startDateParam = searchParams.get('startDate')
+    const endDateParam = searchParams.get('endDate')
+
     const nowTz = dayjs().tz(TIMEZONE)
     const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
 
     // Current month boundaries
     const monthStart = nowTz.startOf('month')
-    const effectiveStart = monthStart.isBefore(SYSTEM_EPOCH) ? SYSTEM_EPOCH : monthStart
     const monthEnd = nowTz.startOf('day') // up to today
 
-    // Build array of dates from effectiveStart to today (inclusive), newest first
+    // Apply filters if provided, but stay within the current month
+    let start = startDateParam ? dayjs.tz(`${startDateParam}T00:00:00`, TIMEZONE) : monthStart
+    let end = endDateParam ? dayjs.tz(`${endDateParam}T00:00:00`, TIMEZONE) : monthEnd
+
+    // Clamp boundaries for security: never go before SYSTEM_EPOCH or before the start of the current month
+    if (start.isBefore(monthStart)) start = monthStart
+    if (start.isBefore(SYSTEM_EPOCH)) start = SYSTEM_EPOCH
+    if (end.isAfter(monthEnd)) end = monthEnd
+
+    // Build array of dates from end down to start (inclusive), newest first
     const dates: string[] = []
-    for (let d = monthEnd; d.isAfter(effectiveStart) || d.isSame(effectiveStart, 'day'); d = d.subtract(1, 'day')) {
+    for (let d = end; d.isAfter(start) || d.isSame(start, 'day'); d = d.subtract(1, 'day')) {
         dates.push(d.format('YYYY-MM-DD'))
     }
 

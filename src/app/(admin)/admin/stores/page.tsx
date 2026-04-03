@@ -12,14 +12,16 @@ function StoresPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [stores, setStores] = useState<any[]>([])
+    const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "")
     const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || "All")
+    const [userFilter, setUserFilter] = useState(searchParams.get('userId') || "All")
     const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
     const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
 
     const pushParams = (overrides: Record<string, string> = {}) => {
-        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, page: page.toString(), limit: limit.toString(), ...overrides }
+        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, userId: userFilter, page: page.toString(), limit: limit.toString(), ...overrides }
         const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v && v !== 'All' && v !== '1' && v !== '10') p.set(k, v); else if (k === 'page' && v !== '1') p.set(k, v); else if (k === 'limit' && v !== '10') p.set(k, v) })
         router.replace(`/admin/stores?${p.toString()}`, { scroll: false })
     }
@@ -31,12 +33,15 @@ function StoresPage() {
     const [infoModalData, setInfoModalData] = useState<{ title: string, items: string[] }>({ title: '', items: [] })
 
     useEffect(() => {
-        fetch('/api/admin/stores')
-            .then(res => res.json())
-            .then(data => {
-                setStores(data)
-                setLoading(false)
-            })
+        setLoading(true)
+        Promise.all([
+            fetch('/api/admin/stores').then(res => res.json()),
+            fetch('/api/admin/users').then(res => res.json())
+        ]).then(([storesData, usersData]) => {
+            setStores(storesData)
+            setUsers(usersData)
+            setLoading(false)
+        })
     }, [])
 
     const requestDelete = (id: string) => {
@@ -86,6 +91,13 @@ function StoresPage() {
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
                     </select>
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={userFilter} onChange={(e) => { setUserFilter(e.target.value); setPage(1); pushParams({ userId: e.target.value, page: '1' }) }}>
+                        <option value="All">Filter by User</option>
+                        {users.map((u: any) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                    </select>
                     <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap">
                         Create Store
                     </Link>
@@ -110,7 +122,8 @@ function StoresPage() {
                                 const term = searchTerm.toLowerCase()
                                 const matchesSearch = store.name.toLowerCase().includes(term) || store.city?.toLowerCase().includes(term) || store.zip_code?.toLowerCase().includes(term)
                                 const matchesStatus = statusFilter === "All" || store.status === statusFilter
-                                return matchesSearch && matchesStatus
+                                const matchesUser = userFilter === "All" || store.members?.some((m: any) => m.user.id === userFilter)
+                                return matchesSearch && matchesStatus && matchesUser
                             })
                             const paged = filtered.slice((page - 1) * limit, page * limit)
                             const totalPages = Math.ceil(filtered.length / limit)

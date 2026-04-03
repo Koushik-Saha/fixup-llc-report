@@ -51,7 +51,7 @@ function AdminReportsContent() {
     const [loading, setLoading] = useState(true)
 
     // All filters synced to URL params
-    const [storeId, setStoreId] = useState(searchParams.get('storeId') || "")
+    const [storeIds, setStoreIds] = useState<string[]>(searchParams.get('storeIds')?.split(',').filter(Boolean) || (searchParams.get('storeId') ? [searchParams.get('storeId')!] : []))
     const [userId, setUserId] = useState(searchParams.get('userId') || "")
     const [startDate, setStartDate] = useState(searchParams.get('startDate') || "")
     const [endDate, setEndDate] = useState(searchParams.get('endDate') || "")
@@ -67,17 +67,24 @@ function AdminReportsContent() {
     // Sync state → URL whenever any filter changes
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
         const current: Record<string, string> = {
-            storeId, userId, startDate, endDate, month, search, status,
+            storeIds: storeIds.join(','), userId, startDate, endDate, month, search, status,
             page: page.toString(), limit: limit.toString(),
             ...overrides
         }
         const p = new URLSearchParams()
         Object.entries(current).forEach(([k, v]) => { if (v) p.set(k, v) })
         router.replace(`/admin/reports?${p.toString()}`, { scroll: false })
-    }, [storeId, userId, startDate, endDate, month, search, status, page, limit, router])
+    }, [storeIds, userId, startDate, endDate, month, search, status, page, limit, router])
 
     // Handlers that also update URL
-    const handleStoreId = (v: string) => { setStoreId(v); setPage(1); pushParams({ storeId: v, page: '1' }) }
+    const handleStoreId = (id: string, checked: boolean) => {
+        let newIds = [...storeIds]
+        if (checked) newIds.push(id)
+        else newIds = newIds.filter(i => i !== id)
+        setStoreIds(newIds)
+        setPage(1)
+        pushParams({ storeIds: newIds.join(','), page: '1' })
+    }
     const handleUserId = (v: string) => { setUserId(v); setPage(1); pushParams({ userId: v, page: '1' }) }
     const handleStartDate = (v: string) => { setStartDate(v); setMonth(''); setPage(1); pushParams({ startDate: v, month: '', page: '1' }) }
     const handleEndDate = (v: string) => { setEndDate(v); setMonth(''); setPage(1); pushParams({ endDate: v, month: '', page: '1' }) }
@@ -105,7 +112,7 @@ function AdminReportsContent() {
     }
 
     const handleClear = () => {
-        setStoreId(''); setUserId(''); setStartDate(''); setEndDate('')
+        setStoreIds([]); setUserId(''); setStartDate(''); setEndDate('')
         setMonth(''); setSearch(''); setStatus(''); setPage(1)
         router.replace('/admin/reports', { scroll: false })
     }
@@ -123,7 +130,7 @@ function AdminReportsContent() {
     const fetchReports = useCallback(() => {
         setLoading(true)
         const params = new URLSearchParams()
-        if (storeId) params.append('storeId', storeId)
+        if (storeIds.length > 0) params.append('storeIds', storeIds.join(','))
         if (userId) params.append('userId', userId)
         if (startDate) params.append('startDate', startDate)
         if (endDate) params.append('endDate', endDate)
@@ -140,7 +147,7 @@ function AdminReportsContent() {
                 setSelectedReports([])
                 setLoading(false)
             })
-    }, [storeId, userId, startDate, endDate, search, status, page, limit])
+    }, [storeIds, userId, startDate, endDate, search, status, page, limit])
 
     useEffect(() => { fetchReports() }, [fetchReports])
 
@@ -213,7 +220,7 @@ function AdminReportsContent() {
         link.click()
     }
 
-    const hasActiveFilters = !!(storeId || userId || startDate || endDate || month || search || status)
+    const hasActiveFilters = !!(storeIds.length > 0 || userId || startDate || endDate || month || search || status)
 
     return (
         <div className="space-y-6">
@@ -258,13 +265,25 @@ function AdminReportsContent() {
 
                 {/* Filter Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 items-end">
-                    {/* Store */}
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Filter by Store</label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500" value={storeId} onChange={e => handleStoreId(e.target.value)}>
-                            <option value="">All Stores</option>
-                            {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
-                        </select>
+                    {/* Multi-Store Selection */}
+                    <div className="relative group lg:col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Store(s)</label>
+                        <div className="border border-gray-300 rounded text-sm px-3 py-2 bg-gray-50 cursor-pointer hover:border-blue-400 truncate">
+                            {storeIds.length === 0 ? "All Stores" : `${storeIds.length} stores selected`}
+                        </div>
+                        <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-xl hidden group-hover:block scrollbar-thin">
+                            {stores.map(store => (
+                                <label key={store.id} className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
+                                        checked={storeIds.includes(store.id)}
+                                        onChange={(e) => handleStoreId(store.id, e.target.checked)}
+                                    />
+                                    <span className="text-sm text-gray-700 truncate">{store.name}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Status */}
@@ -322,11 +341,11 @@ function AdminReportsContent() {
                         />
                     </div>
 
-                    {/* Clear */}
-                    <div>
+                    {/* Action Row */}
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={handleClear}
-                            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded text-sm font-medium"
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded text-sm font-medium transition"
                         >
                             Clear All
                         </button>
@@ -337,7 +356,12 @@ function AdminReportsContent() {
                 {hasActiveFilters && (
                     <div className="flex flex-wrap gap-2 pt-1">
                         {month && <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">Month: {month}</span>}
-                        {storeId && <span className="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">Store: {stores.find(s => s.id === storeId)?.name || storeId}</span>}
+                        {storeIds.map(sid => (
+                            <span key={sid} className="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                                {stores.find(s => s.id === sid)?.name || sid}
+                                <button onClick={() => handleStoreId(sid, false)} className="hover:text-purple-900 font-bold">×</button>
+                            </span>
+                        ))}
                         {userId && <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-1 rounded-full">User: {users.find(u => u.id === userId)?.name || userId}</span>}
                         {(startDate || endDate) && !month && <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded-full">Dates: {startDate} → {endDate || '…'}</span>}
                         {search && <span className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded-full">Search: "{search}"</span>}
