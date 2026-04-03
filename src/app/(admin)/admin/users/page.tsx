@@ -37,7 +37,7 @@ function UsersPage() {
         setLoading(true)
         Promise.all([
             fetch('/api/admin/users').then(res => res.json()),
-            fetch('/api/admin/stores').then(res => res.json())
+            fetch('/api/admin/stores?status=Active').then(res => res.json())
         ]).then(([usersData, storesData]) => {
             setUsers(Array.isArray(usersData) ? usersData : [])
             setStores(Array.isArray(storesData) ? storesData : [])

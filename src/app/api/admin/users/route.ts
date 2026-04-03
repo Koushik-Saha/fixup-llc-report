@@ -6,12 +6,17 @@ import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status')
+    const where: any = { company_id: session.user.companyId, email: { not: 'koushik@freedomshippingllc.com' } }
+    if (status) where.status = status
+
     const users = await prisma.user.findMany({
-        where: { company_id: session.user.companyId, email: { not: 'koushik@freedomshippingllc.com' } },
+        where,
         orderBy: { createdAt: 'desc' },
         select: {
             id: true,

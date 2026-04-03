@@ -5,13 +5,16 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status')
     const where: any = { company_id: session.user.companyId }
+    if (status) where.status = status
     if (session.user.role === 'Manager') {
         const memberships = await prisma.storeMember.findMany({
             where: { user_id: session.user.id, status: 'Active' },

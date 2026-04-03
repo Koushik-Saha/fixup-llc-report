@@ -131,8 +131,8 @@ function AdminReportsContent() {
 
     useEffect(() => {
         Promise.all([
-            fetch('/api/admin/stores').then(res => res.json()),
-            fetch('/api/admin/users').then(res => res.json())
+            fetch('/api/admin/stores?status=Active').then(res => res.json()),
+            fetch('/api/admin/users?status=Active').then(res => res.json())
         ]).then(([storesData, usersData]) => {
             setStores(Array.isArray(storesData) ? storesData : [])
             setUsers(Array.isArray(usersData) ? usersData : [])

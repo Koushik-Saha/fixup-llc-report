@@ -61,10 +61,9 @@ function MonthlyReportContent() {
 
     // Load stores
     useEffect(() => {
-        fetch('/api/admin/stores').then(r => r.json()).then(d => {
+        fetch('/api/admin/stores?status=Active').then(r => r.json()).then(d => {
             const list = Array.isArray(d) ? d : []
             setStores(list)
-            // Auto-select first store if none selected
             if (!storeId && list.length > 0) {
                 setStoreId(list[0].id)
                 pushParams({ storeId: list[0].id })

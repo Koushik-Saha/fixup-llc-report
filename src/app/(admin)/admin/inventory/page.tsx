@@ -36,7 +36,7 @@ export default function AdminInventoryPage() {
 
             const [invRes, storesRes] = await Promise.all([
                 fetch(`/api/admin/inventory?${params.toString()}`).then(r => r.json()),
-                fetch('/api/admin/stores').then(r => r.json())
+                fetch('/api/admin/stores?status=Active').then(r => r.json())
             ])
 
             if (invRes.success) setInventory(invRes.data)
