@@ -2,6 +2,8 @@
 import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { generateMonthlyReportPDF, generateMonthlyReportCSV } from "@/lib/export-utils"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -39,8 +41,11 @@ function MonthlyReportContent() {
     const [summary, setSummary] = useState<Summary | null>(null)
     const [storeName, setStoreName] = useState("")
     const [month, setMonth] = useState("")
+    const [expensesList, setExpensesList] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+
+    const { data: session } = useSession()
 
     const startDate = searchParams.get('startDate') || ""
     const endDate = searchParams.get('endDate') || ""
@@ -84,6 +89,7 @@ function MonthlyReportContent() {
                 } else {
                     setData(d.data || [])
                     setSummary(d.summary || null)
+                    setExpensesList(d.expensesList || [])
                     setStoreName(d.storeName || "")
                     setMonth(d.month || "")
                 }
@@ -143,6 +149,25 @@ function MonthlyReportContent() {
                             </button>
                         )}
                     </div>
+                    
+                    {/* Exports */}
+                    <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1">
+                        <button 
+                            onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                            className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            PDF
+                        </button>
+                        <button 
+                            onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                            className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            CSV
+                        </button>
+                    </div>
+
                     <Link href="/staff/home" className="text-gray-600 hover:text-gray-900 font-medium text-sm border-l pl-3 border-gray-200">
                         Back to Home
                     </Link>

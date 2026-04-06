@@ -186,7 +186,7 @@ export default function StaffHomePage() {
             </div>
 
             {/* Today's Action Card */}
-            <div className={`rounded-2xl shadow-sm p-5 flex items-center justify-between gap-4 border-2 ${todaySubmitted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+            <div className={`rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-2 ${todaySubmitted ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                 <div className="flex-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Today's Report</p>
                     {loading ? (
@@ -228,7 +228,7 @@ export default function StaffHomePage() {
                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
                     {data?.month.label || 'This Month'}
                 </h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {loading ? (
                         <>
                             <SkeletonCard /><SkeletonCard />

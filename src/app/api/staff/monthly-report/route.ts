@@ -83,6 +83,8 @@ export async function GET(req: Request) {
                 expenses_amount: true,
                 payouts_amount: true,
                 status: true,
+                notes: true,
+                submitted_by: { select: { name: true } },
                 store: { select: { name: true } }
             },
             orderBy: { report_date: 'desc' }
@@ -94,12 +96,17 @@ export async function GET(req: Request) {
                     gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
                     lte: new Date(`${dates[0]}T00:00:00.000Z`)
                 },
-                payment_method: 'Cash',
                 approval_status: 'Approved'
             },
             select: {
                 amount: true,
-                expense_date: true
+                expense_date: true,
+                category: true,
+                payment_method: true,
+                notes: true,
+                review_note: true,
+                reviewed_by: { select: { name: true } },
+                user: { select: { name: true } }
             }
         })
     ])
@@ -110,7 +117,9 @@ export async function GET(req: Request) {
     const adminExpMap = new Map()
     adminExpenses.forEach(e => {
         const dateKey = e.expense_date.toISOString().split('T')[0]
-        adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
+        if (e.payment_method === 'Cash') {
+            adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
+        }
     })
 
     let totalCash = 0
@@ -153,6 +162,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
         data: finalData,
         summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount },
+        expensesList: adminExpenses,
         storeName: store.name,
         month: nowTz.format('MMMM YYYY')
     })

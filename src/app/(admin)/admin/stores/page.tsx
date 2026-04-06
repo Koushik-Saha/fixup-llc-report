@@ -17,12 +17,19 @@ function StoresPage() {
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "")
     const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || "All")
     const [userFilter, setUserFilter] = useState(searchParams.get('userId') || "All")
+    const [stateFilter, setStateFilter] = useState(searchParams.get('state') || "All")
+    const [capacityFilter, setCapacityFilter] = useState(searchParams.get('capacity') || "All")
     const [page, setPage] = useState(Number(searchParams.get('page') || '1'))
     const [limit, setLimit] = useState(Number(searchParams.get('limit') || '10'))
 
     const pushParams = (overrides: Record<string, string> = {}) => {
-        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, userId: userFilter, page: page.toString(), limit: limit.toString(), ...overrides }
-        const p = new URLSearchParams(); Object.entries(vals).forEach(([k, v]) => { if (v && v !== 'All' && v !== '1' && v !== '10') p.set(k, v); else if (k === 'page' && v !== '1') p.set(k, v); else if (k === 'limit' && v !== '10') p.set(k, v) })
+        const vals: Record<string, string> = { search: searchTerm, status: statusFilter, userId: userFilter, state: stateFilter, capacity: capacityFilter, page: page.toString(), limit: limit.toString(), ...overrides }
+        const p = new URLSearchParams()
+        Object.entries(vals).forEach(([k, v]) => { 
+            if (v && v !== 'All' && v !== '1' && v !== '10') p.set(k, v) 
+            else if (k === 'page' && v !== '1') p.set(k, v) 
+            else if (k === 'limit' && v !== '10') p.set(k, v) 
+        })
         router.replace(`/admin/stores?${p.toString()}`, { scroll: false })
     }
     
@@ -78,13 +85,20 @@ function StoresPage() {
 
     if (loading) return <div className="p-6 bg-white shadow rounded-lg w-full"><SkeletonRow rows={5} /></div>
 
+    const uniqueStates = Array.from(new Set(stores.map(s => s.state).filter(Boolean))).sort()
+
     return (
         <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Stores</h2>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <input type="text" placeholder="Search by name, city, or zip..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                    <input type="text" placeholder="Search stores..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 w-full sm:w-auto min-w-[200px]"
                         value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); pushParams({ search: e.target.value, page: '1' }) }} />
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={stateFilter} onChange={(e) => { setStateFilter(e.target.value); setPage(1); pushParams({ state: e.target.value, page: '1' }) }}>
+                        <option value="All">All States</option>
+                        {uniqueStates.map(st => <option key={st as string} value={st as string}>{st as string}</option>)}
+                    </select>
                     <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                         value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); pushParams({ status: e.target.value, page: '1' }) }}>
                         <option value="All">All Statuses</option>
@@ -98,8 +112,15 @@ function StoresPage() {
                             <option key={u.id} value={u.id}>{u.name}</option>
                         ))}
                     </select>
-                    <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap">
-                        Create Store
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        value={capacityFilter} onChange={(e) => { setCapacityFilter(e.target.value); setPage(1); pushParams({ capacity: e.target.value, page: '1' }) }}>
+                        <option value="All">All Capacities</option>
+                        <option value="Available">Available Space</option>
+                        <option value="Full">Full (At Max)</option>
+                        <option value="Empty">Empty (0 Members)</option>
+                    </select>
+                    <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap text-sm font-medium ml-auto">
+                        + Create Store
                     </Link>
                 </div>
             </div>
@@ -122,8 +143,16 @@ function StoresPage() {
                                 const term = searchTerm.toLowerCase()
                                 const matchesSearch = store.name.toLowerCase().includes(term) || store.city?.toLowerCase().includes(term) || store.zip_code?.toLowerCase().includes(term)
                                 const matchesStatus = statusFilter === "All" || store.status === statusFilter
-                                const matchesUser = userFilter === "All" || store.members?.some((m: any) => m.user.id === userFilter)
-                                return matchesSearch && matchesStatus && matchesUser
+                                const matchesUser = userFilter === "All" || store.members?.some((m: any) => m.user_id === userFilter)
+                                const matchesState = stateFilter === "All" || store.state === stateFilter
+                                
+                                const memCount = store._count?.members || 0
+                                const matchesCapacity = capacityFilter === "All" || 
+                                    (capacityFilter === "Empty" && memCount === 0) ||
+                                    (capacityFilter === "Full" && memCount >= store.max_members) ||
+                                    (capacityFilter === "Available" && memCount < store.max_members && memCount > 0)
+
+                                return matchesSearch && matchesStatus && matchesUser && matchesState && matchesCapacity
                             })
                             const paged = filtered.slice((page - 1) * limit, page * limit)
                             const totalPages = Math.ceil(filtered.length / limit)

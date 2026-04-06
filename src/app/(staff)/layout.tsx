@@ -20,6 +20,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     )
 }
 
+import StaffHeaderMenu from '@/components/StaffHeaderMenu'
+
 function StaffLayoutInner({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const { data: session } = useSession()
@@ -36,13 +38,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
                         {company.name || 'Daily Sales'}
                     </Link>
                     <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-500 hidden sm:block">{session?.user?.name}</span>
-                        <button
-                            onClick={() => signOut()}
-                            className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 px-3 rounded-lg transition font-medium"
-                        >
-                            Logout
-                        </button>
+                        <StaffHeaderMenu />
                     </div>
                 </div>
             </header>

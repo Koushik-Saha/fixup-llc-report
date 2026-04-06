@@ -64,7 +64,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
         const updated = await prisma.storeMember.update({
             where: { id: existing.id },
-            data: { status: 'Active', is_reporter: Boolean(is_reporter) }
+            data: { status: 'Active', is_reporter: Boolean(is_reporter) },
+            include: {
+                user: { select: { name: true, email: true, status: true, role: true } }
+            }
         })
 
         await prisma.systemLog.create({
@@ -86,6 +89,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             user_id,
             is_reporter: Boolean(is_reporter),
             status: 'Active'
+        },
+        include: {
+            user: { select: { name: true, email: true, status: true, role: true } }
         }
     })
 

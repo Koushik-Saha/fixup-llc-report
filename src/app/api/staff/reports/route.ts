@@ -21,13 +21,25 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const storeId = session.user.storeId
-    if (!storeId) {
-        return NextResponse.json({ error: 'No active store assigned' }, { status: 400 })
+    const body = await req.json()
+    const { store_id, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls, sale_items, inventory_usage } = body
+
+    const memberships = await prisma.storeMember.findMany({
+        where: { user_id: session.user.id, status: 'Active' },
+        select: { store_id: true }
+    })
+
+    if (memberships.length === 0) {
+        return NextResponse.json({ error: 'No active store assigned to you' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls, sale_items, inventory_usage } = body
+    let finalStoreId = store_id || req.headers.get('cookie')?.split('; ').find(row => row.startsWith('activeStoreId='))?.split('=')[1]
+    if (!finalStoreId) {
+        finalStoreId = memberships[0].store_id
+    } else if (!memberships.some(m => m.store_id === finalStoreId)) {
+        return NextResponse.json({ error: 'You are not assigned to the selected store' }, { status: 403 })
+    }
+    const storeId = finalStoreId
 
     if (cash_amount === undefined || card_amount === undefined) {
         return NextResponse.json({ error: 'Cash and Card amounts are required' }, { status: 400 })
@@ -171,14 +183,27 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const storeId = session.user.storeId
-    if (!storeId) {
-        return NextResponse.json({ error: 'No active store assigned' }, { status: 400 })
-    }
-
     const { searchParams } = new URL(req.url)
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 30 // default 30 days
     const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+    const targetStoreId = searchParams.get('store_id') || req.headers.get('cookie')?.split('; ').find(row => row.startsWith('activeStoreId='))?.split('=')[1]
+
+    const memberships = await prisma.storeMember.findMany({
+        where: { user_id: session.user.id, status: 'Active' },
+        select: { store_id: true }
+    })
+
+    if (memberships.length === 0) {
+        return NextResponse.json({ error: 'No active store assigned' }, { status: 403 })
+    }
+
+    let finalStoreId = targetStoreId
+    if (!finalStoreId) {
+        finalStoreId = memberships[0].store_id
+    } else if (!memberships.some(m => m.store_id === finalStoreId)) {
+        return NextResponse.json({ error: 'You are not assigned to the selected store' }, { status: 403 })
+    }
+    const storeId = finalStoreId
 
     const store = await prisma.store.findUnique({ where: { id: storeId } })
     if (!store) {

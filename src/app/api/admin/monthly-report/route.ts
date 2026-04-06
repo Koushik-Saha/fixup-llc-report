@@ -94,6 +94,7 @@ export async function GET(req: Request) {
             expenses_amount: true,
             payouts_amount: true,
             status: true,
+            notes: true,
             submitted_by: { select: { name: true } }
         },
         orderBy: { report_date: 'desc' }
@@ -108,7 +109,16 @@ export async function GET(req: Request) {
             },
             approval_status: 'Approved'
         },
-        select: { expense_date: true, amount: true, payment_method: true }
+        select: {
+            expense_date: true,
+            amount: true,
+            payment_method: true,
+            category: true,
+            notes: true,
+            review_note: true,
+            reviewed_by: { select: { name: true } },
+            user: { select: { name: true } }
+        }
     })
 
     const reportMap = new Map()
@@ -146,6 +156,7 @@ export async function GET(req: Request) {
             return { 
                 ...r, 
                 report_date: `${dateStr}T00:00:00.000Z`,
+                admin_expenses_amount: totalAdminExp,
                 net_cash: netCash 
             }
         }
@@ -167,6 +178,7 @@ export async function GET(req: Request) {
             total_amount: null,
             expenses_amount: null,
             payouts_amount: null,
+            admin_expenses_amount: totalAdminExp,
             net_cash: -cashAdminExp,
             status: isOpen ? 'Missing' : 'Closed',
             submitted_by: null
@@ -176,6 +188,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
         data: finalData,
         summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount, verifiedCount, unverifiedCount },
+        expensesList: adminExpenses,
         storeName: store.name,
         storeCity: store.city,
         month: baseMonth.format('MMMM YYYY')

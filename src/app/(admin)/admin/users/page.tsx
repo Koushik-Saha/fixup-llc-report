@@ -103,8 +103,8 @@ function UsersPage() {
         <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Users</h2>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <input type="text" placeholder="Search by name or email..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                    <input type="text" placeholder="Search by name or email..." className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 w-full sm:w-auto min-w-[200px]"
                         value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); pushParams({ search: e.target.value, page: '1' }) }} />
                     <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                         value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); pushParams({ role: e.target.value, page: '1' }) }}>
@@ -119,13 +119,13 @@ function UsersPage() {
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
                     </select>
-                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900 max-w-[200px] truncate"
                         value={storeFilter} onChange={(e) => { setStoreFilter(e.target.value); setPage(1); pushParams({ storeId: e.target.value, page: '1' }) }}>
                         <option value="All">All Stores</option>
                         {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                    <Link href="/admin/users/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap">
-                        Create User
+                    <Link href="/admin/users/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap text-sm font-medium ml-auto">
+                        + Create User
                     </Link>
                 </div>
             </div>
@@ -176,7 +176,7 @@ function UsersPage() {
                                     {paged.map(user => (
                                         <tr key={user.id}>
                                             <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap max-w-[200px] truncate" title={user.email}>{user.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">${Number(user.base_salary || 0).toFixed(2)}<span className="text-gray-500 text-xs ml-1">{user.pay_type === 'HOURLY' ? '/hr' : '/mo'}</span></td>
                                             <td className="px-6 py-4 whitespace-nowrap">{user.role}</td>
                                             <td className="px-6 py-4">

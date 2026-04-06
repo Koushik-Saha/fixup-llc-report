@@ -455,10 +455,10 @@ function AdminReportsContent() {
                                         {report.status !== 'Missing' ? `$${Number(report.card_amount).toFixed(2)}` : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-red-600">
-                                        {report.status !== 'Missing' ? `$${(Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0)).toFixed(2)}` : '-'}
+                                        {report.status !== 'Missing' || (report.admin_expenses_amount || 0) > 0 ? `$${((report.status !== 'Missing' ? Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0) : 0) + Number(report.admin_expenses_amount || 0)).toFixed(2)}` : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right font-black text-emerald-700 underline decoration-emerald-200">
-                                        {report.status !== 'Missing' ? `$${((Number(report.cash_amount || 0) + Number(report.card_amount || 0)) - (Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0))).toFixed(2)}` : '-'}
+                                        {report.status !== 'Missing' || (report.admin_expenses_amount || 0) > 0 ? `$${((report.status !== 'Missing' ? Number(report.cash_amount || 0) + Number(report.card_amount || 0) : 0) - ((report.status !== 'Missing' ? Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0) : 0) + Number(report.admin_expenses_amount || 0))).toFixed(2)}` : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -494,7 +494,7 @@ function AdminReportsContent() {
                             const tRevenue = reports.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.cash_amount || 0) + Number(r.card_amount || 0)) : 0), 0)
                             const tCash = reports.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.cash_amount || 0) : 0), 0)
                             const tCard = reports.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.card_amount || 0) : 0), 0)
-                            const totalExp = reports.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0), 0)
+                            const totalExp = reports.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0) + Number(r.admin_expenses_amount || 0), 0)
                             const tBalance = tRevenue - totalExp;
                             return (
                                 <tfoot>

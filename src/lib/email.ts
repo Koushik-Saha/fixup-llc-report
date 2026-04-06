@@ -120,3 +120,36 @@ export async function sendPasswordResetToken(email: string, token: string) {
         console.error('Failed to send password reset email:', error)
     }
 }
+
+export async function sendMissingReportReminder(email: string, name: string, storeName: string, dateStr: string) {
+    if (!resend) {
+        console.warn('No RESEND_API_KEY found. Skipping missing report reminder.')
+        console.log(`[DEV MODE] Missing Report Reminder for ${name} (${email}) at ${storeName} for Date: ${dateStr}`)
+        return
+    }
+
+    try {
+        const loginUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login`
+        await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Action Required: Missing Daily Report for ${dateStr}`,
+            html: `
+                <div style="font-family: sans-serif; color: #333;">
+                    <h2>Missing Daily Report Notice</h2>
+                    <p>Hi ${name},</p>
+                    <p>Our records indicate that the daily closing report for <strong>${storeName}</strong> on <strong>${dateStr}</strong> has not yet been submitted.</p>
+                    <p>Please log in immediately and submit your missing report to ensure accurate weekly reconciliation.</p>
+                    <p>
+                        <a href="${loginUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            Log in to FixUp
+                        </a>
+                    </p>
+                    <p style="font-size: 12px; color: #666; margin-top: 20px;">This is an automated system reminder. Please contact your manager if you have already submitted this report.</p>
+                </div>
+            `
+        })
+    } catch (error) {
+        console.error('Failed to send missing report reminder:', error)
+    }
+}

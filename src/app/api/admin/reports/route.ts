@@ -285,10 +285,34 @@ export async function GET(req: Request) {
             prisma.dailyReport.count({ where })
         ])
 
-        const reportsWithNet = reports.map(r => ({
-            ...r,
-            net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
-        }))
+        // Fetch admin expenses for the retrieved reports to calculate total actual expenses
+        const reportDates = reports.map(r => r.report_date)
+        const minDate = new Date(Math.min(...reportDates.map(d => d.getTime())))
+        const maxDate = new Date(Math.max(...reportDates.map(d => d.getTime())))
+
+        const adminExpenses = await prisma.storeExpense.findMany({
+            where: {
+                store_id: { in: reports.map(r => r.store_id) },
+                expense_date: {
+                    gte: minDate,
+                    lte: maxDate
+                },
+                approval_status: 'Approved'
+            },
+            select: { store_id: true, expense_date: true, amount: true }
+        })
+
+        const reportsWithNet = reports.map(r => {
+            const dateStr = r.report_date.toISOString().split('T')[0]
+            const dayAdminExps = adminExpenses.filter(e => e.store_id === r.store_id && e.expense_date.toISOString().split('T')[0] === dateStr)
+            const totalAdminExp = dayAdminExps.reduce((a, e) => a + Number(e.amount), 0)
+            
+            return {
+                ...r,
+                admin_expenses_amount: totalAdminExp,
+                net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
+            }
+        })
 
         return NextResponse.json({
             data: reportsWithNet,
@@ -344,8 +368,27 @@ export async function GET(req: Request) {
         }
     })
 
+    const adminExpenses = await prisma.storeExpense.findMany({
+        where: {
+            store_id: storesQuery.id,
+            expense_date: {
+                gte: start.toDate(),
+                lte: end.toDate()
+            },
+            approval_status: 'Approved'
+        },
+        select: { store_id: true, expense_date: true, amount: true }
+    })
+
     const reportMap = new Map()
     reportsForRange.forEach(r => reportMap.set(`${r.store_id}_${r.report_date.toISOString().split('T')[0]}`, r))
+
+    const adminExpMap = new Map()
+    adminExpenses.forEach(e => {
+        const key = `${e.store_id}_${e.expense_date.toISOString().split('T')[0]}`
+        if (!adminExpMap.has(key)) adminExpMap.set(key, [])
+        adminExpMap.get(key).push(e)
+    })
 
     // 2. Build and FILTER all combinations
     const filteredCombinations: any[] = []
@@ -354,6 +397,8 @@ export async function GET(req: Request) {
         for (const store of sortedStores) {
             const key = `${store.id}_${day}`
             const hasReport = reportMap.has(key)
+            const dayAdminExps = adminExpMap.get(key) || []
+            const totalAdminExp = dayAdminExps.reduce((a: number, e: any) => a + Number(e.amount), 0)
 
             if (statusFilter === 'Missing') {
                 if (!hasReport) {
@@ -366,6 +411,7 @@ export async function GET(req: Request) {
                         cash_amount: 0,
                         card_amount: 0,
                         total_amount: 0,
+                        admin_expenses_amount: totalAdminExp,
                         net_cash: 0,
                         status: 'Missing',
                     })
@@ -378,6 +424,7 @@ export async function GET(req: Request) {
                     if (r.status === statusFilter) {
                         filteredCombinations.push({
                             ...r,
+                            admin_expenses_amount: totalAdminExp,
                             net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
                         })
                     }
@@ -388,6 +435,7 @@ export async function GET(req: Request) {
                     const r = reportMap.get(key)
                     filteredCombinations.push({
                         ...r,
+                        admin_expenses_amount: totalAdminExp,
                         net_cash: Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0)
                     })
                 } else {
@@ -399,6 +447,7 @@ export async function GET(req: Request) {
                         submitted_by: null,
                         cash_amount: 0,
                         card_amount: 0,
+                        admin_expenses_amount: totalAdminExp,
                         total_amount: 0,
                         net_cash: 0,
                         status: 'Missing',

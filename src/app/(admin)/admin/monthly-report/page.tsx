@@ -2,6 +2,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
+import { generateMonthlyReportPDF, generateMonthlyReportCSV } from "@/lib/export-utils"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -20,6 +22,7 @@ type ReportRow = {
     total_amount: number | null
     expenses_amount: number | null
     payouts_amount: number | null
+    admin_expenses_amount: number | null
     status: string
     submitted_by: { name: string } | null
 }
@@ -45,12 +48,15 @@ function MonthlyReportContent() {
     const [startDate, setStartDate] = useState(searchParams.get('startDate') || '')
     const [endDate, setEndDate] = useState(searchParams.get('endDate') || '')
     const [data, setData] = useState<ReportRow[]>([])
+    const [expensesList, setExpensesList] = useState<any[]>([])
     const [summary, setSummary] = useState<Summary | null>(null)
     const [storeName, setStoreName] = useState('')
     const [storeCity, setStoreCity] = useState('')
     const [monthLabel, setMonthLabel] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+
+    const { data: session } = useSession()
 
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
         const vals = { storeId, month, startDate, endDate, ...overrides }
@@ -86,6 +92,7 @@ function MonthlyReportContent() {
                 if (d.error) { setError(d.error); return }
                 setData(d.data || [])
                 setSummary(d.summary || null)
+                setExpensesList(d.expensesList || [])
                 setStoreName(d.storeName || '')
                 setStoreCity(d.storeCity || '')
                 setMonthLabel(d.month || '')
@@ -168,6 +175,26 @@ function MonthlyReportContent() {
                         </button>
                     )}
                 </div>
+
+                {/* Exports */}
+                {data.length > 0 && (
+                    <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1 ml-auto">
+                        <button 
+                            onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                            className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            PDF
+                        </button>
+                        <button 
+                            onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                            className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            CSV
+                        </button>
+                    </div>
+                )}
             </div>
 
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
@@ -178,7 +205,8 @@ function MonthlyReportContent() {
                 const tRevenue = submittedReports.reduce((s, r) => s + (Number(r.cash_amount || 0) + Number(r.card_amount || 0)), 0);
                 const tCash = submittedReports.reduce((s, r) => s + Number(r.cash_amount || 0), 0);
                 const tCard = submittedReports.reduce((s, r) => s + Number(r.card_amount || 0), 0);
-                const tExp = submittedReports.reduce((s, r) => s + (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)), 0);
+                // Total expenses = staff day expenses + payouts + approved admin manual expenses
+                const tExp = data.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0) + Number(r.admin_expenses_amount || 0), 0);
                 const balance = tRevenue - tExp;
 
                 return (
@@ -260,10 +288,10 @@ function MonthlyReportContent() {
                                                 {!isMissing ? `$${Number(row.card_amount || 0).toFixed(2)}` : <span className="text-gray-300">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right text-red-600 font-medium">
-                                                {!isMissing ? `$${(Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0)).toFixed(2)}` : <span className="text-gray-300">—</span>}
+                                                {!isMissing || (row.admin_expenses_amount || 0) > 0 ? `$${((!isMissing ? Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0) : 0) + Number(row.admin_expenses_amount || 0)).toFixed(2)}` : <span className="text-gray-300">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-right font-black text-emerald-700 underline decoration-emerald-200">
-                                                {!isMissing ? `$${((Number(row.cash_amount || 0) + Number(row.card_amount || 0)) - (Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0))).toFixed(2)}` : <span className="text-gray-300 font-normal">—</span>}
+                                                {!isMissing || (row.admin_expenses_amount || 0) > 0 ? `$${((!isMissing ? Number(row.cash_amount || 0) + Number(row.card_amount || 0) : 0) - ((!isMissing ? Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0) : 0) + Number(row.admin_expenses_amount || 0))).toFixed(2)}` : <span className="text-gray-300 font-normal">—</span>}
                                             </td>
                                             <td className="px-5 py-3 text-sm text-gray-500">
                                                 {row.submitted_by?.name || <span className="italic text-gray-300">—</span>}
@@ -317,10 +345,10 @@ function MonthlyReportContent() {
                                         ${data.reduce((s, r) => s + (r.status !== 'Missing' ? Number(r.card_amount || 0) : 0), 0).toFixed(2)}
                                     </td>
                                     <td className="px-5 py-4 text-sm text-right font-black text-red-700">
-                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0), 0).toFixed(2)}
+                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0) + Number(r.admin_expenses_amount || 0), 0).toFixed(2)}
                                     </td>
                                     <td className="px-5 py-4 text-sm text-right font-black text-emerald-800">
-                                        ${data.reduce((s, r) => s + (r.status !== 'Missing' ? ((Number(r.cash_amount || 0) + Number(r.card_amount || 0)) - (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0))) : 0), 0).toFixed(2)}
+                                        ${data.reduce((s, r) => s + ((r.status !== 'Missing' ? (Number(r.cash_amount || 0) + Number(r.card_amount || 0)) : 0) - ((r.status !== 'Missing' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0))), 0).toFixed(2)}
                                     </td>
                                     <td colSpan={2} />
                                 </tr>

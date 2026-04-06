@@ -35,6 +35,9 @@ export default function SubmitReportPage() {
     // Inventory
     const [inventoryItems, setInventoryItems] = useState<any[]>([])
     const [inventoryUsage, setInventoryUsage] = useState<{ item_id: string, quantity: number }[]>([])
+    
+    // Store Context
+    const [storeName, setStoreName] = useState('Loading Store...')
 
     useEffect(() => {
         // Hydrate default target date if navigating from a missing report link
@@ -44,17 +47,23 @@ export default function SubmitReportPage() {
             setReportDate(dateParam)
         }
 
-        const fetchInventory = async () => {
+        const fetchData = async () => {
             try {
+                // Fetch context store name
+                const dashRes = await fetch('/api/staff/dashboard')
+                const dashData = await dashRes.json()
+                if (dashData.storeName) setStoreName(dashData.storeName)
+
+                // Fetch inventory for context store
                 const res = await fetch('/api/staff/inventory')
                 const data = await res.json()
                 if (data.success) setInventoryItems(data.data)
             } catch (err) {
-                console.error('Failed to load inventory', err)
+                console.error('Failed to load initial context', err)
             }
         }
 
-        fetchInventory()
+        fetchData()
     }, [])
 
     const netCash = (Number(cash) || 0) - (Number(expenses) || 0) - (Number(payouts) || 0)
@@ -155,7 +164,13 @@ export default function SubmitReportPage() {
 
     return (
         <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Submit Daily Report</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Submit Daily Report</h2>
+            <div className="bg-indigo-50 border border-indigo-100 rounded-md p-3 mb-6 flex items-center justify-between">
+                <div>
+                   <p className="text-xs text-indigo-800 font-semibold uppercase tracking-wider">Active Store</p>
+                   <p className="text-sm text-indigo-900 font-medium">{storeName}</p>
+                </div>
+            </div>
 
             {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-6">{error}</div>}
 

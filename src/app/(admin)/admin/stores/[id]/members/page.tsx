@@ -51,8 +51,20 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
         }
     }
 
-    const handleRemoveMember = async (memberId: string) => {
-        if (!confirm("Are you sure you want to remove this user from the store?")) return
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [memberToDelete, setMemberToDelete] = useState<string | null>(null)
+
+    const promptRemoveMember = (memberId: string) => {
+        setMemberToDelete(memberId)
+        setIsDeleteModalOpen(true)
+    }
+
+    const confirmRemoveMember = async () => {
+        if (!memberToDelete) return
+        
+        setIsDeleteModalOpen(false)
+        const memberId = memberToDelete
+        setMemberToDelete(null)
 
         const res = await fetch(`/api/admin/stores/members/${memberId}`, {
             method: "DELETE"
@@ -146,7 +158,7 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                    <button onClick={() => handleRemoveMember(member.id)} className="text-red-600 hover:text-red-900">Remove</button>
+                                    <button onClick={() => promptRemoveMember(member.id)} className="text-red-600 hover:text-red-900">Remove</button>
                                     <button onClick={() => handleToggleReporter(member)} className="text-indigo-600 hover:text-indigo-900">
                                         Toggle Reporter
                                     </button>
@@ -161,6 +173,19 @@ export default function StoreMembersPage({ params }: { params: Promise<{ id: str
                     </tbody>
                 </table>
             </div>
+
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Remove from Store</h3>
+                        <p className="text-sm text-gray-600 mb-6">Are you sure you want to remove this user from the store? They will lose access immediately.</p>
+                        <div className="flex justify-end space-x-3">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition duration-150">Cancel</button>
+                            <button onClick={confirmRemoveMember} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm transition duration-150">Remove User</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

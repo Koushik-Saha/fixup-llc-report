@@ -24,18 +24,37 @@ function parseHours(t: string | null | undefined): number | null {
     return isNaN(h) || isNaN(m) ? null : h + m / 60
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = session.user.id as string
-    const storeId = session.user.storeId
 
-    if (!storeId) {
+    // Fetch all active store memberships for this user
+    const memberships = await prisma.storeMember.findMany({
+        where: { user_id: userId, status: 'Active' },
+        include: { store: { select: { id: true, name: true, createdAt: true } } },
+        orderBy: { assigned_at: 'desc' }
+    })
+
+    if (memberships.length === 0) {
         return NextResponse.json({ error: 'No active store assigned' }, { status: 400 })
     }
+
+    const { searchParams } = new URL(req.url)
+    const targetStoreId = searchParams.get('store_id') || req.headers.get('cookie')?.split('; ').find(row => row.startsWith('activeStoreId='))?.split('=')[1]
+
+    let activeMembership = memberships.find(m => m.store.id === targetStoreId)
+    if (!activeMembership) {
+        activeMembership = memberships[0] // fallback to the first assigned store
+    }
+    
+    const storeId = activeMembership.store.id
+    const storeName = activeMembership.store.name
+    
+    const assignedStores = memberships.map(m => ({ id: m.store.id, name: m.store.name }))
 
     const nowTz = dayjs().tz(TIMEZONE)
     const todayStr = nowTz.format('YYYY-MM-DD')
@@ -121,6 +140,9 @@ export async function GET() {
     }
 
     return NextResponse.json({
+        storeName,
+        storeId,
+        assignedStores,
         today: {
             dateLabel: nowTz.format('dddd, MMMM D'),
             report: todayReport
