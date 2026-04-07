@@ -134,7 +134,7 @@ function SubmitReportForm() {
             }
 
             if (staffIds.length === 0) {
-                toast.error("You must assign at least one staff member to this report.")
+                toast.error("You must assign at least one staff member or manager to this report.")
                 setUploading(false)
                 return
             }
@@ -206,25 +206,26 @@ function SubmitReportForm() {
                     </select>
                 </div>
 
-                {storeId && storeMembers.length > 0 && (
+                {storeId && (
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">Staff Members Assigned (Required)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">Personnel Assigned (Staff or Managers Required)</label>
                         <div className="space-y-2 bg-gray-50 border border-gray-300 rounded-lg p-4">
-                            {storeMembers.map((m: any) => (
-                                <label key={m.user_id} className="flex items-center space-x-3 p-2 hover:bg-white rounded transition cursor-pointer">
+                            {/* Render only store-specific members */}
+                            {storeMembers.map((member: any) => (
+                                <label key={member.user_id} className="flex items-center space-x-3 p-2 hover:bg-white rounded transition cursor-pointer">
                                     <input
                                         type="checkbox"
                                         className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        checked={staffIds.includes(m.user_id)}
-                                        onChange={() => handleStaffCheckbox(m.user_id)}
+                                        checked={staffIds.includes(member.user_id)}
+                                        onChange={() => handleStaffCheckbox(member.user_id)}
                                     />
                                     <span className="text-gray-800 font-medium">
-                                        {m.user.name} <span className="text-gray-500 text-sm">({m.user.role})</span>
+                                        {member.user.name} <span className="text-gray-500 text-sm">({member.user.role})</span>
                                     </span>
                                 </label>
                             ))}
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">Check all staff members who worked this shift so they receive Work Hours credit.</p>
+                        <p className="text-xs text-gray-500 mt-2">Check all staff members or managers who worked this shift so they receive Work Hours credit.</p>
                     </div>
                 )}
 

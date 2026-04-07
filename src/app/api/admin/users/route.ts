@@ -8,7 +8,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'SuperAdmin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
@@ -38,7 +40,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'SuperAdmin'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const body = await req.json()
     const { name, email, password, role, status, pay_type, base_salary, phone } = body

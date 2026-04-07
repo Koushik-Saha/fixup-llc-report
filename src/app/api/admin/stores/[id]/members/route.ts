@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'SuperAdmin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const store_id = (await params).id
 
     const members = await prisma.storeMember.findMany({
@@ -23,7 +25,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'SuperAdmin'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const store_id = (await params).id
     const body = await req.json()

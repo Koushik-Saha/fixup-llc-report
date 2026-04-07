@@ -37,18 +37,33 @@ export async function POST(req: Request) {
     }
 
     if (!staff_ids || !Array.isArray(staff_ids) || staff_ids.length === 0) {
-        return NextResponse.json({ error: 'At least one staff member must be assigned to the report' }, { status: 400 })
+        return NextResponse.json({ error: 'At least one personnel (staff or manager) must be assigned to the report' }, { status: 400 })
     }
 
-    // Verify all staff_ids are actually members of this store
-    const validMemberships = await prisma.storeMember.findMany({
+    // Verify all assigned users are active and belong to this company
+    const assignedUsers = await prisma.user.findMany({
+        where: { id: { in: staff_ids }, company_id: session.user.companyId, status: 'Active' },
+        select: { id: true, name: true, role: true }
+    })
+
+    const foundUserIds = assignedUsers.map(u => u.id)
+    const missingIds = staff_ids.filter(id => !foundUserIds.includes(id))
+    if (missingIds.length > 0) {
+        return NextResponse.json({ error: `Some users were not found or are inactive in your company: ${missingIds.join(', ')}` }, { status: 400 })
+    }
+
+    // Verify Staff members are explicitly assigned to this store
+    const storeMemberships = await prisma.storeMember.findMany({
         where: { store_id, user_id: { in: staff_ids }, status: 'Active' },
         select: { user_id: true }
     })
-    const validUserIds = validMemberships.map(m => m.user_id)
-    const invalidIds = staff_ids.filter(id => !validUserIds.includes(id))
-    if (invalidIds.length > 0) {
-        return NextResponse.json({ error: `Some staff members are not assigned to this store: ${invalidIds.join(', ')}` }, { status: 400 })
+    const memberUserIds = storeMemberships.map(m => m.user_id)
+
+    for (const user of assignedUsers) {
+        // Staff must be members of the store. Managers and Admins are universal.
+        if (user.role === 'Staff' && !memberUserIds.includes(user.id)) {
+            return NextResponse.json({ error: `Staff member ${user.name} is not assigned to this store` }, { status: 400 })
+        }
     }
 
     if (session.user.role === 'Manager') {
