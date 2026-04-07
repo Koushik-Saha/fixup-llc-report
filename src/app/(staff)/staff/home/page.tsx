@@ -28,6 +28,7 @@ type DashData = {
         totalExpenses: number
         totalPaid: number
         verifiedCount: number
+        balance: number
     }
     streak: number
     recentReports: Array<{
@@ -228,7 +229,7 @@ export default function StaffHomePage() {
                 <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">
                     {data?.month.label || 'This Month'}
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {loading ? (
                         <>
                             <SkeletonCard /><SkeletonCard />
@@ -238,44 +239,52 @@ export default function StaffHomePage() {
                     ) : data ? (
                         <>
                             <StatCard
-                                label="Reports Submitted"
-                                value={`${data.month.submittedCount} / ${data.month.totalDays}`}
-                                sub={`${data.month.missingDays} missing`}
-                                color="border-blue-400"
+                                label="Total Revenue"
+                                value={`$${data.month.totalRevenue.toFixed(2)}`}
+                                color="border-indigo-500"
                             />
                             <StatCard
-                                label="Total Sales"
-                                value={`$${data.month.totalRevenue.toFixed(2)}`}
-                                color="border-green-400"
+                                label="Cash"
+                                value={`$${data.month.totalCash.toFixed(2)}`}
+                                color="border-orange-400"
                             />
+                            <StatCard
+                                label="Card"
+                                value={`$${data.month.totalCard.toFixed(2)}`}
+                                color="border-blue-500"
+                            />
+                            <StatCard
+                                label="Expenses"
+                                value={`$${data.month.totalExpenses.toFixed(2)}`}
+                                color="border-red-500"
+                            />
+                            <StatCard
+                                label="Balance"
+                                value={`$${data.month.balance.toFixed(2)}`}
+                                color="border-emerald-500"
+                            />
+                            <StatCard
+                                label="Submitted"
+                                value={`${data.month.submittedCount} days`}
+                                color="border-emerald-400"
+                            />
+                            <StatCard
+                                label="Missing"
+                                value={`${data.month.missingDays} days`}
+                                color="border-red-400"
+                            />
+                            {/* Staff specifics */}
                             <StatCard
                                 label="Hours Worked"
                                 value={`${data.month.totalHours}h`}
                                 sub="based on shift times"
-                                color="border-indigo-400"
+                                color="border-gray-400"
                             />
                             <StatCard
                                 label="Pay Received"
                                 value={`$${data.month.totalPaid.toFixed(2)}`}
                                 sub="this month"
-                                color="border-emerald-400"
-                            />
-                            <StatCard
-                                label="Net Cash"
-                                value={`$${data.month.totalCash.toFixed(2)}`}
-                                sub="after expenses"
-                                color="border-yellow-400"
-                            />
-                            <StatCard
-                                label="Total Card"
-                                value={`$${data.month.totalCard.toFixed(2)}`}
-                                color="border-purple-400"
-                            />
-                            <StatCard
-                                label="Expenses"
-                                value={`$${data.month.totalExpenses.toFixed(2)}`}
-                                sub="from cash"
-                                color="border-red-400"
+                                color="border-teal-400"
                             />
                         </>
                     ) : null}

@@ -241,40 +241,74 @@ export async function GET(req: Request) {
         })
     }
 
-    const reports = await prisma.dailyReport.findMany({
-        where: {
-            store_id: storeId,
-            report_date: {
-                gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
-                lte: new Date(`${dates[0]}T00:00:00.000Z`)
+    const [reports, adminExpenses] = await Promise.all([
+        prisma.dailyReport.findMany({
+            where: {
+                store_id: storeId,
+                report_date: {
+                    gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
+                    lte: new Date(`${dates[0]}T00:00:00.000Z`)
+                },
+                deleted_at: null
             },
-            deleted_at: null
-        },
-        select: {
-            id: true,
-            report_date: true,
-            total_amount: true,
-            status: true,
-            staff_edit_count: true,
-            store: {
-                select: {
-                    name: true
+            select: {
+                id: true,
+                report_date: true,
+                cash_amount: true,
+                card_amount: true,
+                total_amount: true,
+                expenses_amount: true,
+                payouts_amount: true,
+                status: true,
+                staff_edit_count: true,
+                store: {
+                    select: {
+                        name: true
+                    }
                 }
             }
-        }
-    })
+        }),
+        prisma.storeExpense.findMany({
+            where: {
+                store_id: storeId,
+                expense_date: {
+                    gte: new Date(`${dates[dates.length - 1]}T00:00:00.000Z`),
+                    lte: new Date(`${dates[0]}T00:00:00.000Z`)
+                },
+                approval_status: 'Approved'
+            },
+            select: { amount: true, expense_date: true }
+        })
+    ])
 
     const reportMap = new Map()
     reports.forEach(r => reportMap.set(r.report_date.toISOString().split('T')[0], r))
 
+    const adminExpMap = new Map()
+    adminExpenses.forEach(e => {
+        const dateKey = e.expense_date.toISOString().split('T')[0]
+        adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
+    })
+
     const finalData = dates.map(dateStr => {
+        const adminExp = adminExpMap.get(dateStr) || 0
         if (reportMap.has(dateStr)) {
-            return reportMap.get(dateStr)
+            const r = reportMap.get(dateStr)
+            return { 
+                ...r, 
+                total_amount: Number(r.cash_amount || 0) + Number(r.card_amount || 0),
+                admin_expenses_amount: adminExp 
+            }
         }
         return {
             id: `missing-${dateStr}`,
             report_date: new Date(`${dateStr}T00:00:00.000Z`),
-            total_amount: 0,
+            cash_amount: null,
+            card_amount: null,
+            total_amount: null,
+            expenses_amount: null,
+            payouts_amount: null,
+            admin_expenses_amount: adminExp,
             status: 'Missing',
             staff_edit_count: 0,
             store: {

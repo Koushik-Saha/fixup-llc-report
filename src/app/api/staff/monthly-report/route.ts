@@ -117,9 +117,7 @@ export async function GET(req: Request) {
     const adminExpMap = new Map()
     adminExpenses.forEach(e => {
         const dateKey = e.expense_date.toISOString().split('T')[0]
-        if (e.payment_method === 'Cash') {
-            adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
-        }
+        adminExpMap.set(dateKey, (adminExpMap.get(dateKey) || 0) + Number(e.amount))
     })
 
     let totalCash = 0
@@ -130,17 +128,24 @@ export async function GET(req: Request) {
     let missingCount = 0
 
     const finalData = dates.map(dateStr => {
-        const adminCash = adminExpMap.get(dateStr) || 0
+        const adminExp = adminExpMap.get(dateStr) || 0
         if (reportMap.has(dateStr)) {
             const r = reportMap.get(dateStr)
-            // Net Cash = Report Cash - Report Staff Exp - Report Payouts - Admin Cash Exp
-            const netCash = Number(r.cash_amount) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0) - adminCash
-            totalCash += netCash
-            totalCard += Number(r.card_amount)
-            totalAmount += Number(r.total_amount)
-            totalExpenses += Number(r.expenses_amount || 0) + adminCash
+            const grossRev = Number(r.cash_amount || 0) + Number(r.card_amount || 0)
+            const staffExp = Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)
+            const netCash = Number(r.cash_amount || 0) - staffExp - adminExp // this is just for internal reference if needed
+            
+            totalCash += Number(r.cash_amount || 0)
+            totalCard += Number(r.card_amount || 0)
+            totalAmount += grossRev
+            totalExpenses += (staffExp + adminExp)
             submittedCount++
-            return { ...r, net_cash: netCash }
+            return { 
+                ...r, 
+                total_amount: grossRev, // override with gross for consistency
+                net_cash: netCash, 
+                admin_expenses_amount: adminExp 
+            }
         }
         
         const dayName = dayjs.utc(dateStr).format('dddd')

@@ -15,7 +15,12 @@ import { Pagination } from "@/components/Pagination"
 type ReportSummary = {
     id: string
     report_date: string
-    total_amount: string
+    cash_amount: string | null
+    card_amount: string | null
+    total_amount: string | null
+    expenses_amount: string | null
+    payouts_amount: string | null
+    admin_expenses_amount: number | null
     status: string
     staff_edit_count: number
     store: {
@@ -67,9 +72,12 @@ export default function StaffReportsPage() {
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cash</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Card</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Expenses</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -86,25 +94,29 @@ export default function StaffReportsPage() {
                                     {/* Strict UTC parsing to prevent local timezone regression bug */}
                                     {new Date(report.report_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {report.store.name}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-indigo-700">
+                                    {report.status !== 'Missing' ? `$${(Number(report.cash_amount || 0) + Number(report.card_amount || 0)).toFixed(2)}` : '—'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    ${Number(report.total_amount).toFixed(2)}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                                    {report.status !== 'Missing' ? `$${Number(report.cash_amount || 0).toFixed(2)}` : '—'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-blue-700">
+                                    {report.status !== 'Missing' ? `$${Number(report.card_amount || 0).toFixed(2)}` : '—'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+                                    {report.status !== 'Missing' || (report.admin_expenses_amount || 0) > 0 ? `$${(Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0) + Number(report.admin_expenses_amount || 0)).toFixed(2)}` : '—'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-black text-emerald-700">
+                                    {report.status !== 'Missing' || (report.admin_expenses_amount || 0) > 0 ? `$${((Number(report.cash_amount || 0) + Number(report.card_amount || 0)) - (Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0) + Number(report.admin_expenses_amount || 0))).toFixed(2)}` : '—'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         ${report.status === 'Verified' ? 'bg-green-100 text-green-800' :
                                             report.status === 'CorrectionRequested' ? 'bg-red-100 text-red-800' :
                                                 report.status === 'Missing' ? 'bg-gray-100 text-gray-800' :
                                                     'bg-yellow-100 text-yellow-800'}`}>
-                                        {report.status}
+                                        {report.status === 'CorrectionRequested' ? 'Correction' : report.status}
                                     </span>
-                                    {report.staff_edit_count > 0 && (
-                                        <span className="ml-2 text-xs text-gray-500 border border-gray-200 rounded px-1">
-                                            Edits: {report.staff_edit_count}/2
-                                        </span>
-                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     {report.status === 'Missing' ? (

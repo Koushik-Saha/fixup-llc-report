@@ -74,30 +74,40 @@ export async function GET(req: Request) {
     })
 
     // All month reports for this store (for matching stats with monthly report)
-    const monthReports = await prisma.dailyReport.findMany({
-        where: {
-            store_id: storeId,
-            report_date: { gte: startObj, lte: endObj },
-            deleted_at: null
-        },
-        select: {
-            id: true,
-            report_date: true,
-            cash_amount: true,
-            card_amount: true,
-            total_amount: true,
-            expenses_amount: true,
-            payouts_amount: true,
-            status: true,
-            time_in: true,
-            time_out: true,
-            submitted_by_user_id: true,
-            assignees: {
-                select: { id: true }
-            }
-        },
-        orderBy: { report_date: 'desc' }
-    })
+    const [monthReports, adminExpenses] = await Promise.all([
+        prisma.dailyReport.findMany({
+            where: {
+                store_id: storeId,
+                report_date: { gte: startObj, lte: endObj },
+                deleted_at: null
+            },
+            select: {
+                id: true,
+                report_date: true,
+                cash_amount: true,
+                card_amount: true,
+                total_amount: true,
+                expenses_amount: true,
+                payouts_amount: true,
+                status: true,
+                time_in: true,
+                time_out: true,
+                submitted_by_user_id: true,
+                assignees: {
+                    select: { id: true }
+                }
+            },
+            orderBy: { report_date: 'desc' }
+        }),
+        prisma.storeExpense.findMany({
+            where: {
+                store_id: storeId,
+                expense_date: { gte: startObj, lte: endObj },
+                approval_status: 'Approved'
+            },
+            select: { amount: true, payment_method: true }
+        })
+    ])
 
     // Compute work hours strictly for reports where the user is an assignee or submitter
     let totalHours = 0
@@ -113,6 +123,20 @@ export async function GET(req: Request) {
             }
         }
     })
+
+    // Totals logic same as admin
+    const adminTotalExp = adminExpenses.reduce((s, e) => s + Number(e.amount), 0)
+    
+    // Revenue = cash + card from submitted reports
+    const totalCashAmount = monthReports.reduce((s, r) => s + Number(r.cash_amount || 0), 0)
+    const totalCardAmount = monthReports.reduce((s, r) => s + Number(r.card_amount || 0), 0)
+    const totalRevenue = totalCashAmount + totalCardAmount
+
+    // Expenses = report expenses + report payouts + ALL admin expenses
+    const totalExpenses = monthReports.reduce((s, r) => s + Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0), 0) + adminTotalExp
+    
+    // Balance = Revenue - Expenses
+    const balance = totalRevenue - totalExpenses
 
     // Missing days count
     const daysInRange: string[] = []
@@ -153,10 +177,11 @@ export async function GET(req: Request) {
             missingDays,
             totalDays: daysInRange.length,
             totalHours: Math.round(totalHours * 10) / 10,
-                    totalCash: monthReports.reduce((a, r) => a + Number(r.cash_amount || 0) - Number(r.expenses_amount || 0) - Number(r.payouts_amount || 0), 0),
-            totalCard: monthReports.reduce((a, r) => a + Number(r.card_amount || 0), 0),
-            totalRevenue: monthReports.reduce((a, r) => a + Number(r.total_amount || 0), 0),
-            totalExpenses: monthReports.reduce((a, r) => a + Number(r.expenses_amount || 0), 0),
+            totalCash: totalCashAmount,
+            totalCard: totalCardAmount,
+            totalRevenue,
+            totalExpenses,
+            balance,
             totalPaid,
             verifiedCount: monthReports.filter(r => r.status === 'Verified').length
         },
