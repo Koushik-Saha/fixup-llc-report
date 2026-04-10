@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         }
 
         const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
-        const total = netCash + Number(card_amount)
+        const total = Number(cash_amount) + Number(card_amount)
 
         // Prevent exact duplicates for a category on the identical date
         const existing = await prisma.categoryReport.findUnique({

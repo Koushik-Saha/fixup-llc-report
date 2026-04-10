@@ -143,24 +143,24 @@ export async function GET(req: Request) {
             const r = reportMap.get(dateStr)
             const staffExp = Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)
             const netCash = Number(r.cash_amount) - staffExp - cashAdminExp
-            
+
             totalCash += netCash
             totalCard += Number(r.card_amount)
             totalAmount += Number(r.total_amount)
             totalExpenses += (Number(r.expenses_amount || 0) + totalAdminExp)
-            
+
             submittedCount++
             if (r.status === 'Verified') verifiedCount++
             else unverifiedCount++
-            
-            return { 
-                ...r, 
+
+            return {
+                ...r,
                 report_date: `${dateStr}T00:00:00.000Z`,
                 admin_expenses_amount: totalAdminExp,
-                net_cash: netCash 
+                net_cash: netCash
             }
         }
-        
+
         // Even for missing days, admin expenses track
         totalExpenses += totalAdminExp
         totalCash -= cashAdminExp

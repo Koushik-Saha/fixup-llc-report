@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     }
 
     const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
-    const total = netCash + Number(card_amount)
+    const total = Number(cash_amount) + Number(card_amount)
 
     const targetDateStr = report_date ? String(report_date).split('T')[0] : dayjs().tz(TIMEZONE).format('YYYY-MM-DD')
     const dateString = targetDateStr

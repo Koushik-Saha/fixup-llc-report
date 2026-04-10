@@ -94,7 +94,7 @@ function AnalyticsContent() {
     const totalDays = period.totalDays
     const avgReliability = storeStats.length > 0 ? Math.round(storeStats.reduce((a, s) => a + s.reliabilityScore, 0) / storeStats.length) : 0
     const topStore = storeStats[0]
-    const avgDailyRevenue = storeStats.reduce((a, s) => a + s.avgDailyRevenue, 0)
+    const avgDailyRevenue = totalDays > 0 ? totalRevenue / totalDays : 0
 
     const toggleStore = (id: string) => {
         setSelectedStores(prev => {

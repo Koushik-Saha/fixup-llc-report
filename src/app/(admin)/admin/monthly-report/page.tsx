@@ -179,14 +179,14 @@ function MonthlyReportContent() {
                 {/* Exports */}
                 {data.length > 0 && (
                     <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1 ml-auto">
-                        <button 
+                        <button
                             onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
                             className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             PDF
                         </button>
-                        <button 
+                        <button
                             onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
                             className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
                         >
@@ -316,13 +316,12 @@ function MonthlyReportContent() {
                                                 ) : (
                                                     <Link
                                                         href={`/admin/reports/${row.id}`}
-                                                        className={`inline-block text-xs font-semibold px-3 py-1 rounded-full transition ${
-                                                            row.status === 'Verified'
+                                                        className={`inline-block text-xs font-semibold px-3 py-1 rounded-full transition ${row.status === 'Verified'
                                                                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                                 : row.status === 'CorrectionRequested'
-                                                                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                        }`}
+                                                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                            }`}
                                                     >
                                                         {row.status === 'Verified' ? '✓ Verified' : row.status === 'CorrectionRequested' ? '⚠ Correction' : 'View'}
                                                     </Link>

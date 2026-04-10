@@ -137,11 +137,11 @@ export async function GET() {
     })
 
     // ── This week revenue ──────────────────────────────────────────────────────
-    const weekReports = await prisma.dailyReport.aggregate({
+    const weekReports = await prisma.dailyReport.findMany({
         where: { report_date: { gte: weekStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
-        _sum: { total_amount: true }
+        select: { cash_amount: true, card_amount: true }
     })
-    const weekRevenue = Number(weekReports._sum.total_amount || 0)
+    const weekRevenue = weekReports.reduce((a, r) => a + (Number(r.cash_amount || 0) + Number(r.card_amount || 0)), 0)
 
     // ── This month revenue ─────────────────────────────────────────────────────
     const monthReportsData = await prisma.dailyReport.findMany({
@@ -149,7 +149,7 @@ export async function GET() {
         select: { total_amount: true, cash_amount: true, card_amount: true, expenses_amount: true, payouts_amount: true }
     })
     
-    const monthRevenue = monthReportsData.reduce((a, r) => a + Number(r.total_amount || 0), 0)
+    const monthRevenue = monthReportsData.reduce((a, r) => a + (Number(r.cash_amount || 0) + Number(r.card_amount || 0)), 0)
     const monthGrossCash = monthReportsData.reduce((a, r) => a + Number(r.cash_amount || 0), 0)
     const monthStaffExp = monthReportsData.reduce((a, r) => a + Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0), 0)
     // Month Net Cash = Gross Cash - Staff Expenses/Payouts - Cash-based Admin Expenses
@@ -162,14 +162,13 @@ export async function GET() {
         where: { status: 'Submitted', store_id: { in: allStoreIds }, deleted_at: null }
     })
 
-    // ── Last 30 days revenue trend ─────────────────────────────────────────────
     const last30Reports = await prisma.dailyReport.findMany({
         where: {
             report_date: { gte: last30StartObj, lte: todayObj },
             store_id: { in: allStoreIds },
             deleted_at: null
         },
-        select: { report_date: true, total_amount: true }
+        select: { report_date: true, cash_amount: true, card_amount: true }
     })
 
     // Build day-by-day map
@@ -180,7 +179,7 @@ export async function GET() {
     }
     last30Reports.forEach(r => {
         const key = dayjs.utc(r.report_date).format('YYYY-MM-DD')
-        dailyMap[key] = (dailyMap[key] || 0) + Number(r.total_amount)
+        dailyMap[key] = (dailyMap[key] || 0) + (Number(r.cash_amount || 0) + Number(r.card_amount || 0))
     })
     const revenueTrend = Object.entries(dailyMap).map(([date, revenue]) => ({
         date,
@@ -202,7 +201,7 @@ export async function GET() {
             store_id: r.store_id,
             name: storeMap.get(r.store_id)?.name || 'Unknown',
             city: storeMap.get(r.store_id)?.city || '',
-            revenue: Math.round(Number(r._sum.total_amount || 0) * 100) / 100,
+            revenue: Math.round((Number(r._sum.cash_amount || 0) + Number(r._sum.card_amount || 0)) * 100) / 100,
             cash: Math.round(Number(r._sum.cash_amount || 0) * 100) / 100,
             card: Math.round(Number(r._sum.card_amount || 0) * 100) / 100,
             reports: r._count.id
@@ -246,7 +245,7 @@ export async function GET() {
         by: ['submitted_by_user_id'],
         where: { report_date: { gte: monthStartObj, lte: todayObj }, store_id: { in: allStoreIds }, deleted_at: null },
         _count: { id: true },
-        _sum: { total_amount: true },
+        _sum: { cash_amount: true, card_amount: true },
         orderBy: { _count: { id: 'desc' } },
         take: 5
     })
@@ -261,7 +260,7 @@ export async function GET() {
         name: submitterMap.get(s.submitted_by_user_id)?.name || 'Unknown',
         role: submitterMap.get(s.submitted_by_user_id)?.role || '',
         reports: s._count.id,
-        revenue: Math.round(Number(s._sum.total_amount || 0) * 100) / 100
+        revenue: Math.round((Number(s._sum.cash_amount || 0) + Number(s._sum.card_amount || 0)) * 100) / 100
     }))
 
     // ── Low Stock Inventory ────────────────────────────────────────────────────

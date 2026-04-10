@@ -86,7 +86,7 @@ export async function GET(req: Request) {
     const storeStats = activeStores.map(store => {
         const storeReports = reports.filter(r => r.store_id === store.id)
 
-        const totalRevenue = storeReports.reduce((a, r) => a + Number(r.total_amount || 0), 0)
+        const totalRevenue = storeReports.reduce((a, r) => a + (Number(r.cash_amount || 0) + Number(r.card_amount || 0)), 0)
         const totalCash = storeReports.reduce((a, r) => a + Number(r.cash_amount || 0), 0)
         const totalCard = storeReports.reduce((a, r) => a + Number(r.card_amount || 0), 0)
         const submittedDays = storeReports.length
@@ -129,7 +129,7 @@ export async function GET(req: Request) {
     const dailyRevMap: Record<string, number> = {}
     reports.forEach(r => {
         const key = dayjs.utc(r.report_date).format('YYYY-MM-DD')
-        dailyRevMap[key] = (dailyRevMap[key] || 0) + Number(r.total_amount || 0)
+        dailyRevMap[key] = (dailyRevMap[key] || 0) + (Number(r.cash_amount || 0) + Number(r.card_amount || 0))
     })
 
     // Sort stores by revenue descending for rankings

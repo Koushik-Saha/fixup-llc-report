@@ -98,7 +98,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (cash_amount !== undefined && card_amount !== undefined) {
             // Admin is editing the actual amounts and images
             const netCash = Number(cash_amount) - (Number(expenses_amount) || 0) - (Number(payouts_amount) || 0)
-            const total = netCash + Number(card_amount)
+            const total = Number(cash_amount) + Number(card_amount)
 
             let imagesChanged = false
             const existingImageIds = existingReport.images.map((img: any) => img.id)

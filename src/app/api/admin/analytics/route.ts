@@ -96,6 +96,8 @@ export async function GET(req: Request) {
         
         const pettyCashForReport = Number(r.expenses_amount) + Number(r.payouts_amount)
 
+        const totalForReport = Number(r.cash_amount || 0) + Number(r.card_amount || 0)
+        
         if (!groupedData[dateStr]) {
             groupedData[dateStr] = {
                 date: dateStr,
@@ -107,17 +109,17 @@ export async function GET(req: Request) {
         }
         groupedData[dateStr].cash += Number(r.cash_amount)
         groupedData[dateStr].card += Number(r.card_amount)
-        groupedData[dateStr].total += Number(r.total_amount)
+        groupedData[dateStr].total += totalForReport
         groupedData[dateStr].pettyCash += pettyCashForReport
 
         if (r.store?.name) {
             if (!storeAggregations[r.store.name]) {
                 storeAggregations[r.store.name] = 0
             }
-            storeAggregations[r.store.name] += Number(r.total_amount)
+            storeAggregations[r.store.name] += totalForReport
         }
 
-        totalSales += Number(r.total_amount)
+        totalSales += totalForReport
         totalPettyCashExpenses += pettyCashForReport
     })
 
