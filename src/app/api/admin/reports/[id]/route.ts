@@ -23,6 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             sale_items: true,
             store: { select: { name: true, city: true, state: true } },
             submitted_by: { select: { name: true, email: true } },
+            assignees: { select: { id: true, name: true, role: true } },
             edit_logs: {
                 orderBy: { createdAt: 'desc' },
                 include: {
@@ -79,7 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const id = (await params).id
 
     const body = await req.json()
-    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls, sale_items, inventory_usage } = body
+    const { status, cash_amount, card_amount, expenses_amount, payouts_amount, time_in, time_out, notes, keptImageIds, newImageUrls, sale_items, inventory_usage, staff_ids } = body
 
     try {
         const existingReport = await prisma.dailyReport.findFirst({
@@ -140,7 +141,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                         total_amount: total,
                         time_in: time_in || null,
                         time_out: time_out || null,
-                        notes: notes || null
+                        notes: notes || null,
+                        ...(staff_ids && Array.isArray(staff_ids) && staff_ids.length > 0 ? {
+                            assignees: {
+                                set: staff_ids.map((uid: string) => ({ id: uid }))
+                            }
+                        } : {})
                     }
                 })
 

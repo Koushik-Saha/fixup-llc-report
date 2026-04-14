@@ -405,6 +405,7 @@ function AdminReportsContent() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Store</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Personnel Assigned</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hours</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cash</th>
@@ -441,6 +442,19 @@ function AdminReportsContent() {
                                     <td className="px-6 py-4 whitespace-nowrap">{report.store?.name || 'Unknown Store'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         {report.submitted_by?.name || <span className="italic text-gray-300">Unknown</span>}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {report.assignees && report.assignees.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1">
+                                                {report.assignees.map((a: any, i: number) => (
+                                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                        {a.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="italic text-gray-300 text-sm">—</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right font-medium text-indigo-600">
                                         {report.status !== 'Missing' ? `${calculateDuration(report.time_in, report.time_out).toFixed(2)}h` : '-'}
@@ -499,7 +513,7 @@ function AdminReportsContent() {
                             return (
                                 <tfoot>
                                     <tr className="bg-gray-100 border-t-2 border-gray-300">
-                                        <td colSpan={4} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        <td colSpan={5} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                             Page Totals ({reports.filter(r => r.status !== 'Missing').length} submitted)
                                         </td>
                                         <td className="px-6 py-3 text-right font-black text-indigo-700 text-sm">

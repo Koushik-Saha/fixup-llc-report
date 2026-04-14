@@ -75,6 +75,11 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                         <h3 className="text-xl font-bold text-gray-800">{dayjs.utc(report.report_date).format('dddd, M/D/YYYY')}</h3>
                         <p className="text-gray-500 mt-1">Shift: {report.time_in ? <span className="font-semibold text-gray-700">{report.time_in} - {report.time_out}</span> : 'N/A'}</p>
                         <p className="text-gray-500">Submitted by: <span className="font-medium text-gray-700">{report.submitted_by.name}</span> ({report.submitted_by.email})</p>
+                        {report.assignees && report.assignees.length > 0 && (
+                            <p className="text-gray-500 mt-1">Personnel Assigned: {report.assignees.map((a: any, i: number) => (
+                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 mr-1">{a.name}</span>
+                            ))}</p>
+                        )}
                     </div>
                     <div className="text-right space-y-2">
                         <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>

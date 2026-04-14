@@ -3,6 +3,7 @@ import { useEffect, useState, use, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Pagination } from "@/components/Pagination"
+import SettlementModal from "./SettlementModal"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import timezone from "dayjs/plugin/timezone"
@@ -69,6 +70,7 @@ function WorkHoursDetailContent({ params }: { params: Promise<{ userId: string }
     const [error, setError] = useState("")
     const [page, setPage] = useState(1)
     const [limit, setLimit] = useState(10)
+    const [isSettlementOpen, setIsSettlementOpen] = useState(false)
 
     useEffect(() => {
         fetch(`/api/admin/work-hours/${userId}?startDate=${startDate}&endDate=${endDate}`)
@@ -109,16 +111,33 @@ function WorkHoursDetailContent({ params }: { params: Promise<{ userId: string }
                     <h1 className="text-2xl font-bold text-gray-900 mt-1">{user.name}</h1>
                     <p className="text-sm text-gray-500">{user.email} · {user.role}</p>
                 </div>
-                <div className="text-right">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Period</p>
-                    <p className="text-sm font-semibold text-gray-700">
-                        {dayjs.utc(period.startDate).format('MMM D')} – {dayjs.utc(period.endDate).format('MMM D, YYYY')}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                        {isHourly ? `$${hourlyRate}/hr (Hourly)` : `$${user.base_salary.toFixed(2)} base (Salary)`}
-                    </p>
+                <div className="text-right flex flex-col items-end gap-2">
+                    <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide">Period</p>
+                        <p className="text-sm font-semibold text-gray-700">
+                            {dayjs.utc(period.startDate).format('MMM D')} – {dayjs.utc(period.endDate).format('MMM D, YYYY')}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            {isHourly ? `$${hourlyRate}/hr (Hourly)` : `$${user.base_salary.toFixed(2)} base (Salary)`}
+                        </p>
+                    </div>
+                    <button 
+                        onClick={() => setIsSettlementOpen(true)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition-all flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Generate Settlement
+                    </button>
                 </div>
             </div>
+
+            <SettlementModal 
+                isOpen={isSettlementOpen}
+                onClose={() => setIsSettlementOpen(false)}
+                user={user}
+                shifts={shifts}
+                period={period}
+            />
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

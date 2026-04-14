@@ -246,3 +246,119 @@ export const generateMonthlyReportCSV = (
     link.click()
     document.body.removeChild(link)
 }
+
+export const generateWorkSettlementPDF = (
+    user: any,
+    shifts: any[],
+    period: { startDate: string; endDate: string },
+    adjustments: {
+        rate: number;
+        reviewBonus: number;
+        totalCash: number;
+        totalSpend: number;
+    },
+    companyName: string
+) => {
+    const doc = new jsPDF()
+    const now = dayjs().format('MMMM D, YYYY h:mm A')
+    const startDate = dayjs.utc(period.startDate).format('MMM D')
+    const endDate = dayjs.utc(period.endDate).format('MMM D, YYYY')
+
+    // Header - mimicking the "Koushik Mar (16-31)" style
+    doc.setFontSize(22)
+    doc.setTextColor(40)
+    doc.text(user.name, doc.internal.pageSize.width / 2, 20, { align: 'center' })
+    
+    doc.setFontSize(14)
+    doc.setTextColor(100)
+    doc.text(`${startDate} - ${endDate}`, doc.internal.pageSize.width / 2, 28, { align: 'center' })
+
+    doc.setFontSize(10)
+    doc.text(`${companyName}`, doc.internal.pageSize.width / 2, 34, { align: 'center' })
+
+    // Shift table
+    const tableColumns = ["Date", "Store", "Clock In", "Clock Out", "Hours"]
+    const tableRows = shifts.map(s => [
+        dayjs.utc(s.date).format('ddd MM/DD/YY'),
+        s.store_name,
+        s.time_in || '—',
+        s.time_out || '—',
+        `${Number(s.duration).toFixed(2)}h`
+    ])
+
+    autoTable(doc, {
+        startY: 45,
+        head: [tableColumns],
+        body: tableRows,
+        theme: 'striped',
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+
+    // Settlement Block - The "Paper Logic"
+    const totalHours = shifts.reduce((s, r) => s + Number(r.duration), 0)
+    const salary = totalHours * adjustments.rate
+    const netCashDeduction = adjustments.totalCash - adjustments.totalSpend
+    const totalDue = salary + adjustments.reviewBonus - netCashDeduction
+
+    doc.setFontSize(12)
+    doc.setTextColor(0)
+    
+    let currentY = finalY
+    const leftMargin = 14
+    const rightMargin = doc.internal.pageSize.width - 20
+
+    // Draw a box for calculations
+    doc.setDrawColor(200)
+    doc.setLineWidth(0.5)
+    doc.line(leftMargin, currentY, rightMargin, currentY)
+    currentY += 8
+
+    doc.text(`Total Hours:`, leftMargin, currentY)
+    doc.text(`${totalHours.toFixed(2)}h`, rightMargin, currentY, { align: 'right' })
+    currentY += 7
+
+    doc.text(`Hourly Rate:`, leftMargin, currentY)
+    doc.text(`$${adjustments.rate.toFixed(2)}`, rightMargin, currentY, { align: 'right' })
+    currentY += 7
+
+    doc.setFontSize(13)
+    doc.setFont("helvetica", "bold")
+    doc.text(`Total Salary:`, leftMargin, currentY)
+    doc.text(`$${salary.toFixed(2)}`, rightMargin, currentY, { align: 'right' })
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(12)
+    currentY += 10
+
+    doc.text(`Review Bonus:`, leftMargin, currentY)
+    doc.setTextColor(0, 150, 0)
+    doc.text(`+ $${adjustments.reviewBonus.toFixed(2)}`, rightMargin, currentY, { align: 'right' })
+    doc.setTextColor(0)
+    currentY += 7
+
+    doc.text(`Cash Deduction (Net):`, leftMargin, currentY)
+    doc.setTextColor(200, 0, 0)
+    doc.text(`- $${netCashDeduction.toFixed(2)}`, rightMargin, currentY, { align: 'right' })
+    doc.setTextColor(0)
+    currentY += 4
+    
+    doc.setFontSize(10)
+    doc.setTextColor(150)
+    doc.text(`(Total Cash $${adjustments.totalCash} - Store Spend $${adjustments.totalSpend})`, leftMargin, currentY)
+    doc.setTextColor(0)
+    doc.setFontSize(12)
+    currentY += 10
+
+    // Final Total Box
+    doc.setFillColor(59, 130, 246)
+    doc.rect(leftMargin, currentY, rightMargin - leftMargin, 15, 'F')
+    doc.setTextColor(255)
+    doc.setFontSize(16)
+    doc.setFont("helvetica", "bold")
+    doc.text(`TOTAL DUE:`, leftMargin + 5, currentY + 10)
+    doc.text(`$${totalDue.toFixed(2)}`, rightMargin - 5, currentY + 10, { align: 'right' })
+
+    doc.save(`WORK-REPORT-${user.name.replace(/\s+/g, '-')}-${dayjs().format('MM-DD-YY')}.pdf`)
+}

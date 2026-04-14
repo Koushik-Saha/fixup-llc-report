@@ -21,6 +21,10 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
     const [existingImages, setExistingImages] = useState<any[]>([])
     const [files, setFiles] = useState<File[]>([])
     const [saleItems, setSaleItems] = useState<{ category: string, description: string, quantity: number, unit_price: number | '' }[]>([])
+    const [storeId, setStoreId] = useState("")
+    const [availableUsers, setAvailableUsers] = useState<any[]>([])
+    const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([])
+    const [addPersonnelValue, setAddPersonnelValue] = useState("")
 
     useEffect(() => {
         fetch(`/api/admin/reports/${id}`)
@@ -36,6 +40,10 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     setTimeOut(data.time_out || "")
                     setNotes(data.notes || "")
                     setExistingImages(data.images || [])
+                    setStoreId(data.store_id || "")
+                    if (data.assignees && data.assignees.length > 0) {
+                        setSelectedStaffIds(data.assignees.map((a: any) => a.id))
+                    }
                     if (data.sale_items && data.sale_items.length > 0) {
                         setSaleItems(data.sale_items)
                     }
@@ -47,6 +55,15 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                 setLoading(false)
             })
     }, [id])
+
+    // Fetch store members when storeId is known
+    useEffect(() => {
+        if (!storeId) return
+        fetch(`/api/admin/users?storeId=${storeId}&status=Active`)
+            .then(res => res.json())
+            .then(data => setAvailableUsers(Array.isArray(data) ? data : []))
+            .catch(() => {})
+    }, [storeId])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -108,7 +125,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     notes,
                     keptImageIds,
                     newImageUrls,
-                    sale_items: saleItems.filter(i => i.description.trim() !== "" && i.unit_price !== "")
+                    sale_items: saleItems.filter(i => i.description.trim() !== "" && i.unit_price !== ""),
+                    staff_ids: selectedStaffIds
                 })
             })
 
@@ -224,6 +242,61 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                                 ${(Number(cash || 0) - Number(expenses || 0) - Number(payouts || 0) + Number(card || 0)).toFixed(2)}
                             </span>
                         </div>
+                    </div>
+
+                    {/* PERSONNEL ASSIGNED SECTION */}
+                    <div className="pt-6 border-t border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-3">Personnel Assigned</h3>
+
+                        {/* Currently assigned — shown as removable pills */}
+                        <div className="flex flex-wrap gap-2 mb-3 min-h-[38px]">
+                            {selectedStaffIds.length === 0 ? (
+                                <p className="text-sm text-gray-400 italic">No personnel assigned yet.</p>
+                            ) : (
+                                selectedStaffIds.map(uid => {
+                                    const u = availableUsers.find((x: any) => x.id === uid)
+                                    if (!u) return null
+                                    return (
+                                        <span key={uid} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                            {u.name}
+                                            <span className="text-indigo-400 text-xs">({u.role})</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedStaffIds(prev => prev.filter(id => id !== uid))}
+                                                className="ml-1 text-indigo-400 hover:text-red-500 font-bold leading-none transition-colors"
+                                                title="Remove"
+                                            >×</button>
+                                        </span>
+                                    )
+                                })
+                            )}
+                        </div>
+
+                        {/* Add member dropdown — shows only unassigned eligible members */}
+                        {availableUsers.filter((u: any) => !selectedStaffIds.includes(u.id)).length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <select
+                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none"
+                                    value={addPersonnelValue}
+                                    onChange={(e) => {
+                                        const uid = e.target.value
+                                        if (uid) {
+                                            setSelectedStaffIds(prev => [...prev, uid])
+                                            setAddPersonnelValue("")
+                                        }
+                                    }}
+                                >
+                                    <option value="">+ Add personnel...</option>
+                                    {availableUsers
+                                        .filter((u: any) => !selectedStaffIds.includes(u.id))
+                                        .map((u: any) => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-2">Click × to remove. Use the dropdown to add more personnel.</p>
                     </div>
 
                     {/* ITEM SALES SECTION */}

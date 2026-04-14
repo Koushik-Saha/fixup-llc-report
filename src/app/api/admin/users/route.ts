@@ -14,6 +14,28 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
+    const storeId = searchParams.get('storeId')
+
+    if (storeId) {
+        // Return ONLY users who are active members of this specific store
+        const storeMembers = await prisma.storeMember.findMany({
+            where: {
+                store_id: storeId,
+                status: 'Active',
+                user: {
+                    company_id: session.user.companyId,
+                    ...(status ? { status } : {})
+                }
+            },
+            select: {
+                user: {
+                    select: { id: true, name: true, role: true, status: true, pay_type: true, base_salary: true }
+                }
+            }
+        })
+        return NextResponse.json(storeMembers.map(m => m.user))
+    }
+
     const where: any = { company_id: session.user.companyId, email: { not: 'koushik@freedomshippingllc.com' } }
     if (status) where.status = status
 
