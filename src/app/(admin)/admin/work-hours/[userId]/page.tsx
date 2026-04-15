@@ -137,6 +137,7 @@ function WorkHoursDetailContent({ params }: { params: Promise<{ userId: string }
                 user={user}
                 shifts={shifts}
                 period={period}
+                userId={userId}
             />
 
             {/* Summary Cards */}
