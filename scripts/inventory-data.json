@@ -1,0 +1,824 @@
+[
+  {
+    "name": "17 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-17-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "17 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-17-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "16 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-16-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "16 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "16 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-16-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "16 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "16 Plus - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-16-PLUS-LCD-AM-QV7"
+  },
+  {
+    "name": "16 Plus - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16-PLUS-OLD-GOOD-QV8"
+  },
+  {
+    "name": "16 Plus - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16-PLUS-BATTERY"
+  },
+  {
+    "name": "16 Plus - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16-PLUS-PROXCIMITY-SC"
+  },
+  {
+    "name": "16.0 - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-16.0-LCD-AM-QV7"
+  },
+  {
+    "name": "16.0 - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-16.0-OLD-GOOD-QV8"
+  },
+  {
+    "name": "16.0 - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16.0-PROXCIMITY-SC"
+  },
+  {
+    "name": "16E - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-16E-LCD-AM-QV7"
+  },
+  {
+    "name": "16E - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-16E-OLD-GOOD-QV8"
+  },
+  {
+    "name": "15 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "15 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-15-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "15 Pro Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PRO-MAX-BATTERY"
+  },
+  {
+    "name": "15 Pro Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PRO-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "15 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-15-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "15 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-15-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "15 Pro - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-15-PRO-PROXCIMITY-SC"
+  },
+  {
+    "name": "15 Plus - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-15-PLUS-LCD-AM-QV7"
+  },
+  {
+    "name": "15 Plus - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PLUS-OLD-GOOD-QV8"
+  },
+  {
+    "name": "15 Plus - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PLUS-BATTERY"
+  },
+  {
+    "name": "15 Plus - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15-PLUS-PROXCIMITY-SC"
+  },
+  {
+    "name": "15.0 - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-15.0-LCD-AM-QV7"
+  },
+  {
+    "name": "15.0 - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15.0-OLD-GOOD-QV8"
+  },
+  {
+    "name": "15.0 - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15.0-BATTERY"
+  },
+  {
+    "name": "15.0 - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-15.0-PROXCIMITY-SC"
+  },
+  {
+    "name": "14 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-14-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "14 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-14-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "14 Pro Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PRO-MAX-BATTERY"
+  },
+  {
+    "name": "14 Pro Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PRO-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "14 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-14-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "14 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "14 Pro - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PRO-BATTERY"
+  },
+  {
+    "name": "14 Pro - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PRO-PROXCIMITY-SC"
+  },
+  {
+    "name": "14 Plus - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PLUS-LCD-AM-QV7"
+  },
+  {
+    "name": "14 Plus - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-14-PLUS-OLD-GOOD-QV8"
+  },
+  {
+    "name": "14 Plus - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PLUS-BATTERY"
+  },
+  {
+    "name": "14 Plus - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14-PLUS-PROXCIMITY-SC"
+  },
+  {
+    "name": "14.0 - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-14.0-LCD-AM-QV7"
+  },
+  {
+    "name": "14.0 - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14.0-OLD-GOOD-QV8"
+  },
+  {
+    "name": "14.0 - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14.0-BATTERY"
+  },
+  {
+    "name": "14.0 - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-14.0-PROXCIMITY-SC"
+  },
+  {
+    "name": "14.0 - Charging Port",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-14.0-CHARGING-PORT"
+  },
+  {
+    "name": "13 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-13-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "13 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "13 Pro Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-PRO-MAX-BATTERY"
+  },
+  {
+    "name": "13 Pro Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-PRO-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "13 Pro Max - Charging Port",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-13-PRO-MAX-CHARGING-PORT"
+  },
+  {
+    "name": "13 Pro Max - Speaker",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-13-PRO-MAX-SPEAKER"
+  },
+  {
+    "name": "13 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-13-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "13 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-13-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "13 Pro - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-PRO-BATTERY"
+  },
+  {
+    "name": "13 Pro - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-PRO-PROXCIMITY-SC"
+  },
+  {
+    "name": "13.0 - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-13.0-LCD-AM-QV7"
+  },
+  {
+    "name": "13.0 - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13.0-OLD-GOOD-QV8"
+  },
+  {
+    "name": "13.0 - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13.0-PROXCIMITY-SC"
+  },
+  {
+    "name": "13 Mini - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-MINI-LCD-AM-QV7"
+  },
+  {
+    "name": "13 Mini - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-MINI-OLD-GOOD-QV8"
+  },
+  {
+    "name": "13 Mini - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-MINI-BATTERY"
+  },
+  {
+    "name": "13 Mini - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-13-MINI-PROXCIMITY-SC"
+  },
+  {
+    "name": "12 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-12-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "12 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "12 Pro Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-PRO-MAX-BATTERY"
+  },
+  {
+    "name": "12 Pro Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-12-PRO-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "12 Pro Max - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-PRO-MAX-CHARGING-PORT"
+  },
+  {
+    "name": "12 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 5,
+    "sku": "IPHONE-12-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "12 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-12-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "12 Pro - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-PRO-BATTERY"
+  },
+  {
+    "name": "12 Pro - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-12-PRO-PROXCIMITY-SC"
+  },
+  {
+    "name": "12 Pro - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-PRO-CHARGING-PORT"
+  },
+  {
+    "name": "12 Mini - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-12-MINI-LCD-AM-QV7"
+  },
+  {
+    "name": "12 Mini - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-12-MINI-BATTERY"
+  },
+  {
+    "name": "11 Pro Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-11-PRO-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "11 Pro Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11-PRO-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "11 Pro Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11-PRO-MAX-BATTERY"
+  },
+  {
+    "name": "11 Pro Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11-PRO-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "11 Pro - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-11-PRO-LCD-AM-QV7"
+  },
+  {
+    "name": "11 Pro - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11-PRO-OLD-GOOD-QV8"
+  },
+  {
+    "name": "11 Pro - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11-PRO-PROXCIMITY-SC"
+  },
+  {
+    "name": "11.0 - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-11.0-LCD-AM-QV7"
+  },
+  {
+    "name": "11.0 - Battery",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-11.0-BATTERY"
+  },
+  {
+    "name": "11.0 - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-11.0-PROXCIMITY-SC"
+  },
+  {
+    "name": "11.0 - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-11.0-CHARGING-PORT"
+  },
+  {
+    "name": "X - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-X-LCD-AM-QV7"
+  },
+  {
+    "name": "X - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-X-BATTERY"
+  },
+  {
+    "name": "X - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-X-PROXCIMITY-SC"
+  },
+  {
+    "name": "X - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-X-CHARGING-PORT"
+  },
+  {
+    "name": "XS - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-XS-LCD-AM-QV7"
+  },
+  {
+    "name": "XS - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-OLD-GOOD-QV8"
+  },
+  {
+    "name": "XS - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-BATTERY"
+  },
+  {
+    "name": "XS - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-PROXCIMITY-SC"
+  },
+  {
+    "name": "XR - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 4,
+    "sku": "IPHONE-XR-LCD-AM-QV7"
+  },
+  {
+    "name": "XR - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XR-OLD-GOOD-QV8"
+  },
+  {
+    "name": "XR - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XR-BATTERY"
+  },
+  {
+    "name": "XR - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XR-PROXCIMITY-SC"
+  },
+  {
+    "name": "XR - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XR-CHARGING-PORT"
+  },
+  {
+    "name": "XS Max - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 3,
+    "sku": "IPHONE-XS-MAX-LCD-AM-QV7"
+  },
+  {
+    "name": "XS Max - OLD/Good/QV8",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-MAX-OLD-GOOD-QV8"
+  },
+  {
+    "name": "XS Max - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-MAX-BATTERY"
+  },
+  {
+    "name": "XS Max - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-XS-MAX-PROXCIMITY-SC"
+  },
+  {
+    "name": "8/SE - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-8/SE-PROXCIMITY-SC"
+  },
+  {
+    "name": "8/SE - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-8/SE-CHARGING-PORT"
+  },
+  {
+    "name": "8 Plus - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-8-PLUS-BATTERY"
+  },
+  {
+    "name": "8 Plus - Proxcimity SC",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-8-PLUS-PROXCIMITY-SC"
+  },
+  {
+    "name": "8 Plus - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-8-PLUS-CHARGING-PORT"
+  },
+  {
+    "name": "7.0 - Battery",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-7.0-BATTERY"
+  },
+  {
+    "name": "7.0 - Charging Port",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-7.0-CHARGING-PORT"
+  },
+  {
+    "name": "7 Plus - Charging Port",
+    "category": "iPhone",
+    "quantity": 1,
+    "sku": "IPHONE-7-PLUS-CHARGING-PORT"
+  },
+  {
+    "name": "6 Plus - LCD/AM/QV7",
+    "category": "iPhone",
+    "quantity": 2,
+    "sku": "IPHONE-6-PLUS-LCD-AM-QV7"
+  },
+  {
+    "name": "iPad 9 (2021) - Battery",
+    "category": "iPad",
+    "quantity": 1,
+    "sku": "IPAD-IPAD-9-(2021)-BATTERY"
+  },
+  {
+    "name": "Galaxy S24 Ultra - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S24-ULTRA-BATTERY"
+  },
+  {
+    "name": "Galaxy S24+ - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S24+-BATTERY"
+  },
+  {
+    "name": "Galaxy S24FE - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S24FE-BATTERY"
+  },
+  {
+    "name": "Galaxy S24 - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S24-BATTERY"
+  },
+  {
+    "name": "Galaxy S23 Ultra - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S23-ULTRA-BATTERY"
+  },
+  {
+    "name": "Galaxy S23FE - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S23FE-BATTERY"
+  },
+  {
+    "name": "Galaxy S22 Ultra - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S22-ULTRA-BATTERY"
+  },
+  {
+    "name": "Galaxy S22+ - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S22+-BATTERY"
+  },
+  {
+    "name": "Galaxy S22 - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S22-BATTERY"
+  },
+  {
+    "name": "Galaxy S21 Ultra - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S21-ULTRA-BATTERY"
+  },
+  {
+    "name": "Galaxy S21+ - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S21+-BATTERY"
+  },
+  {
+    "name": "Galaxy S21FE - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S21FE-BATTERY"
+  },
+  {
+    "name": "Galaxy S20 Ultra - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-S20-ULTRA-BATTERY"
+  },
+  {
+    "name": "Galaxy Note10+ - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-GALAXY-NOTE10+-BATTERY"
+  },
+  {
+    "name": "A12 Nacho (A127 / 2021) - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-A12-NACHO-(A127-/-2021)-BATTERY"
+  },
+  {
+    "name": "A02s (A025 / 2020) - Battery",
+    "category": "Samsung",
+    "quantity": 1,
+    "sku": "SAMSUNG-A02S-(A025-/-2020)-BATTERY"
+  },
+  {
+    "name": "Pixel 8a - Screen/original",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-PIXEL-8A-SCREEN-ORIGINAL"
+  },
+  {
+    "name": "G 5G (XT2417 / 2024) - Screen/original",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-5G-(XT2417-/-2024)-SCREEN-ORIGINAL"
+  },
+  {
+    "name": "G 5G (XT2417 / 2024) - Chaging Port",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-5G-(XT2417-/-2024)-CHAGING-PORT"
+  },
+  {
+    "name": "G Power 5G (XT2415 / 2024) - Screen/AM",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-POWER-5G-(XT2415-/-2024)-SCREEN-AM"
+  },
+  {
+    "name": "G Stylus 5G (XT2215 / 2022) - Screen/original",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-STYLUS-5G-(XT2215-/-2022)-SCREEN-ORIGINAL"
+  },
+  {
+    "name": "G Stylus 5G (XT2215 / 2022) - Battery",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-STYLUS-5G-(XT2215-/-2022)-BATTERY"
+  },
+  {
+    "name": "G Stylus 5G (XT2215 / 2022) - Chaging Port",
+    "category": "All Other Andriod",
+    "quantity": 1,
+    "sku": "ALLOTHERANDRIOD-G-STYLUS-5G-(XT2215-/-2022)-CHAGING-PORT"
+  }
+]
