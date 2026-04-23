@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
             )}
 
             {/* KPI Cards — Row 1: Revenue */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl shadow border-t-4 border-indigo-500 p-5">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Today's Net</p>
                     <p className="text-2xl font-black text-indigo-700 mt-1">{fmt(kpi.todayTotal)}</p>
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* KPI Row 2: Operations */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl shadow p-5 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-2xl">🏪</div>
                     <div>
@@ -278,16 +278,16 @@ export default function AdminDashboardPage() {
                         <p className="text-center text-gray-400 py-8 italic text-sm">No data this month yet</p>
                     ) : (
                         <>
-                            <ResponsiveContainer width="100%" height={Math.max(160, storePerformance.length * 44)}>
+                            <ResponsiveContainer width="100%" height={Math.max(220, storePerformance.length * 52)}>
                                 <BarChart data={storePerformance} layout="vertical"
-                                    margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
+                                    margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-                                    <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false}
+                                    <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false}
                                         axisLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#374151' }}
-                                        tickLine={false} axisLine={false} width={90} />
+                                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#4b5563' }}
+                                        tickLine={false} axisLine={false} width={140} />
                                     <Tooltip formatter={(v: number | undefined) => [fmt(v ?? 0), 'Revenue']}
-                                        contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', fontSize: 13 }} />
+                                        contentStyle={{ borderRadius: 10, border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: 12 }} />
                                     <Bar dataKey="revenue" radius={[0, 6, 6, 0]}>
                                         {storePerformance.map((_, i) => (
                                             <Cell key={i} fill={STORE_COLORS[i % STORE_COLORS.length]} />
