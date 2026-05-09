@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
@@ -11,6 +12,8 @@ import toast from "react-hot-toast"
 function StoresPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { data: session } = useSession()
+    const isManager = session?.user?.role === 'Manager'
     const [stores, setStores] = useState<any[]>([])
     const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -119,9 +122,11 @@ function StoresPage() {
                         <option value="Full">Full (At Max)</option>
                         <option value="Empty">Empty (0 Members)</option>
                     </select>
-                    <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap text-sm font-medium ml-auto">
-                        + Create Store
-                    </Link>
+                    {!isManager && (
+                        <Link href="/admin/stores/new" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-center whitespace-nowrap text-sm font-medium ml-auto">
+                            + Create Store
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -177,7 +182,7 @@ function StoresPage() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                                 <Link href={`/admin/stores/${store.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
                                                 <Link href={`/admin/stores/${store.id}/members`} className="text-indigo-600 hover:text-indigo-900">Members</Link>
-                                                {store.status === 'Active' && <button onClick={() => requestDelete(store.id)} className="text-red-600 hover:text-red-900">Deactivate</button>}
+                                                {!isManager && store.status === 'Active' && <button onClick={() => requestDelete(store.id)} className="text-red-600 hover:text-red-900">Deactivate</button>}
                                             </td>
                                         </tr>
                                     ))}

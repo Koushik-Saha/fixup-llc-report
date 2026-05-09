@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getStaffPermissions } from '@/lib/permissions'
 import { sendDailySummary } from '@/lib/email'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -20,6 +21,9 @@ export async function POST(req: Request) {
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const perms = await getStaffPermissions(session.user.companyId)
+    if (!perms.reports.submit) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
     const body = await req.json()
     const { store_id, cash_amount, card_amount, expenses_amount, payouts_amount, report_date, category_id, time_in, time_out, notes, imageUrls, sale_items, inventory_usage } = body
@@ -182,6 +186,9 @@ export async function GET(req: Request) {
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const perms = await getStaffPermissions(session.user.companyId)
+    if (!perms.reports.view_history) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
     const { searchParams } = new URL(req.url)
     const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 30 // default 30 days

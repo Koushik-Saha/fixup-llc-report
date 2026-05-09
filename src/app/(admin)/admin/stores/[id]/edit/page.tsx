@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
@@ -17,6 +18,8 @@ const defaultHours = {
 export default function EditStorePage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
+    const { data: session } = useSession()
+    const isManager = session?.user?.role === 'Manager'
     const [formData, setFormData] = useState<any>({ name: "", address: "", city: "", state: "", zip_code: "", block: "", max_members: 3, status: "Active", operating_hours: defaultHours })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -87,13 +90,15 @@ export default function EditStorePage({ params }: { params: Promise<{ id: string
                     <input type="text" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.block || ""} onChange={e => setFormData({ ...formData, block: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                        <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                    </div>
+                    {!isManager && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Status</label>
+                            <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Max Members</label>
                         <input type="number" min="1" required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.max_members} onChange={e => setFormData({ ...formData, max_members: Number(e.target.value) })} />

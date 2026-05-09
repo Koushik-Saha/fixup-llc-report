@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, Suspense, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import toast from "react-hot-toast"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
@@ -41,6 +42,8 @@ function statusBadge(status: string) {
 function ExpensesDashboard() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { data: session } = useSession()
+    const isManager = session?.user?.role === 'Manager'
 
     const [expenses, setExpenses] = useState<ExpenseData[]>([])
     const [stores, setStores] = useState<{ id: string; name: string }[]>([])
@@ -253,7 +256,7 @@ function ExpensesDashboard() {
                                     </td>
                                     {tab === 'Pending' && (
                                         <td className="px-4 py-3 whitespace-nowrap">
-                                            {exp.approval_status === 'Pending' && exp.source !== 'DailyReport' && (
+                                            {!isManager && exp.approval_status === 'Pending' && exp.source !== 'DailyReport' && (
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => { setReviewTarget(exp); setReviewAction('approve'); setReviewNote("") }}
@@ -266,6 +269,9 @@ function ExpensesDashboard() {
                                                         ✕ Reject
                                                     </button>
                                                 </div>
+                                            )}
+                                            {isManager && exp.approval_status === 'Pending' && exp.source !== 'DailyReport' && (
+                                                <span className="text-xs text-gray-400 italic">Pending Admin Review</span>
                                             )}
                                             {exp.source === 'DailyReport' && (
                                                 <span className="text-xs text-gray-400 italic">Verify via Report</span>

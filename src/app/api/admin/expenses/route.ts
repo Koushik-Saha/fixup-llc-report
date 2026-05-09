@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getManagerPermissions } from '@/lib/permissions'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -13,9 +14,19 @@ const TIMEZONE = 'America/Los_Angeles'
 
 export const dynamic = 'force-dynamic'
 
+async function getManagerStoreIds(managerId: string): Promise<string[]> {
+    const members = await prisma.storeMember.findMany({
+        where: { user_id: managerId, status: 'Active' },
+        select: { store_id: true }
+    })
+    return members.map((m: any) => m.store_id)
+}
+
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(req.url)
     const storeId = searchParams.get('storeId')
@@ -24,7 +35,20 @@ export async function GET(req: Request) {
 
     const where: any = { store: { company_id: session.user.companyId } }
 
-    if (storeId) {
+    if (session.user.role === 'Manager') {
+        const perms = await getManagerPermissions(session.user.companyId)
+        if (!perms.expenses.view) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        const managerStoreIds = await getManagerStoreIds(session.user.id)
+        // If a specific store is requested, validate it's in the manager's stores
+        if (storeId) {
+            if (!managerStoreIds.includes(storeId)) {
+                return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+            }
+            where.store_id = storeId
+        } else {
+            where.store_id = { in: managerStoreIds }
+        }
+    } else if (storeId) {
         where.store_id = storeId
     }
 
@@ -125,7 +149,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const body = await req.json()
     const { store_id, category, amount, expense_date, notes, payment_method } = body
@@ -134,10 +160,19 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const validStore = await prisma.store.findFirst({
-        where: { id: store_id, company_id: session.user.companyId }
-    })
-    if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+    if (session.user.role === 'Manager') {
+        const perms = await getManagerPermissions(session.user.companyId)
+        if (!perms.expenses.create) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        const managerStoreIds = await getManagerStoreIds(session.user.id)
+        if (!managerStoreIds.includes(store_id)) {
+            return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+        }
+    } else {
+        const validStore = await prisma.store.findFirst({
+            where: { id: store_id, company_id: session.user.companyId }
+        })
+        if (!validStore) return NextResponse.json({ error: 'Unauthorized store access' }, { status: 403 })
+    }
 
     try {
         const expense = await prisma.$transaction(async (tx: any) => {

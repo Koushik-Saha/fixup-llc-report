@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getManagerPermissions } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,11 +26,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (!session?.user || !['Admin', 'SuperAdmin'].includes(session.user.role)) {
+    if (!session?.user || !['Admin', 'SuperAdmin', 'Manager'].includes(session.user.role)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const store_id = (await params).id
+
+    // Managers can only manage their own stores, and need permission
+    if (session.user.role === 'Manager') {
+        const [perms, membership] = await Promise.all([
+            getManagerPermissions(session.user.companyId),
+            prisma.storeMember.findFirst({ where: { user_id: session.user.id, store_id, status: 'Active' } })
+        ])
+        if (!perms.stores.manage_members) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        if (!membership) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await req.json()
     const { user_id, is_reporter } = body
 

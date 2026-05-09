@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getStaffPermissions } from '@/lib/permissions'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -18,6 +19,9 @@ export async function GET(req: Request) {
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const perms = await getStaffPermissions(session.user.companyId)
+    if (!perms.monthly_report.view) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
     const storeId = session.user.storeId
     if (!storeId) {

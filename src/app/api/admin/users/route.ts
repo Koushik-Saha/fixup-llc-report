@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import bcrypt from 'bcryptjs'
+import { getManagerPermissions } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,11 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user || !['Admin', 'SuperAdmin', 'Manager'].includes(session.user.role)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role === 'Manager') {
+        const perms = await getManagerPermissions(session.user.companyId)
+        if (!perms.users.view) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
     }
 
     const { searchParams } = new URL(req.url)
@@ -34,6 +40,51 @@ export async function GET(req: Request) {
             }
         })
         return NextResponse.json(storeMembers.map(m => m.user))
+    }
+
+    // Managers can only see Staff users in their own stores
+    if (session.user.role === 'Manager') {
+        const managerStores = await prisma.storeMember.findMany({
+            where: { user_id: session.user.id, status: 'Active' },
+            select: { store_id: true }
+        })
+        const managerStoreIds = managerStores.map((m: any) => m.store_id)
+
+        const memberWhere: any = {
+            store_id: { in: managerStoreIds },
+            status: 'Active',
+            user: {
+                company_id: session.user.companyId,
+                role: 'Staff',
+                email: { not: 'koushik@freedomshippingllc.com' },
+                ...(status ? { status } : {})
+            }
+        }
+
+        const storeMembers = await prisma.storeMember.findMany({
+            where: memberWhere,
+            select: {
+                user: {
+                    select: {
+                        id: true, name: true, email: true, role: true, status: true,
+                        pay_type: true, base_salary: true, createdAt: true,
+                        storeMembers: {
+                            where: { status: 'Active' },
+                            include: { store: { select: { name: true } } }
+                        }
+                    }
+                }
+            }
+        })
+
+        // Deduplicate users (a user may be in multiple stores)
+        const seen = new Set<string>()
+        const users = storeMembers
+            .map((m: any) => m.user)
+            .filter((u: any) => { if (seen.has(u.id)) return false; seen.add(u.id); return true })
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+        return NextResponse.json(users)
     }
 
     const where: any = { company_id: session.user.companyId, email: { not: 'koushik@freedomshippingllc.com' } }
@@ -62,12 +113,19 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
-    if (!session?.user || !['Admin', 'SuperAdmin'].includes(session.user.role)) {
+    if (!session?.user || !['Admin', 'SuperAdmin', 'Manager'].includes(session.user.role)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await req.json()
-    const { name, email, password, role, status, pay_type, base_salary, phone } = body
+    let { name, email, password, role, status, pay_type, base_salary, phone } = body
+
+    // Managers can only create Staff users, and need permission
+    if (session.user.role === 'Manager') {
+        const perms = await getManagerPermissions(session.user.companyId)
+        if (!perms.users.create) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        role = 'Staff'
+    }
 
     if (!name || !email || !password) {
         return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getStaffPermissions } from '@/lib/permissions'
 import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -61,6 +62,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const perms = await getStaffPermissions(session.user.companyId)
+    if (!perms.reports.edit) return NextResponse.json({ error: 'Permission denied — editing reports is disabled' }, { status: 403 })
+
     const report_id = (await params).id
     const store_id = session.user.storeId
 

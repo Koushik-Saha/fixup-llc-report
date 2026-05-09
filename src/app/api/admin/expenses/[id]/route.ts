@@ -8,8 +8,8 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getServerSession(authOptions)
-    if (!session?.user || (session.user.role !== 'Admin' && session.user.role !== 'Manager')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || session.user.role !== 'Admin') {
+        return NextResponse.json({ error: 'Only admins can approve or reject expenses' }, { status: 403 })
     }
 
     const { id } = await params

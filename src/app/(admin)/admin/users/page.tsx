@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { SkeletonRow } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
@@ -11,6 +12,8 @@ import toast from "react-hot-toast"
 function UsersPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { data: session } = useSession()
+    const isManager = session?.user?.role === 'Manager'
     const [users, setUsers] = useState<any[]>([])
     const [stores, setStores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -109,8 +112,8 @@ function UsersPage() {
                     <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                         value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); pushParams({ role: e.target.value, page: '1' }) }}>
                         <option value="All">All Roles</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
+                        {!isManager && <option value="Admin">Admin</option>}
+                        {!isManager && <option value="Manager">Manager</option>}
                         <option value="Staff">Staff</option>
                     </select>
                     <select className="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
@@ -192,7 +195,7 @@ function UsersPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                                 <Link href={`/admin/users/${user.id}/edit`} className="text-blue-600 hover:text-blue-900">Edit</Link>
-                                                {user.status === 'Active' && (
+                                                {!isManager && user.status === 'Active' && (
                                                     <>
                                                         <button onClick={() => handleImpersonate(user.id)} className="text-indigo-600 hover:text-indigo-900">Login As</button>
                                                         <button onClick={() => requestDelete(user.id)} className="text-red-600 hover:text-red-900">Deactivate</button>

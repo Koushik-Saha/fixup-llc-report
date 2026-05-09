@@ -4,6 +4,7 @@ import { signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { CompanyProvider, useCompany } from '@/components/CompanyProvider'
+import { DEFAULT_MANAGER_PERMISSIONS, type ManagerPermissions } from '@/lib/permissions'
 
 function BellIcon() {
     return (
@@ -25,10 +26,21 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [unreadCount, setUnreadCount] = useState(0)
+    const [managerPerms, setManagerPerms] = useState<ManagerPermissions>(DEFAULT_MANAGER_PERMISSIONS)
     const isAdmin = session?.user?.role === 'Admin'
-    const isManagerOrAdmin = session?.user?.role === 'Admin' || session?.user?.role === 'Manager'
+    const isManager = session?.user?.role === 'Manager'
+    const isManagerOrAdmin = isAdmin || isManager
     const pathname = usePathname()
     const company = useCompany()
+
+    // Load dynamic manager permissions
+    useEffect(() => {
+        if (!session?.user) return
+        fetch('/api/admin/permissions')
+            .then(r => r.json())
+            .then(d => { if (d.manager) setManagerPerms(d.manager) })
+            .catch(() => {})
+    }, [session])
 
     // Poll unread notification count every 60s
     useEffect(() => {
@@ -58,6 +70,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         )
     }
 
+    // Helper: show nav item based on permission for managers, always for admins
+    const mp = (perm: boolean, href: string, label: string, color?: string) => {
+        if (isAdmin) return navLink(href, label, color)
+        if (isManager && perm) return navLink(href, label, color)
+        return null
+    }
+
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
             {/* Mobile Header */}
@@ -81,27 +100,26 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
                     <div className="pt-2 pb-1 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Operations</div>
                     {navLink('/admin/todays-reports', "📅 Today's Reports", 'text-yellow-400')}
-                    {isManagerOrAdmin && navLink('/admin/monthly-report', '📆 Monthly Report', 'text-yellow-300')}
+                    {mp(managerPerms.reports.monthly, '/admin/monthly-report', '📆 Monthly Report', 'text-yellow-300')}
                     {navLink('/admin/reports', '📊 All Reports')}
 
-                    {isAdmin && (
+                    {isManagerOrAdmin && (
                         <>
                             <div className="pt-2 pb-1 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</div>
-                            {navLink('/admin/stores', '🏪 Stores')}
-                            {navLink('/admin/categories', '🏷️ Categories')}
-                            {navLink('/admin/inventory', '📦 Inventory')}
-                            {navLink('/admin/users', '👥 Users')}
-                            {navLink('/admin/work-hours', '⏱️ Work Hours', 'text-blue-400')}
-                            {navLink('/admin/time-logs', '⏰ Time Logs', 'text-sky-400')}
-                            {navLink('/admin/payroll', '💰 Payroll', 'text-green-400')}
-                            {navLink('/admin/payroll/tax-export', '🧮 Tax Exports', 'text-emerald-500 pl-10 text-sm')}
-                            {navLink('/admin/sales', '📊 Sales Analytics', 'text-indigo-400')}
-                            {navLink('/admin/expenses', '🧾 Expenses', 'text-red-400')}
-                            {navLink('/admin/anomalies', '🤖 Anomalies', 'text-purple-400')}
-                            {navLink('/admin/reconciliation', '⚖️ Reconciliation', 'text-orange-400')}
-                            {isManagerOrAdmin && navLink('/admin/schedule', '📅 Shift Schedule', 'text-violet-400')}
-                            {navLink('/admin/analytics', '📈 Analytics')}
-
+                            {mp(managerPerms.stores.view, '/admin/stores', '🏪 Stores')}
+                            {isAdmin && navLink('/admin/categories', '🏷️ Categories')}
+                            {isAdmin && navLink('/admin/inventory', '📦 Inventory')}
+                            {mp(managerPerms.users.view, '/admin/users', '👥 Users')}
+                            {isAdmin && navLink('/admin/work-hours', '⏱️ Work Hours', 'text-blue-400')}
+                            {isAdmin && navLink('/admin/time-logs', '⏰ Time Logs', 'text-sky-400')}
+                            {isAdmin && navLink('/admin/payroll', '💰 Payroll', 'text-green-400')}
+                            {isAdmin && navLink('/admin/payroll/tax-export', '🧮 Tax Exports', 'text-emerald-500 pl-10 text-sm')}
+                            {isAdmin && navLink('/admin/sales', '📊 Sales Analytics', 'text-indigo-400')}
+                            {mp(managerPerms.expenses.view, '/admin/expenses', '🧾 Expenses', 'text-red-400')}
+                            {isAdmin && navLink('/admin/anomalies', '🤖 Anomalies', 'text-purple-400')}
+                            {isAdmin && navLink('/admin/reconciliation', '⚖️ Reconciliation', 'text-orange-400')}
+                            {mp(managerPerms.schedule.view, '/admin/schedule', '📅 Shift Schedule', 'text-violet-400')}
+                            {isAdmin && navLink('/admin/analytics', '📈 Analytics')}
                         </>
                     )}
 
@@ -124,7 +142,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
                     {isAdmin && navLink('/admin/logs', '📋 Activity Logs')}
                     {isAdmin && navLink('/admin/error-logs', '🚨 Error Logs')}
-                    {navLink('/admin/settings/security', '🔐 Security (2FA)')}
+                    {isAdmin && navLink('/admin/permissions', '🛡️ Permissions', 'text-amber-400')}
+                    {isAdmin && navLink('/admin/settings/security', '🔐 Security (2FA)')}
                 </nav>
             </aside>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getStaffPermissions } from '@/lib/permissions'
 import prisma from '@/lib/prisma'
 import dayjs from 'dayjs'
 
@@ -9,6 +10,9 @@ export async function GET() {
     if (!session?.user || session.user.role !== 'Staff') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const perms = await getStaffPermissions(session.user.companyId)
+    if (!perms.schedule.view) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
     const userId = session.user.id as string
     const storeId = session.user.storeId

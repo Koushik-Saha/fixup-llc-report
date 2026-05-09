@@ -1,16 +1,10 @@
 "use client"
 import Link from 'next/link'
-import { signOut, useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { useEffect, useState } from 'react'
 import { CompanyProvider, useCompany } from '@/components/CompanyProvider'
-
-const NAV_ITEMS = [
-    { href: '/staff/home',           label: 'Home',     icon: '🏠' },
-    { href: '/staff/report/new',     label: 'Submit',   icon: '➕' },
-    { href: '/staff/schedule',       label: 'Schedule', icon: '📅' },
-    { href: '/staff/monthly-report', label: 'Monthly',  icon: '📆' },
-    { href: '/staff/reports',        label: 'History',  icon: '📋' },
-]
+import { DEFAULT_STAFF_PERMISSIONS, type StaffPermissions } from '@/lib/permissions'
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -26,6 +20,23 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const { data: session } = useSession()
     const company = useCompany()
+    const [perms, setPerms] = useState<StaffPermissions>(DEFAULT_STAFF_PERMISSIONS)
+
+    useEffect(() => {
+        if (!session?.user) return
+        fetch('/api/admin/permissions')
+            .then(r => r.json())
+            .then(d => { if (d.staff) setPerms(d.staff) })
+            .catch(() => {})
+    }, [session])
+
+    const navItems = [
+        { href: '/staff/home',           label: 'Home',     icon: '🏠', show: true },
+        { href: '/staff/report/new',     label: 'Submit',   icon: '➕', show: perms.reports.submit },
+        { href: '/staff/schedule',       label: 'Schedule', icon: '📅', show: perms.schedule.view },
+        { href: '/staff/monthly-report', label: 'Monthly',  icon: '📆', show: perms.monthly_report.view },
+        { href: '/staff/reports',        label: 'History',  icon: '📋', show: perms.reports.view_history },
+    ].filter(item => item.show)
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -51,7 +62,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
             {/* Mobile Bottom Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden safe-area-inset-bottom">
                 <div className="flex">
-                    {NAV_ITEMS.map(item => {
+                    {navItems.map(item => {
                         const isActive = pathname === item.href || (item.href === '/staff/report/new' && pathname.startsWith('/staff/report/new'))
                         return (
                             <Link
@@ -68,11 +79,6 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
                     })}
                 </div>
             </nav>
-
-            {/* Desktop top nav links (hidden on mobile since we have bottom nav) */}
-            <div className="hidden sm:block fixed top-0 right-36 h-[52px] items-center gap-6 z-50">
-                {/*  intentionally empty — handled by header */}
-            </div>
         </div>
     )
 }

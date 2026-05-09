@@ -1,12 +1,15 @@
 "use client"
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
+    const { data: session } = useSession()
+    const isManager = session?.user?.role === 'Manager'
 
     const [formData, setFormData] = useState({ name: "", email: "", phone: "", role: "Staff", status: "Active", pay_type: "MONTHLY", password: "", base_salary: 0, tax_classification: "W-2", tax_id: "" })
     const [showPassword, setShowPassword] = useState(false)
@@ -109,10 +112,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Role</label>
-                        <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
+                        <select className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} disabled={isManager}>
                             <option value="Staff">Staff</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Admin">Admin</option>
+                            {!isManager && <option value="Manager">Manager</option>}
+                            {!isManager && <option value="Admin">Admin</option>}
                         </select>
                     </div>
                     <div>

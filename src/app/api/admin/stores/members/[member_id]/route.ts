@@ -2,20 +2,44 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getManagerPermissions } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
+async function isManagerAuthorizedForMember(managerId: string, memberId: string): Promise<boolean> {
+    const member = await prisma.storeMember.findUnique({
+        where: { id: memberId },
+        select: { store_id: true }
+    })
+    if (!member) return false
+    const managerMembership = await prisma.storeMember.findFirst({
+        where: { user_id: managerId, store_id: member.store_id, status: 'Active' }
+    })
+    return !!managerMembership
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ member_id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    const member_id = (await params).member_id // This is member ID actually, let's parse from body if needed or we change URL pattern.
-    // Wait, if url is /api/admin/stores/[id]/members/[memberId]/route.ts
+    const member_id = (await params).member_id
+
+    if (session.user.role === 'Manager') {
+        const [perms, authorized] = await Promise.all([
+            getManagerPermissions(session.user.companyId),
+            isManagerAuthorizedForMember(session.user.id, member_id)
+        ])
+        if (!perms.stores.manage_members) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        if (!authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await req.json()
     const { status, is_reporter } = body
 
     const member = await prisma.storeMember.update({
-        where: { id: member_id }, // We will use this file for member detail
+        where: { id: member_id },
         data: { status, is_reporter }
     })
 
@@ -34,9 +58,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ member_i
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ member_id: string }> }) {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== 'Admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !['Admin', 'Manager'].includes(session.user.role)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const member_id = (await params).member_id
+
+    if (session.user.role === 'Manager') {
+        const [perms, authorized] = await Promise.all([
+            getManagerPermissions(session.user.companyId),
+            isManagerAuthorizedForMember(session.user.id, member_id)
+        ])
+        if (!perms.stores.manage_members) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
+        if (!authorized) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const member = await prisma.storeMember.delete({
         where: { id: member_id }
