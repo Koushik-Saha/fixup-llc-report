@@ -144,6 +144,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                     {isAdmin && navLink('/admin/error-logs', '🚨 Error Logs')}
                     {isAdmin && navLink('/admin/permissions', '🛡️ Permissions', 'text-amber-400')}
                     {isAdmin && navLink('/admin/settings/security', '🔐 Security (2FA)')}
+                    {navLink('/admin/settings/password', '🔑 Change Password')}
                 </nav>
             </aside>
 
