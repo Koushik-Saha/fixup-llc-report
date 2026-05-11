@@ -1,11 +1,8 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import toast from "react-hot-toast"
 
 export default function ForgotPasswordPage() {
-    const router = useRouter()
     const [email, setEmail] = useState("")
     const [loading, setLoading] = useState(false)
     const [submitted, setSubmitted] = useState(false)
@@ -16,29 +13,22 @@ export default function ForgotPasswordPage() {
         setLoading(true)
         setError("")
 
-        try {
-            const res = await fetch("/api/auth/forgot-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
-            })
+        const res = await fetch("/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        })
 
-            const data = await res.json()
+        const data = await res.json()
 
-            if (!res.ok) {
-                // If the email is not found, we shouldn't reveal that for security reasons,
-                // but for an internal app, we can be a bit more explicit.
-                throw new Error(data.error || "Failed to process request")
-            }
-
-            setSubmitted(true)
-            toast.success("Password reset email sent (if an account exists)")
-        } catch (err: any) {
-            setError(err.message)
-            toast.error(err.message)
-        } finally {
+        if (!res.ok) {
+            setError(data.error || "Failed to process request")
             setLoading(false)
+            return
         }
+
+        setSubmitted(true)
+        setLoading(false)
     }
 
     if (submitted) {

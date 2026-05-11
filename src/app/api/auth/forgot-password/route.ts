@@ -17,9 +17,8 @@ export async function POST(req: Request) {
             where: { email }
         })
 
-        // Standard security practice: always return 200 to prevent email enumeration
-        if (!user) {
-            return NextResponse.json({ success: true, message: 'If the email exists, a reset link was sent.' })
+        if (!user || user.status !== 'Active') {
+            return NextResponse.json({ error: 'No account found with this email address.' }, { status: 404 })
         }
 
         // Generate a random token
@@ -41,7 +40,7 @@ export async function POST(req: Request) {
         // Send email
         await sendPasswordResetToken(email, resetToken)
 
-        return NextResponse.json({ success: true, message: 'If the email exists, a reset link was sent.' })
+        return NextResponse.json({ success: true, message: 'Password reset link sent successfully.' })
     } catch (error) {
         console.error('Error generating password reset token:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
