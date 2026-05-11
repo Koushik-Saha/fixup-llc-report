@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
                 <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-md text-center">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Check Your Email</h2>
                     <p className="text-gray-600 mb-6">
-                        If an account exists with <strong>{email}</strong>, we have sent a password reset link. Please check your inbox (and spam folder).
+                        If an account exists with <strong>{email}</strong>, we have sent a password reset link. Please check your inbox (and spam folder). The link expires in <strong>5 minutes</strong>.
                     </p>
                     <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
                         &larr; Return to Login

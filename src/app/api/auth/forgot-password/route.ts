@@ -25,9 +25,9 @@ export async function POST(req: Request) {
         // Generate a random token
         const resetToken = crypto.randomBytes(32).toString('hex')
 
-        // Expiry 1 hour from now
+        // Expiry 5 minutes from now
         const tokenExpiry = new Date()
-        tokenExpiry.setHours(tokenExpiry.getHours() + 1)
+        tokenExpiry.setMinutes(tokenExpiry.getMinutes() + 5)
 
         // Save token to database
         await prisma.user.update({

@@ -102,18 +102,117 @@ export async function sendPasswordResetToken(email: string, token: string) {
     try {
         await resend.emails.send({
             from: FROM_EMAIL,
-            to: email, // If using onboarding@resend.dev, this MUST be the verified account email in Resend
-            subject: 'Password Reset Request',
+            to: email,
+            subject: '🔐 Password Reset Request – FixItUp',
             html: `
-                <h2>Reset Your Password</h2>
-                <p>You requested a password reset. Click the link below to set a new password:</p>
-                <p>
-                    <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">
-                        Reset Password
-                    </a>
-                </p>
-                <p>If you did not request this, please ignore this email.</p>
-                <p>This link will expire in 1 hour.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Reset Your Password</title></head>
+<body style="margin:0;padding:0;background-color:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+
+        <!-- Header -->
+        <tr>
+          <td align="center" style="padding-bottom:24px;">
+            <div style="display:inline-block;background:#1e293b;border-radius:12px;padding:12px 24px;">
+              <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.5px;">⚡ FixItUp</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Card -->
+        <tr>
+          <td style="background:#ffffff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+
+            <!-- Top accent bar -->
+            <div style="background:linear-gradient(90deg,#2563eb,#4f46e5);height:5px;"></div>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 40px 32px;">
+
+              <!-- Lock icon -->
+              <tr>
+                <td align="center" style="padding-bottom:24px;">
+                  <div style="width:64px;height:64px;background:#eff6ff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;line-height:64px;text-align:center;">🔐</div>
+                </td>
+              </tr>
+
+              <!-- Title -->
+              <tr>
+                <td align="center" style="padding-bottom:8px;">
+                  <h1 style="margin:0;font-size:24px;font-weight:700;color:#0f172a;">Reset Your Password</h1>
+                </td>
+              </tr>
+
+              <!-- Subtitle -->
+              <tr>
+                <td align="center" style="padding-bottom:32px;">
+                  <p style="margin:0;font-size:15px;color:#64748b;line-height:1.6;">
+                    We received a request to reset the password for your account.<br>Click the button below to set a new password.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- CTA Button -->
+              <tr>
+                <td align="center" style="padding-bottom:32px;">
+                  <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:14px 40px;border-radius:10px;letter-spacing:0.3px;">
+                    Reset My Password →
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Warning box -->
+              <tr>
+                <td style="padding-bottom:28px;">
+                  <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:16px 20px;">
+                    <p style="margin:0;font-size:13px;color:#92400e;line-height:1.6;">
+                      ⏱️ <strong>This link expires in 5 minutes.</strong> If it expires, you can request a new one from the login page.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Divider -->
+              <tr><td style="border-top:1px solid #f1f5f9;padding-bottom:20px;"></td></tr>
+
+              <!-- Not you? -->
+              <tr>
+                <td align="center">
+                  <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+                    If you didn't request this, you can safely ignore this email.<br>Your password will not be changed.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Fallback URL -->
+              <tr>
+                <td align="center" style="padding-top:16px;">
+                  <p style="margin:0;font-size:11px;color:#cbd5e1;">
+                    Or copy this link: <span style="color:#2563eb;">${resetUrl}</span>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td align="center" style="padding-top:24px;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;">
+              © ${new Date().getFullYear()} FixItUp · This is an automated message, please do not reply.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
             `
         })
     } catch (error) {
