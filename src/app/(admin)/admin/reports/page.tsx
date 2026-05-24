@@ -210,7 +210,7 @@ function AdminReportsContent() {
     }
 
     const handleExportCSV = () => {
-        const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status"]
+        const headers = ["Date", "Store", "City", "Cash", "Card", "Total", "Submitted By", "Total Hours", "Status", "Notes"]
         const rows = reports.map(r => [
             dayjs.utc(r.report_date).format('ddd, M/D/YYYY'),
             `"${r.store.name}"`,
@@ -220,7 +220,8 @@ function AdminReportsContent() {
             r.total_amount,
             `"${r.submitted_by?.name || 'Unknown'}"`,
             calculateDuration(r.time_in, r.time_out).toFixed(2),
-            r.status
+            r.status,
+            r.notes ? `"${String(r.notes).replace(/"/g, '""')}"` : '""'
         ])
         const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n")
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -412,6 +413,7 @@ function AdminReportsContent() {
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Card</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Expenses</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
@@ -474,6 +476,13 @@ function AdminReportsContent() {
                                     <td className="px-6 py-4 whitespace-nowrap text-right font-black text-emerald-700 underline decoration-emerald-200">
                                         {report.status !== 'Missing' || (report.admin_expenses_amount || 0) > 0 ? `$${((report.status !== 'Missing' ? Number(report.cash_amount || 0) + Number(report.card_amount || 0) : 0) - ((report.status !== 'Missing' ? Number(report.expenses_amount || 0) + Number(report.payouts_amount || 0) : 0) + Number(report.admin_expenses_amount || 0))).toFixed(2)}` : '-'}
                                     </td>
+                                    <td className="px-6 py-4 text-sm text-gray-600 max-w-[160px]">
+                                        {report.notes ? (
+                                            <span title={report.notes} className="block truncate cursor-default">{report.notes}</span>
+                                        ) : (
+                                            <span className="italic text-gray-300">—</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             ${report.status === 'Verified' ? 'bg-green-100 text-green-800' :
@@ -499,7 +508,7 @@ function AdminReportsContent() {
                             ))}
                             {reports.length === 0 && (
                                 <tr>
-                                    <td colSpan={11} className="px-6 py-8 text-center text-gray-500">No reports match the current filters.</td>
+                                    <td colSpan={12} className="px-6 py-8 text-center text-gray-500">No reports match the current filters.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -534,7 +543,7 @@ function AdminReportsContent() {
                                         <td className="px-6 py-3 text-right font-black text-emerald-800 text-sm">
                                             ${tBalance.toFixed(2)}
                                         </td>
-                                        <td colSpan={2} />
+                                        <td colSpan={3} />
                                     </tr>
                                 </tfoot>
                             )

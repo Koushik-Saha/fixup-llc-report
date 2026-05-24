@@ -11,15 +11,16 @@ export const generateMonthlyReportPDF = (
     summary: any,
     storeName: string,
     staffName: string | undefined,
-    dateLabel: string
+    dateLabel: string,
+    withNotes: boolean = false
 ) => {
-    const doc = new jsPDF()
+    const doc = new jsPDF({ orientation: withNotes ? 'landscape' : 'portrait' })
     const now = dayjs().format('MMMM D, YYYY h:mm A')
 
     // Header Info
     doc.setFontSize(18)
     doc.text(`Monthly Report: ${storeName}`, 14, 22)
-    
+
     doc.setFontSize(10)
     doc.setTextColor(100)
     doc.text(`Period: ${dateLabel}`, 14, 30)
@@ -27,8 +28,7 @@ export const generateMonthlyReportPDF = (
     doc.text(`Downloaded On: ${now}`, 14, 42)
 
     // Construct main data table
-    const tableColumns = ["Date", "Status", "Revenue", "Cash", "Card", "Expenses", "Balance"]
-    // Filter and extract only necessary fields for the main table to keep PDF clean
+    const tableColumns = ["Date", "Status", "Revenue", "Cash", "Card", "Expenses", "Balance", ...(withNotes ? ["Notes"] : [])]
     const tableRows = data.map(r => [
         dayjs.utc(r.report_date).format('MM/DD/YYYY'),
         r.status,
@@ -36,7 +36,8 @@ export const generateMonthlyReportPDF = (
         (r.status !== 'Missing' && r.status !== 'Closed') ? `$${Number(r.cash_amount || 0).toFixed(2)}` : '—',
         (r.status !== 'Missing' && r.status !== 'Closed') ? `$${Number(r.card_amount || 0).toFixed(2)}` : '—',
         (r.status !== 'Missing' && r.status !== 'Closed') || (r.admin_expenses_amount || 0) > 0 ? `$${((r.status !== 'Missing' && r.status !== 'Closed' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0)).toFixed(2)}` : '—',
-        (r.status !== 'Missing' && r.status !== 'Closed') || (r.admin_expenses_amount || 0) > 0 ? `$${((r.status !== 'Missing' && r.status !== 'Closed' ? Number(r.cash_amount || 0) + Number(r.card_amount || 0) : 0) - ((r.status !== 'Missing' && r.status !== 'Closed' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0))).toFixed(2)}` : '—'
+        (r.status !== 'Missing' && r.status !== 'Closed') || (r.admin_expenses_amount || 0) > 0 ? `$${((r.status !== 'Missing' && r.status !== 'Closed' ? Number(r.cash_amount || 0) + Number(r.card_amount || 0) : 0) - ((r.status !== 'Missing' && r.status !== 'Closed' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0))).toFixed(2)}` : '—',
+        ...(withNotes ? [r.notes || ''] : [])
     ])
 
     // Add Totals Row
@@ -53,8 +54,11 @@ export const generateMonthlyReportPDF = (
         `$${tCash.toFixed(2)}`,
         `$${tCard.toFixed(2)}`,
         `$${tExp.toFixed(2)}`,
-        `$${tBalance.toFixed(2)}`
+        `$${tBalance.toFixed(2)}`,
+        ...(withNotes ? [''] : [])
     ])
+
+    const columnStyles: Record<number, any> = withNotes ? { 7: { cellWidth: 70 } } : {}
 
     autoTable(doc, {
         startY: 48,
@@ -63,10 +67,10 @@ export const generateMonthlyReportPDF = (
         theme: 'striped',
         styles: { fontSize: 8 },
         headStyles: { fillColor: [59, 130, 246] },
+        columnStyles,
         foot: [],
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
         didParseCell: function (data) {
-            // Make the total row bold
             if (data.row.index === tableRows.length - 1) {
                 data.cell.styles.fontStyle = 'bold'
                 data.cell.styles.fillColor = [240, 240, 240]
@@ -164,8 +168,8 @@ export const generateMonthlyReportCSV = (
     csvContent += `Date Downloaded,${dayjs().format('MMMM D YYYY hh:mm A')}\n\n`
 
     // 2. Build Daily Grid
-    csvContent += "Date,Status,Revenue,Cash,Card,Expenses,Balance,Submitted By\n"
-    
+    csvContent += "Date,Status,Revenue,Cash,Card,Expenses,Balance,Submitted By,Notes\n"
+
     data.forEach(r => {
         const d = dayjs.utc(r.report_date).format('MM/DD/YYYY')
         const st = r.status
@@ -175,9 +179,9 @@ export const generateMonthlyReportCSV = (
         const exp = (st !== 'Missing' && st !== 'Closed') || (r.admin_expenses_amount || 0) > 0 ? ((st !== 'Missing' && st !== 'Closed' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0)).toFixed(2) : ''
         const bal = (st !== 'Missing' && st !== 'Closed') || (r.admin_expenses_amount || 0) > 0 ? ((st !== 'Missing' && st !== 'Closed' ? Number(r.cash_amount || 0) + Number(r.card_amount || 0) : 0) - ((st !== 'Missing' && st !== 'Closed' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0))).toFixed(2) : ''
         const sub = r.submitted_by?.name || ''
-        
-        // Escape notes and strings that might have commas
-        csvContent += `"${d}","${st}","${rev}","${cash}","${card}","${exp}","${bal}","${sub}"\n`
+        const notes = r.notes ? r.notes.replace(/"/g, '""') : ''
+
+        csvContent += `"${d}","${st}","${rev}","${cash}","${card}","${exp}","${bal}","${sub}","${notes}"\n`
     })
 
     // Totals Row
@@ -187,7 +191,7 @@ export const generateMonthlyReportCSV = (
     const tExp = data.reduce((s, r) => s + (r.status !== 'Missing' && r.status !== 'Closed' ? (Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)) : 0) + Number(r.admin_expenses_amount || 0), 0)
     const tBalance = tRevenue - tExp
 
-    csvContent += `"TOTALS","","${tRevenue.toFixed(2)}","${tCash.toFixed(2)}","${tCard.toFixed(2)}","${tExp.toFixed(2)}","${tBalance.toFixed(2)}",""\n\n\n`
+    csvContent += `"TOTALS","","${tRevenue.toFixed(2)}","${tCash.toFixed(2)}","${tCard.toFixed(2)}","${tExp.toFixed(2)}","${tBalance.toFixed(2)}","",""\n\n\n`
 
     // 3. Build Detailed Expenses
     let allExpenses = expensesList ? [...expensesList] : []

@@ -24,6 +24,7 @@ type ReportRow = {
     payouts_amount: number | null
     admin_expenses_amount: number | null
     status: string
+    notes: string | null
     submitted_by: { name: string } | null
 }
 
@@ -193,6 +194,16 @@ function MonthlyReportContent() {
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             CSV
                         </button>
+                        {(session?.user?.role === 'Admin' || session?.user?.role === 'Manager') && (
+                            <button
+                                onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month', true)}
+                                className="px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 rounded-md transition flex items-center gap-1"
+                                title="Download PDF with daily notes"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                Note
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -261,6 +272,7 @@ function MonthlyReportContent() {
                                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Expenses</th>
                                     <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Balance</th>
                                     <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted By</th>
+                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Notes</th>
                                     <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
@@ -295,6 +307,15 @@ function MonthlyReportContent() {
                                             </td>
                                             <td className="px-5 py-3 text-sm text-gray-500">
                                                 {row.submitted_by?.name || <span className="italic text-gray-300">—</span>}
+                                            </td>
+                                            <td className="px-5 py-3 text-sm text-gray-600 max-w-[180px]">
+                                                {row.notes ? (
+                                                    <span title={row.notes} className="block truncate cursor-default">
+                                                        {row.notes}
+                                                    </span>
+                                                ) : (
+                                                    <span className="italic text-gray-300">—</span>
+                                                )}
                                             </td>
                                             <td className="px-5 py-3 text-center">
                                                 {isMissing ? (
@@ -349,7 +370,7 @@ function MonthlyReportContent() {
                                     <td className="px-5 py-4 text-sm text-right font-black text-emerald-800">
                                         ${data.reduce((s, r) => s + ((r.status !== 'Missing' ? (Number(r.cash_amount || 0) + Number(r.card_amount || 0)) : 0) - ((r.status !== 'Missing' ? Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0) : 0) + Number(r.admin_expenses_amount || 0))), 0).toFixed(2)}
                                     </td>
-                                    <td colSpan={2} />
+                                    <td colSpan={3} />
                                 </tr>
                             </tfoot>
 
