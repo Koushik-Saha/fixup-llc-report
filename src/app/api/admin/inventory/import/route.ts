@@ -32,7 +32,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Store not found or access denied' }, { status: 404 })
         }
 
-        // Clear existing inventory for this store
+        // Clear existing inventory for this store (delete usages first due to FK constraint)
+        await prisma.inventoryUsage.deleteMany({ where: { item: { store_id: store.id } } })
         await prisma.inventoryItem.deleteMany({ where: { store_id: store.id } })
 
         // Bulk insert
