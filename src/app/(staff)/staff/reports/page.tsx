@@ -55,11 +55,11 @@ export default function StaffReportsPage() {
             })
     }, [page, limit])
 
-    if (loading) return <div className="p-6 bg-white shadow rounded-lg max-w-4xl mx-auto"><SkeletonRow rows={5} /></div>
+    if (loading) return <div className="p-6 bg-white shadow rounded-lg max-w-6xl mx-auto"><SkeletonRow rows={5} /></div>
     if (error) return <div className="p-8 text-red-500 text-center">{error}</div>
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">My Required Reports</h1>
                 <Link href="/staff/home" className="text-blue-600 hover:text-blue-800 font-medium">

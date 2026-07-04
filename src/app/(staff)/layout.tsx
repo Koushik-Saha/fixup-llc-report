@@ -42,7 +42,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Top Header */}
             <header className="bg-white shadow shrink-0 sticky top-0 z-40">
-                <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
                     <Link href="/staff/home" className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         {company.logo_url && <img src={company.logo_url} alt="Logo" className="w-6 h-6 object-contain rounded" />}
                         {!company.logo_url && <span className="text-brand">⚡</span>}
@@ -55,7 +55,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
             </header>
 
             {/* Main content — padded bottom for mobile nav */}
-            <main className="flex-1 max-w-2xl w-full mx-auto px-4 pt-5 pb-24 sm:pb-8">
+            <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-5 pb-24 sm:pb-8">
                 {children}
             </main>
 

@@ -38,18 +38,32 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
+        <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row">
             {/* Mobile Header */}
-            <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
+            <div className="lg:hidden bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
                 <div className="text-xl font-bold">FixUp Super Admin</div>
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 bg-gray-800 rounded font-medium text-sm">
                     {isSidebarOpen ? 'Close Menu' : 'Menu'}
                 </button>
             </div>
 
+            {/* Sidebar Backdrop overlay for Mobile */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className={`${isSidebarOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-gray-900 text-white flex-shrink-0 md:h-screen md:sticky top-0 overflow-y-auto`}>
-                <div className="hidden md:block p-4 text-xl font-bold border-b border-gray-800">
+            <aside 
+                className={`
+                    ${isSidebarOpen ? 'fixed inset-y-0 left-0 z-50' : 'hidden'}
+                    lg:sticky lg:top-0 lg:block lg:static lg:h-screen
+                    w-64 bg-gray-900 text-white flex-shrink-0 overflow-y-auto transition-all duration-300
+                `}
+            >
+                <div className="hidden lg:block p-4 text-xl font-bold border-b border-gray-800">
                     FixUp Super Admin
                 </div>
                 <nav className="p-3 space-y-1">

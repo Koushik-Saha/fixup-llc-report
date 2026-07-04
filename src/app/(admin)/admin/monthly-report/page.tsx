@@ -48,6 +48,7 @@ function MonthlyReportContent() {
     const [month, setMonth] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
     const [startDate, setStartDate] = useState(searchParams.get('startDate') || '')
     const [endDate, setEndDate] = useState(searchParams.get('endDate') || '')
+    const [viewMode, setViewMode] = useState<'table' | 'calendar'>(searchParams.get('view') === 'calendar' ? 'calendar' : 'table')
     const [data, setData] = useState<ReportRow[]>([])
     const [expensesList, setExpensesList] = useState<any[]>([])
     const [summary, setSummary] = useState<Summary | null>(null)
@@ -60,11 +61,11 @@ function MonthlyReportContent() {
     const { data: session } = useSession()
 
     const pushParams = useCallback((overrides: Record<string, string> = {}) => {
-        const vals = { storeId, month, startDate, endDate, ...overrides }
+        const vals = { storeId, month, startDate, endDate, view: viewMode, ...overrides }
         const p = new URLSearchParams()
         Object.entries(vals).forEach(([k, v]) => { if (v) p.set(k, v) })
         router.replace(`/admin/monthly-report?${p.toString()}`, { scroll: false })
-    }, [storeId, month, startDate, endDate, router])
+    }, [storeId, month, startDate, endDate, viewMode, router])
 
     // Load stores
     useEffect(() => {
@@ -177,6 +178,27 @@ function MonthlyReportContent() {
                     )}
                 </div>
 
+                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                    <button
+                        onClick={() => { setViewMode('table'); pushParams({ view: 'table' }) }}
+                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                        title="Table View"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => { setViewMode('calendar'); pushParams({ view: 'calendar' }) }}
+                        className={`p-1.5 rounded-lg transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                        title="Calendar View"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                </div>
+
                 {/* Exports */}
                 {data.length > 0 && (
                     <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1 ml-auto">
@@ -254,12 +276,140 @@ function MonthlyReportContent() {
                 );
             })()}
 
-            {/* Table */}
+            {/* Main View Block (Table or Calendar) */}
             <div className="bg-white shadow rounded-xl overflow-hidden">
                 {!storeId ? (
                     <div className="p-10 text-center text-gray-400 text-sm">Select a store above to view the monthly report.</div>
                 ) : loading ? (
                     <div className="p-10 text-center text-gray-400 animate-pulse">Loading...</div>
+                ) : viewMode === 'calendar' ? (
+                    (() => {
+                        const startDay = dayjs(month).startOf('month').startOf('week')
+                        const endDay = dayjs(month).endOf('month').endOf('week')
+                        const days = []
+                        let current = startDay
+                        while (current.isBefore(endDay) || current.isSame(endDay, 'day')) {
+                            days.push(current)
+                            current = current.add(1, 'day')
+                        }
+                        const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                        return (
+                            <div className="p-4 overflow-x-auto">
+                                <div className="min-w-[800px]">
+                                    <div className="grid grid-cols-7 bg-gray-200 gap-px rounded-xl overflow-hidden border border-gray-200">
+                                        {WEEK_DAYS.map(day => (
+                                            <div key={day} className="bg-gray-50 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                {day}
+                                            </div>
+                                        ))}
+                                        {days.map(date => {
+                                            const dateStr = date.format('YYYY-MM-DD')
+                                            const isCurrentMonth = date.format('YYYY-MM') === month
+                                            const isToday = date.isSame(dayjs().tz(TIMEZONE), 'day')
+                                            const isFuture = date.isAfter(dayjs().tz(TIMEZONE), 'day')
+                                            const row = data.find(r => r.report_date.split('T')[0] === dateStr)
+                                            const isMissing = (!row || row.status === 'Missing') && !isFuture && isCurrentMonth
+                                            const isFiltered = (startDate && dateStr < startDate) || (endDate && dateStr > endDate)
+
+                                            const hasReport = !!row && row.status !== 'Missing'
+                                            const tRevenue = hasReport ? (Number(row.cash_amount || 0) + Number(row.card_amount || 0)) : 0
+                                            const tCash = hasReport ? Number(row.cash_amount || 0) : 0
+                                            const tCard = hasReport ? Number(row.card_amount || 0) : 0
+                                            const tExp = (hasReport ? (Number(row.expenses_amount || 0) + Number(row.payouts_amount || 0)) : 0) + (row ? Number(row.admin_expenses_amount || 0) : 0)
+                                            const balance = tRevenue - tExp
+
+                                            let cellBg = 'bg-white'
+                                            let borderStyle = 'border-gray-100'
+                                            let badgeColor = ''
+                                            let badgeText = ''
+                                            let linkUrl = ''
+
+                                            if (!isCurrentMonth) {
+                                                cellBg = 'bg-gray-50/50 text-gray-400'
+                                            } else if (isFiltered) {
+                                                cellBg = 'bg-gray-50/70 text-gray-300 opacity-45'
+                                            } else if (isMissing) {
+                                                cellBg = 'bg-red-50/60 hover:bg-red-50 transition'
+                                                borderStyle = 'border-red-200'
+                                                linkUrl = `/admin/reports/new?storeId=${storeId}&date=${dateStr}`
+                                            } else if (hasReport && row) {
+                                                linkUrl = `/admin/reports/${row.id}`
+                                                if (row.status === 'Verified') {
+                                                    borderStyle = 'border-green-300'
+                                                    badgeColor = 'bg-green-100 text-green-700'
+                                                    badgeText = 'Verified'
+                                                    cellBg = 'bg-white hover:bg-green-50/20'
+                                                } else if (row.status === 'CorrectionRequested') {
+                                                    borderStyle = 'border-yellow-300'
+                                                    badgeColor = 'bg-yellow-100 text-yellow-700'
+                                                    badgeText = 'Correction'
+                                                    cellBg = 'bg-white hover:bg-yellow-50/20'
+                                                } else {
+                                                    borderStyle = 'border-indigo-200'
+                                                    badgeColor = 'bg-blue-100 text-blue-700'
+                                                    badgeText = 'Submitted'
+                                                    cellBg = 'bg-white hover:bg-indigo-50/20'
+                                                }
+                                            }
+
+                                            const cellContent = (
+                                                <div className={`flex flex-col h-full min-h-[135px] p-2.5 border-t-2 ${borderStyle} ${cellBg} relative transition-all`}>
+                                                    <div className="flex justify-between items-center mb-1.5">
+                                                        <span className={`text-xs font-bold ${!isCurrentMonth ? 'text-gray-400' : isToday ? 'bg-indigo-600 text-white rounded-full w-5 h-5 flex items-center justify-center' : 'text-gray-700'}`}>
+                                                            {date.date()}
+                                                        </span>
+                                                        {isMissing && (
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                                                                Missing
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {hasReport && (
+                                                        <div className="space-y-1 text-[10px] font-semibold text-gray-600 mt-auto">
+                                                            <div className={`flex justify-between ${tRevenue > 500 ? 'text-red-600' : 'text-indigo-700'} font-black text-lg border-b border-gray-100 pb-0.5 mb-0.5`}>
+                                                                <span>Rev:</span>
+                                                                <span>${tRevenue.toFixed(2)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-slate-500 font-medium">
+                                                                <span>Cash:</span>
+                                                                <span>${tCash.toFixed(2)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-blue-600 font-medium">
+                                                                <span>Card:</span>
+                                                                <span>${tCard.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {isMissing && (
+                                                        <div className="flex-1 flex flex-col justify-center items-center gap-1.5 mt-auto">
+                                                            <span className="text-[10px] text-red-400 font-medium text-center">No report</span>
+                                                            {isCurrentMonth && !isFiltered && (
+                                                                <span className="inline-flex bg-red-500 hover:bg-red-600 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full transition shadow-sm">
+                                                                    Submit
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+
+                                            if (linkUrl && isCurrentMonth && !isFiltered) {
+                                                return (
+                                                    <Link key={dateStr} href={linkUrl} className="block select-none focus:outline-none hover:no-underline">
+                                                        {cellContent}
+                                                    </Link>
+                                                )
+                                            }
+
+                                            return <div key={dateStr} className="select-none">{cellContent}</div>
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })()
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
@@ -279,7 +429,7 @@ function MonthlyReportContent() {
                             <tbody className="bg-white divide-y divide-gray-100">
                                 {data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="px-5 py-10 text-center text-gray-400">No data for this month yet.</td>
+                                        <td colSpan={9} className="px-5 py-10 text-center text-gray-400">No data for this month yet.</td>
                                     </tr>
                                 ) : data.map(row => {
                                     const isMissing = row.status === 'Missing'
@@ -373,7 +523,6 @@ function MonthlyReportContent() {
                                     <td colSpan={3} />
                                 </tr>
                             </tfoot>
-
                         </table>
                     </div>
                 )}
