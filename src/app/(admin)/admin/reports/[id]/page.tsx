@@ -52,9 +52,9 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
 
     return (
         <div className="max-w-3xl mx-auto space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <h2 className="text-2xl font-bold text-gray-800">Report from {report.store.name}</h2>
-                <div className="flex gap-4 items-center">
+                <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
                     <button
                         onClick={() => handlePrint()}
                         className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-200 font-medium text-sm transition flex items-center gap-1"
@@ -65,32 +65,35 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ id
                     <Link href={`/admin/reports/${id}/edit`} className="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-md hover:bg-purple-200 font-medium text-sm transition">
                         Edit Amounts
                     </Link>
-                    <Link href="/admin/reports" className="text-blue-600 hover:text-blue-800 font-medium">&larr; Back to Reports</Link>
+                    <Link href="/admin/reports" className="text-blue-600 hover:text-blue-800 font-medium text-sm sm:border-l sm:pl-3 sm:border-gray-200">&larr; Back to Reports</Link>
                 </div>
             </div>
 
             <div ref={printRef} className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500 space-y-6">
-                <div className="flex justify-between items-start border-b pb-4">
-                    <div>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start border-b pb-4 gap-4">
+                    <div className="space-y-1">
                         <h3 className="text-xl font-bold text-gray-800">{dayjs.utc(report.report_date).format('dddd, M/D/YYYY')}</h3>
-                        <p className="text-gray-500 mt-1">Shift: {report.time_in ? <span className="font-semibold text-gray-700">{report.time_in} - {report.time_out}</span> : 'N/A'}</p>
-                        <p className="text-gray-500">Submitted by: <span className="font-medium text-gray-700">{report.submitted_by.name}</span> ({report.submitted_by.email})</p>
+                        <p className="text-gray-500">Shift: {report.time_in ? <span className="font-semibold text-gray-700">{report.time_in} - {report.time_out}</span> : 'N/A'}</p>
+                        <p className="text-gray-500">Submitted by: <span className="font-medium text-gray-700">{report.submitted_by.name}</span> <span className="text-gray-400">({report.submitted_by.email})</span></p>
                         {report.assignees && report.assignees.length > 0 && (
-                            <p className="text-gray-500 mt-1">Personnel Assigned: {report.assignees.map((a: any, i: number) => (
-                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 mr-1">{a.name}</span>
-                            ))}</p>
+                            <div className="text-gray-500 flex flex-wrap items-center gap-1 mt-1">
+                                <span className="text-sm">Personnel Assigned:</span>
+                                {report.assignees.map((a: any, i: number) => (
+                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">{a.name}</span>
+                                ))}
+                            </div>
                         )}
                     </div>
-                    <div className="text-right space-y-2">
+                    <div className="flex flex-col items-start md:items-end gap-2 md:space-y-2 md:gap-0">
                         <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${report.status === 'Submitted' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
                             {report.status}
                         </span>
-                        <div className="flex space-x-2 mt-2">
+                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
                             {report.status !== 'Verified' && (
-                                <button onClick={() => handleStatusChange("Verified")} className="text-xs bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600">Mark Verified</button>
+                                <button onClick={() => handleStatusChange("Verified")} className="text-xs bg-green-500 text-white py-1.5 px-3 rounded-lg hover:bg-green-600 font-medium transition shadow-sm">Mark Verified</button>
                             )}
                             {report.status !== 'CorrectionRequested' && (
-                                <button onClick={() => handleStatusChange("CorrectionRequested")} className="text-xs bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600">Request Correction</button>
+                                <button onClick={() => handleStatusChange("CorrectionRequested")} className="text-xs bg-yellow-500 text-white py-1.5 px-3 rounded-lg hover:bg-yellow-600 font-medium transition shadow-sm">Request Correction</button>
                             )}
                         </div>
                     </div>
