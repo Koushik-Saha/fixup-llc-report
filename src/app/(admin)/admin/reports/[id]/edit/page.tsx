@@ -4,6 +4,36 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 
+function formatTimeForInput(timeStr: string | null | undefined): string {
+    if (!timeStr) return ""
+    if (timeStr.includes('T')) {
+        const d = new Date(timeStr)
+        if (!isNaN(d.getTime())) {
+            return `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`
+        }
+    }
+    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
+        const parts = timeStr.trim().split(/\s+/)
+        if (parts.length === 2) {
+            const timePart = parts[0]
+            const period = parts[1].toLowerCase()
+            const timeParts = timePart.split(':')
+            if (timeParts.length >= 2) {
+                let hours = Number(timeParts[0])
+                const minutes = timeParts[1].padStart(2, '0')
+                if (period === 'pm' && hours !== 12) hours += 12
+                if (period === 'am' && hours === 12) hours = 0
+                return `${hours.toString().padStart(2, '0')}:${minutes}`
+            }
+        }
+    }
+    const match24 = timeStr.trim().match(/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])/)
+    if (match24) {
+        return `${match24[1].padStart(2, '0')}:${match24[2]}`
+    }
+    return ""
+}
+
 export default function AdminEditReportPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()
     const { id } = use(params)
@@ -36,8 +66,8 @@ export default function AdminEditReportPage({ params }: { params: Promise<{ id: 
                     setCard(data.card_amount)
                     setExpenses(data.expenses_amount || 0)
                     setPayouts(data.payouts_amount || 0)
-                    setTimeIn(data.time_in || "")
-                    setTimeOut(data.time_out || "")
+                    setTimeIn(formatTimeForInput(data.time_in))
+                    setTimeOut(formatTimeForInput(data.time_out))
                     setNotes(data.notes || "")
                     setExistingImages(data.images || [])
                     setStoreId(data.store_id || "")

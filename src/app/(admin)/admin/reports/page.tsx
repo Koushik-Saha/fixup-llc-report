@@ -16,15 +16,22 @@ const TIMEZONE = "America/Los_Angeles"
 
 function parseHours(timeStr: string | null | undefined): number | null {
     if (!timeStr) return null;
-    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) {
-        const [time, period] = timeStr.split(' ');
+    let actualTime = timeStr;
+    if (timeStr.includes('T')) {
+        const d = new Date(timeStr);
+        if (!isNaN(d.getTime())) {
+            actualTime = `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
+        }
+    }
+    if (actualTime.toLowerCase().includes('am') || actualTime.toLowerCase().includes('pm')) {
+        const [time, period] = actualTime.split(' ');
         let [hours, minutes] = time.split(':').map(Number);
         if (period.toLowerCase() === 'pm' && hours !== 12) hours += 12;
         if (period.toLowerCase() === 'am' && hours === 12) hours = 0;
         if (isNaN(hours) || isNaN(minutes)) return null;
         return hours + (minutes / 60);
     } else {
-        const [hours, minutes] = timeStr.split(':').map(Number);
+        const [hours, minutes] = actualTime.split(':').map(Number);
         if (isNaN(hours) || isNaN(minutes)) return null;
         return hours + (minutes / 60);
     }
@@ -288,7 +295,7 @@ function AdminReportsContent() {
                             {storeIds.length === 0 ? "All Stores" : `${storeIds.length} stores selected`}
                         </div>
                         {isStoreDropdownOpen && (
-                            <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-xl scrollbar-thin animate-in fade-in zoom-in duration-100">
+                            <div className="absolute z-50 left-0 right-0 sm:right-auto sm:w-64 top-full mt-1 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-md shadow-xl scrollbar-thin animate-in fade-in zoom-in duration-100">
                                 {stores.map(store => (
                                     <label key={store.id} className="flex items-center px-4 py-2 hover:bg-blue-50 cursor-pointer transition-colors">
                                         <input 
@@ -390,8 +397,9 @@ function AdminReportsContent() {
             {loading ? (
                 <div className="bg-white p-6 shadow rounded-lg max-w-full"><SkeletonRow rows={6} /></div>
             ) : (
-                <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
-                    <table className="min-w-full divide-y border-gray-200">
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y border-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left w-12">
@@ -549,6 +557,7 @@ function AdminReportsContent() {
                             )
                         })()}
                     </table>
+                    </div>
 
                     <Pagination
                         currentPage={pagination.page}

@@ -133,101 +133,105 @@ function MonthlyReportContent() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow p-4 flex flex-wrap gap-4 items-end">
-                <div>
+            <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:flex-wrap gap-4 items-stretch sm:items-end">
+                <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[200px]">
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Store</label>
                     <select
                         value={storeId}
                         onChange={e => { setStoreId(e.target.value); pushParams({ storeId: e.target.value }) }}
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 min-w-[180px]"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 w-full truncate"
                     >
                         <option value="">— Select Store —</option>
                         {stores.map(s => <option key={s.id} value={s.id}>{s.name}{s.city ? ` (${s.city})` : ''}</option>)}
                     </select>
                 </div>
-                <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Month</label>
-                    <input
-                        type="month"
-                        value={month}
-                        onChange={e => { setMonth(e.target.value); pushParams({ month: e.target.value, startDate: '', endDate: '' }); setStartDate(''); setEndDate('') }}
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                </div>
+                <div className="flex flex-wrap gap-3 items-end w-full sm:w-auto">
+                    <div className="flex-1 sm:flex-none">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Month</label>
+                        <input
+                            type="month"
+                            value={month}
+                            onChange={e => { setMonth(e.target.value); pushParams({ month: e.target.value, startDate: '', endDate: '' }); setStartDate(''); setEndDate('') }}
+                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 w-full"
+                        />
+                    </div>
 
-                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                    <button
-                        onClick={() => handleShortcuts('1-15')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
-                    >
-                        1-15
-                    </button>
-                    <button
-                        onClick={() => handleShortcuts('16-End')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-16') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
-                    >
-                        16-End
-                    </button>
-                    {(startDate || endDate) && (
+                    <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
                         <button
-                            onClick={() => handleShortcuts('Full')}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+                            onClick={() => handleShortcuts('1-15')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
                         >
-                            Clear
-                        </button>
-                    )}
-                </div>
-
-                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-                    <button
-                        onClick={() => { setViewMode('table'); pushParams({ view: 'table' }) }}
-                        className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
-                        title="Table View"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                    <button
-                        onClick={() => { setViewMode('calendar'); pushParams({ view: 'calendar' }) }}
-                        className={`p-2.5 rounded-lg transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
-                        title="Calendar View"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Exports */}
-                {data.length > 0 && (
-                    <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1 ml-auto">
-                        <button
-                            onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
-                            className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            PDF
+                            1-15
                         </button>
                         <button
-                            onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
-                            className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
+                            onClick={() => handleShortcuts('16-End')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${startDate.endsWith('-16') ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
                         >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            CSV
+                            16-End
                         </button>
-                        {(session?.user?.role === 'Admin' || session?.user?.role === 'Manager') && (
+                        {(startDate || endDate) && (
                             <button
-                                onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month', true)}
-                                className="px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 rounded-md transition flex items-center gap-1"
-                                title="Download PDF with daily notes"
+                                onClick={() => handleShortcuts('Full')}
+                                className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
                             >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Note
+                                Clear
                             </button>
                         )}
                     </div>
-                )}
+                </div>
+
+                <div className="flex flex-wrap gap-3 items-end w-full sm:w-auto sm:ml-auto">
+                    <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                        <button
+                            onClick={() => { setViewMode('table'); pushParams({ view: 'table' }) }}
+                            className={`p-2.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                            title="Table View"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => { setViewMode('calendar'); pushParams({ view: 'calendar' }) }}
+                            className={`p-2.5 rounded-lg transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'}`}
+                            title="Calendar View"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Exports */}
+                    {data.length > 0 && (
+                        <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1">
+                            <button
+                                onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                                className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                PDF
+                            </button>
+                            <button
+                                onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
+                                className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                CSV
+                            </button>
+                            {(session?.user?.role === 'Admin' || session?.user?.role === 'Manager') && (
+                                <button
+                                    onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Admin", startDate ? `${startDate} to ${endDate}` : 'Full Month', true)}
+                                    className="px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 rounded-md transition flex items-center gap-1"
+                                    title="Download PDF with daily notes"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    Note
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}

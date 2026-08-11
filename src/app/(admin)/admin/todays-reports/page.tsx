@@ -16,13 +16,20 @@ const TIMEZONE = "America/Los_Angeles"
 
 function parseHours(t: string | null | undefined): number | null {
     if (!t) return null
-    if (t.toLowerCase().includes('am') || t.toLowerCase().includes('pm')) {
-        const [time, period] = t.split(' '); let [h, m] = time.split(':').map(Number)
+    let actualTime = t;
+    if (t.includes('T')) {
+        const d = new Date(t);
+        if (!isNaN(d.getTime())) {
+            actualTime = `${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`;
+        }
+    }
+    if (actualTime.toLowerCase().includes('am') || actualTime.toLowerCase().includes('pm')) {
+        const [time, period] = actualTime.split(' '); let [h, m] = time.split(':').map(Number)
         if (period.toLowerCase() === 'pm' && h !== 12) h += 12
         if (period.toLowerCase() === 'am' && h === 12) h = 0
         return isNaN(h) || isNaN(m) ? null : h + m / 60
     }
-    const [h, m] = t.split(':').map(Number); return isNaN(h) || isNaN(m) ? null : h + m / 60
+    const [h, m] = actualTime.split(':').map(Number); return isNaN(h) || isNaN(m) ? null : h + m / 60
 }
 function calculateDuration(i?: string | null, o?: string | null) {
     const s = parseHours(i), e = parseHours(o)
@@ -146,8 +153,9 @@ function TodaysReportsContent() {
             {loading ? (
                 <div className="bg-white p-6 shadow rounded-lg"><SkeletonRow rows={6} /></div>
             ) : (
-                <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
-                    <table className="min-w-full divide-y border-gray-200">
+                <div className="bg-white shadow rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y border-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left w-12"><input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 cursor-pointer" checked={reports.filter(r => r.status === 'Submitted').length > 0 && selectedReports.length === reports.filter(r => r.status === 'Submitted').length} onChange={handleSelectAll} disabled={reports.filter(r => r.status === 'Submitted').length === 0} /></th>
@@ -211,6 +219,7 @@ function TodaysReportsContent() {
                             )
                         })()}
                     </table>
+                    </div>
                     <Pagination currentPage={pagination.page} totalPages={pagination.totalPages} totalItems={pagination.total}
                         onPageChange={v => { setPage(v); push({ page: v.toString() }) }}
                         label="reports" limit={limit}
