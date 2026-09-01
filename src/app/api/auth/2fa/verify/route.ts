@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import * as otplibType from 'otplib'
-const authenticator = (otplibType as any).authenticator
+import { verifySync } from 'otplib'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
@@ -21,7 +20,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'No 2FA setup in progress' }, { status: 400 })
     }
 
-    const isValid = authenticator.verify({ token: code, secret: user.totp_secret })
+    const isValid = verifySync({ token: code, secret: user.totp_secret }).valid
     if (!isValid) {
         return NextResponse.json({ error: 'Invalid code. Please try again.' }, { status: 400 })
     }

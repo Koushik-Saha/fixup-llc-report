@@ -66,7 +66,7 @@ export default function AdminDashboardPage() {
 
     if (!data) return <div className="p-8 text-center text-red-500">Failed to load dashboard data.</div>
 
-    const { kpi, revenueTrend, storePerformance, calendarDays, topPerformers, todayStatus, lowStockItems } = data
+    const { kpi, revenueTrend, storePerformance, calendarDays, topPerformers, todayStatus } = data
 
     const maxStoreRevenue = Math.max(...storePerformance.map(s => s.revenue), 1)
 
@@ -83,23 +83,6 @@ export default function AdminDashboardPage() {
                 </Link>
             </div>
 
-            {/* Low Stock Alerts */}
-            {lowStockItems && lowStockItems.length > 0 && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="bg-rose-100 text-rose-600 p-2 rounded-lg text-xl">⚠️</span>
-                            <div>
-                                <h2 className="text-base font-bold text-rose-800">Low Stock Alert</h2>
-                                <p className="text-xs text-rose-600 mt-0.5">You have {lowStockItems.length} inventory items running low across your stores.</p>
-                            </div>
-                        </div>
-                        <Link href="/admin/inventory" className="text-sm font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors">
-                            Manage Inventory →
-                        </Link>
-                    </div>
-                </div>
-            )}
 
             {/* KPI Cards — Row 1: Revenue */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

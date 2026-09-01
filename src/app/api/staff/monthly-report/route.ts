@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import { getStaffPermissions } from '@/lib/permissions'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -34,24 +34,32 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
+    const monthParam = searchParams.get('month') // YYYY-MM
     const startDateParam = searchParams.get('startDate')
     const endDateParam = searchParams.get('endDate')
 
     const nowTz = dayjs().tz(TIMEZONE)
-    const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
+    const SYSTEM_EPOCH = dayjs.tz('2025-01-01T00:00:00', TIMEZONE)
 
-    // Current month boundaries
-    const monthStart = nowTz.startOf('month')
-    const monthEnd = nowTz.startOf('day') // up to today
+    const baseMonth = monthParam ? dayjs.tz(`${monthParam}-01T00:00:00`, TIMEZONE) : nowTz.startOf('month')
+    const isCurrentMonth = baseMonth.format('YYYY-MM') === nowTz.format('YYYY-MM')
 
-    // Apply filters if provided, but stay within the current month
-    let start = startDateParam ? dayjs.tz(`${startDateParam}T00:00:00`, TIMEZONE) : monthStart
-    let end = endDateParam ? dayjs.tz(`${endDateParam}T00:00:00`, TIMEZONE) : monthEnd
+    const monthStart = baseMonth.startOf('month')
+    const monthEnd = isCurrentMonth ? nowTz.startOf('day') : baseMonth.endOf('month').startOf('day')
 
-    // Clamp boundaries for security: never go before SYSTEM_EPOCH or before the start of the current month
-    if (start.isBefore(monthStart)) start = monthStart
+    let start = monthStart
+    let end = monthEnd
+
+    if (startDateParam) {
+        const s = dayjs.tz(`${startDateParam}T00:00:00`, TIMEZONE)
+        if (s.isAfter(monthStart) || s.isSame(monthStart, 'day')) start = s
+    }
+    if (endDateParam) {
+        const e = dayjs.tz(`${endDateParam}T00:00:00`, TIMEZONE)
+        if (e.isBefore(monthEnd) || e.isSame(monthEnd, 'day')) end = e
+    }
+
     if (start.isBefore(SYSTEM_EPOCH)) start = SYSTEM_EPOCH
-    if (end.isAfter(monthEnd)) end = monthEnd
 
     // Build array of dates from end down to start (inclusive), newest first
     const dates: string[] = []
@@ -64,7 +72,7 @@ export async function GET(req: Request) {
             data: [],
             summary: { totalCash: 0, totalCard: 0, totalAmount: 0, totalExpenses: 0, submittedCount: 0, missingCount: 0 },
             storeName: store.name,
-            month: nowTz.format('MMMM YYYY')
+            month: baseMonth.format('MMMM YYYY')
         })
     }
 
@@ -173,6 +181,6 @@ export async function GET(req: Request) {
         summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount },
         expensesList: adminExpenses,
         storeName: store.name,
-        month: nowTz.format('MMMM YYYY')
+        month: baseMonth.format('MMMM YYYY')
     })
 }

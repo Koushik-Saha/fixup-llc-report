@@ -43,7 +43,8 @@ function MonthlyReportContent() {
     const [data, setData] = useState<ReportRow[]>([])
     const [summary, setSummary] = useState<Summary | null>(null)
     const [storeName, setStoreName] = useState("")
-    const [month, setMonth] = useState("")
+    const [selectedMonth, setSelectedMonth] = useState(searchParams.get('month') || dayjs().tz(TIMEZONE).format('YYYY-MM'))
+    const [monthLabel, setMonthLabel] = useState("")
     const [expensesList, setExpensesList] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
@@ -53,9 +54,26 @@ function MonthlyReportContent() {
     const startDate = searchParams.get('startDate') || ""
     const endDate = searchParams.get('endDate') || ""
 
+    // Calculate quick months: Current month + last 3 months
+    const nowTz = dayjs().tz(TIMEZONE)
+    const quickMonths = [0, 1, 2, 3].map(offset => {
+        const d = nowTz.subtract(offset, 'month')
+        return {
+            value: d.format('YYYY-MM'),
+            label: offset === 0 ? `Current (${d.format('MMM')})` : d.format('MMM YYYY')
+        }
+    })
+
+    const handleMonthChange = (newMonth: string) => {
+        setSelectedMonth(newMonth)
+        const params = new URLSearchParams()
+        params.set('month', newMonth)
+        if (viewMode === 'calendar') params.set('view', 'calendar')
+        router.push(`/staff/monthly-report?${params.toString()}`)
+    }
+
     const setPeriod = (period: '1-15' | '16-end') => {
-        const now = dayjs().tz(TIMEZONE)
-        const monthYear = now.format('YYYY-MM')
+        const monthYear = selectedMonth || nowTz.format('YYYY-MM')
         
         let s = ""
         let e = ""
@@ -65,10 +83,11 @@ function MonthlyReportContent() {
             e = `${monthYear}-15`
         } else {
             s = `${monthYear}-16`
-            e = now.endOf('month').format('YYYY-MM-DD')
+            e = dayjs(monthYear).endOf('month').format('YYYY-MM-DD')
         }
         
         const params = new URLSearchParams()
+        params.set('month', monthYear)
         params.set('startDate', s)
         params.set('endDate', e)
         if (viewMode === 'calendar') params.set('view', 'calendar')
@@ -77,14 +96,15 @@ function MonthlyReportContent() {
 
     const clearPeriod = () => {
         const params = new URLSearchParams()
+        if (selectedMonth) params.set('month', selectedMonth)
         if (viewMode === 'calendar') params.set('view', 'calendar')
-        const query = params.toString()
-        router.push(query ? `/staff/monthly-report?${query}` : '/staff/monthly-report')
+        router.push(`/staff/monthly-report?${params.toString()}`)
     }
 
     const setView = (newView: 'table' | 'calendar') => {
         setViewMode(newView)
         const params = new URLSearchParams()
+        if (selectedMonth) params.set('month', selectedMonth)
         if (startDate) params.set('startDate', startDate)
         if (endDate) params.set('endDate', endDate)
         if (newView === 'calendar') params.set('view', 'calendar')
@@ -93,7 +113,9 @@ function MonthlyReportContent() {
 
     useEffect(() => {
         setLoading(true)
+        setError("")
         const params = new URLSearchParams()
+        if (selectedMonth) params.set('month', selectedMonth)
         if (startDate) params.set('startDate', startDate)
         if (endDate) params.set('endDate', endDate)
 
@@ -107,7 +129,7 @@ function MonthlyReportContent() {
                     setSummary(d.summary || null)
                     setExpensesList(d.expensesList || [])
                     setStoreName(d.storeName || "")
-                    setMonth(d.month || "")
+                    setMonthLabel(d.month || "")
                 }
                 setLoading(false)
             })
@@ -115,7 +137,7 @@ function MonthlyReportContent() {
                 setError("Failed to load monthly report")
                 setLoading(false)
             })
-    }, [startDate, endDate])
+    }, [selectedMonth, startDate, endDate])
 
     if (loading) {
         return (
@@ -133,81 +155,109 @@ function MonthlyReportContent() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-center gap-4">
+            {/* Header & Controls */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div className="flex flex-wrap justify-between items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Monthly Report</h1>
-                        <p className="text-sm text-gray-500 mt-1">{storeName} — {month}</p>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 rounded-lg p-1">
-                        <button 
-                            onClick={() => setPeriod('1-15')}
-                            className={`px-4 py-1.5 text-xs font-bold rounded-md transition ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            1-15
-                        </button>
-                        <button 
-                            onClick={() => setPeriod('16-end')}
-                            className={`px-4 py-1.5 text-xs font-bold rounded-md transition ${startDate.endsWith('-16') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            16+
-                        </button>
-                        {startDate && (
-                            <button 
-                                onClick={clearPeriod}
-                                className="px-3 py-1.5 text-xs font-bold text-red-500 hover:text-red-700 ml-1"
-                            >
-                                Clear
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="flex bg-gray-100 rounded-lg p-1">
-                        <button 
-                            onClick={() => setView('table')}
-                            className={`p-2.5 rounded-md transition ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            title="Table View"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        <button 
-                            onClick={() => setView('calendar')}
-                            className={`p-2.5 rounded-md transition ${viewMode === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            title="Calendar View"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </button>
+                        <p className="text-sm text-gray-500 mt-1">{storeName} — {monthLabel}</p>
                     </div>
                     
-                    {/* Exports */}
-                    <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1">
-                        <button 
-                            onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
-                            className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            PDF
-                        </button>
-                        <button 
-                            onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : 'Full Month')}
-                            className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            CSV
-                        </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Exports */}
+                        <div className="flex bg-blue-50 border border-blue-100 rounded-lg p-1">
+                            <button 
+                                onClick={() => generateMonthlyReportPDF(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : monthLabel || 'Full Month')}
+                                className="px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 rounded-md transition flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                PDF
+                            </button>
+                            <button 
+                                onClick={() => generateMonthlyReportCSV(data, expensesList, summary, storeName, session?.user?.name || "Staff", startDate ? `${startDate} to ${endDate}` : monthLabel || 'Full Month')}
+                                className="px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-100 rounded-md transition flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                CSV
+                            </button>
+                        </div>
+
+                        <Link href="/staff/home" className="text-gray-600 hover:text-gray-900 font-medium text-sm border-l pl-3 border-gray-200">
+                            Back to Home
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Filters Row */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                    {/* Month Selection */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Month:</span>
+                        <input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={e => handleMonthChange(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-2.5 py-1 text-xs font-semibold text-gray-800 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <div className="flex bg-gray-100 p-1 rounded-lg gap-1">
+                            {quickMonths.map(m => (
+                                <button
+                                    key={m.value}
+                                    onClick={() => handleMonthChange(m.value)}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition ${selectedMonth === m.value ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    <Link href="/staff/home" className="text-gray-600 hover:text-gray-900 font-medium text-sm border-l pl-3 border-gray-200">
-                        Back to Home
-                    </Link>
+                    {/* Period & View Mode */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex bg-gray-100 rounded-lg p-1">
+                            <button 
+                                onClick={() => setPeriod('1-15')}
+                                className={`px-3.5 py-1 text-xs font-bold rounded-md transition ${startDate.endsWith('-01') && endDate.endsWith('-15') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                1-15
+                            </button>
+                            <button 
+                                onClick={() => setPeriod('16-end')}
+                                className={`px-3.5 py-1 text-xs font-bold rounded-md transition ${startDate.endsWith('-16') ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                16+
+                            </button>
+                            {startDate && (
+                                <button 
+                                    onClick={clearPeriod}
+                                    className="px-2.5 py-1 text-xs font-bold text-red-500 hover:text-red-700 ml-1"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex bg-gray-100 rounded-lg p-1">
+                            <button 
+                                onClick={() => setView('table')}
+                                className={`p-1.5 rounded-md transition ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                title="Table View"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <button 
+                                onClick={() => setView('calendar')}
+                                className={`p-1.5 rounded-md transition ${viewMode === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                title="Calendar View"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -250,9 +300,9 @@ function MonthlyReportContent() {
                     <div className="p-10 text-center text-gray-400 animate-pulse">Loading...</div>
                 ) : viewMode === 'calendar' ? (
                     (() => {
-                        const activeMonth = startDate ? dayjs(startDate).format('YYYY-MM') : dayjs().tz(TIMEZONE).format('YYYY-MM')
-                        const startDay = dayjs(activeMonth + "-01").startOf('month').startOf('week')
-                        const endDay = dayjs(activeMonth + "-01").endOf('month').endOf('week')
+                        const activeMonth = selectedMonth || (startDate ? dayjs(startDate).format('YYYY-MM') : dayjs().tz(TIMEZONE).format('YYYY-MM'))
+                        const startDay = dayjs(`${activeMonth}-01`).startOf('month').startOf('week')
+                        const endDay = dayjs(`${activeMonth}-01`).endOf('month').endOf('week')
                         const days = []
                         let current = startDay
                         while (current.isBefore(endDay) || current.isSame(endDay, 'day')) {

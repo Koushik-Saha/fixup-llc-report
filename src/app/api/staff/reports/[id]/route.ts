@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import { getStaffPermissions } from '@/lib/permissions'
 import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
