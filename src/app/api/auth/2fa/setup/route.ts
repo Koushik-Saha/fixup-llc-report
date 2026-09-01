@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import * as otplibType from 'otplib'
-const authenticator = (otplibType as any).authenticator
+import { generateSecret, generateURI } from 'otplib'
 import QRCode from 'qrcode'
 import crypto from 'crypto'
 
@@ -23,8 +22,8 @@ export async function POST() {
     }
 
     // Generate TOTP secret
-    const secret = authenticator.generateSecret()
-    const otpauth = authenticator.keyuri(user.email, APP_NAME, secret)
+    const secret = generateSecret()
+    const otpauth = generateURI({ secret, label: user.email, issuer: APP_NAME })
     const qrCodeDataUrl = await QRCode.toDataURL(otpauth)
 
     // Generate 10 one-time backup codes
