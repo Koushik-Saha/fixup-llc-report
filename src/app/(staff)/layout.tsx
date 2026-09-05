@@ -39,7 +39,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
     ].filter(item => item.show)
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex flex-col">
             {/* Top Header */}
             <header className="bg-white shadow shrink-0 sticky top-0 z-40">
                 <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -55,12 +55,15 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
             </header>
 
             {/* Main content — padded bottom for mobile nav */}
-            <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-5 pb-24 sm:pb-8">
+            <main className="flex-1 max-w-6xl w-full mx-auto px-4 pt-4 pb-20 sm:pb-8">
                 {children}
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden safe-area-inset-bottom">
+            <nav 
+                className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden shadow-lg"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            >
                 <div className="flex">
                     {navItems.map(item => {
                         const isActive = pathname === item.href || (item.href === '/staff/report/new' && pathname.startsWith('/staff/report/new'))
@@ -68,7 +71,7 @@ function StaffLayoutInner({ children }: { children: React.ReactNode }) {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-xs font-medium transition
+                                className={`relative flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition
                                     ${isActive ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}
                             >
                                 <span className="text-xl leading-none">{item.icon}</span>
