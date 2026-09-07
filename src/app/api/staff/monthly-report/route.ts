@@ -34,32 +34,24 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const monthParam = searchParams.get('month') // YYYY-MM
     const startDateParam = searchParams.get('startDate')
     const endDateParam = searchParams.get('endDate')
 
     const nowTz = dayjs().tz(TIMEZONE)
-    const SYSTEM_EPOCH = dayjs.tz('2025-01-01T00:00:00', TIMEZONE)
+    const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
 
-    const baseMonth = monthParam ? dayjs.tz(`${monthParam}-01T00:00:00`, TIMEZONE) : nowTz.startOf('month')
-    const isCurrentMonth = baseMonth.format('YYYY-MM') === nowTz.format('YYYY-MM')
+    // Current month boundaries
+    const monthStart = nowTz.startOf('month')
+    const monthEnd = nowTz.startOf('day') // up to today
 
-    const monthStart = baseMonth.startOf('month')
-    const monthEnd = isCurrentMonth ? nowTz.startOf('day') : baseMonth.endOf('month').startOf('day')
+    // Apply filters if provided, but stay within the current month
+    let start = startDateParam ? dayjs.tz(`${startDateParam}T00:00:00`, TIMEZONE) : monthStart
+    let end = endDateParam ? dayjs.tz(`${endDateParam}T00:00:00`, TIMEZONE) : monthEnd
 
-    let start = monthStart
-    let end = monthEnd
-
-    if (startDateParam) {
-        const s = dayjs.tz(`${startDateParam}T00:00:00`, TIMEZONE)
-        if (s.isAfter(monthStart) || s.isSame(monthStart, 'day')) start = s
-    }
-    if (endDateParam) {
-        const e = dayjs.tz(`${endDateParam}T00:00:00`, TIMEZONE)
-        if (e.isBefore(monthEnd) || e.isSame(monthEnd, 'day')) end = e
-    }
-
+    // Clamp boundaries for security: never go before SYSTEM_EPOCH or before the start of the current month
+    if (start.isBefore(monthStart)) start = monthStart
     if (start.isBefore(SYSTEM_EPOCH)) start = SYSTEM_EPOCH
+    if (end.isAfter(monthEnd)) end = monthEnd
 
     // Build array of dates from end down to start (inclusive), newest first
     const dates: string[] = []
@@ -72,7 +64,7 @@ export async function GET(req: Request) {
             data: [],
             summary: { totalCash: 0, totalCard: 0, totalAmount: 0, totalExpenses: 0, submittedCount: 0, missingCount: 0 },
             storeName: store.name,
-            month: baseMonth.format('MMMM YYYY')
+            month: nowTz.format('MMMM YYYY')
         })
     }
 
@@ -145,7 +137,7 @@ export async function GET(req: Request) {
             const r = reportMap.get(dateStr)
             const grossRev = Number(r.cash_amount || 0) + Number(r.card_amount || 0)
             const staffExp = Number(r.expenses_amount || 0) + Number(r.payouts_amount || 0)
-            const netCash = Number(r.cash_amount || 0) - staffExp - adminExp // this is just for internal reference if needed
+            const netCash = Number(r.cash_amount || 0) - staffExp - adminExp
             
             totalCash += Number(r.cash_amount || 0)
             totalCard += Number(r.card_amount || 0)
@@ -154,7 +146,7 @@ export async function GET(req: Request) {
             submittedCount++
             return { 
                 ...r, 
-                total_amount: grossRev, // override with gross for consistency
+                total_amount: grossRev,
                 net_cash: netCash, 
                 admin_expenses_amount: adminExp 
             }
@@ -181,6 +173,6 @@ export async function GET(req: Request) {
         summary: { totalCash, totalCard, totalAmount, totalExpenses, submittedCount, missingCount },
         expensesList: adminExpenses,
         storeName: store.name,
-        month: baseMonth.format('MMMM YYYY')
+        month: nowTz.format('MMMM YYYY')
     })
 }
