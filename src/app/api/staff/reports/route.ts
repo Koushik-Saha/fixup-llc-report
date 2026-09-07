@@ -219,21 +219,19 @@ export async function GET(req: Request) {
 
     const nowTz = dayjs().tz(TIMEZONE)
     const SYSTEM_EPOCH = dayjs.tz('2026-03-01T00:00:00', TIMEZONE)
-
-    // Default to at least 30 days if store.createdAt is missing or weird
-    const storeCreatedAt = store.createdAt ? dayjs(store.createdAt).tz(TIMEZONE) : nowTz.subtract(29, 'day');
-    const effectiveStart = storeCreatedAt.isAfter(SYSTEM_EPOCH) ? storeCreatedAt : SYSTEM_EPOCH
+    const monthStart = nowTz.startOf('month')
+    const effectiveStart = monthStart.isBefore(SYSTEM_EPOCH) ? SYSTEM_EPOCH : monthStart
 
     const totalDays = Math.max(1, nowTz.startOf('day').diff(effectiveStart.startOf('day'), 'day') + 1);
     const totalPages = Math.ceil(totalDays / limit)
 
-    // Generate dates based on page offset
+    // Generate dates based on page offset within the current month
     const end = nowTz.subtract((page - 1) * limit, 'day').startOf('day')
     const start = end.subtract(limit - 1, 'day').startOf('day')
 
     const dates: string[] = []
     for (let d = end; d.isAfter(start) || d.isSame(start, 'day'); d = d.subtract(1, 'day')) {
-        if (d.isBefore(SYSTEM_EPOCH, 'day')) break;
+        if (d.isBefore(effectiveStart, 'day')) break;
         dates.push(d.format('YYYY-MM-DD'))
     }
 

@@ -7,6 +7,15 @@ import { sendIrregularEditAlert } from '@/lib/email'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+const TIMEZONE = 'America/Los_Angeles'
+
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,9 +34,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    // If staff, verify accessing their own store's report
-    if (session.user.role === 'Staff' && session.user.storeId !== report.store_id) {
-        return NextResponse.json({ error: 'Unauthorized to view this report' }, { status: 403 })
+    // If staff, verify accessing their own store's report and only for current month
+    if (session.user.role === 'Staff') {
+        if (session.user.storeId !== report.store_id) {
+            return NextResponse.json({ error: 'Unauthorized to view this report' }, { status: 403 })
+        }
+        const nowTz = dayjs().tz(TIMEZONE)
+        const reportMonth = dayjs.utc(report.report_date).tz(TIMEZONE).format('YYYY-MM')
+        const currentMonth = nowTz.format('YYYY-MM')
+        if (reportMonth !== currentMonth) {
+            return NextResponse.json({ error: 'Staff members can only access reports for the current month.' }, { status: 403 })
+        }
     }
 
     // Sign URLs for secure viewing if AWS is configured
@@ -78,6 +95,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!existingReport) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (existingReport.store_id !== store_id) {
         return NextResponse.json({ error: 'Unauthorized to edit this report' }, { status: 403 })
+    }
+
+    const nowTz = dayjs().tz(TIMEZONE)
+    const reportMonth = dayjs.utc(existingReport.report_date).tz(TIMEZONE).format('YYYY-MM')
+    const currentMonth = nowTz.format('YYYY-MM')
+    if (reportMonth !== currentMonth) {
+        return NextResponse.json({ error: 'Staff members can only edit reports for the current month.' }, { status: 403 })
     }
 
     if (existingReport.staff_edit_count >= 2) {
