@@ -78,7 +78,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row">
+        <div className="min-h-screen min-h-[100dvh] bg-gray-100 flex flex-col lg:flex-row">
             {/* Mobile Header */}
             <div className="lg:hidden bg-brand text-white p-4 flex justify-between items-center shrink-0">
                 <div className="text-xl font-bold">{company.name || 'Admin Portal'}</div>
@@ -185,7 +185,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         </button>
                     </div>
                 </header>
-                <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+                <main className="flex-1 p-3 sm:p-6 overflow-x-hidden">
                     {children}
                 </main>
             </div>

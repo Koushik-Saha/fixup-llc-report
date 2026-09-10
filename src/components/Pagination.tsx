@@ -53,12 +53,14 @@ export function Pagination({ currentPage, totalPages, totalItems, onPageChange, 
     }
 
     return (
-        <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-700 w-full sm:w-auto text-center sm:text-left flex items-center justify-center sm:justify-start gap-4 flex-wrap">
-                <span>Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{Math.max(1, totalPages)}</span> ({totalItems} total {label})</span>
+        <div className="bg-gray-50 px-4 sm:px-6 py-3 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+            <div className="text-sm text-gray-700 flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2">
+                <span className="whitespace-nowrap">
+                    Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{Math.max(1, totalPages)}</span> ({totalItems} total {label})
+                </span>
 
                 {limit && onLimitChange && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                         <span className="text-gray-500">Rows per page:</span>
                         <select
                             value={limit}
@@ -73,7 +75,7 @@ export function Pagination({ currentPage, totalPages, totalItems, onPageChange, 
                     </div>
                 )}
             </div>
-            <div className="flex space-x-1 sm:space-x-2 w-full sm:w-auto justify-center sm:justify-end pb-1 sm:pb-0 shrink-0">
+            <div className="flex items-center space-x-1 sm:space-x-2 shrink-0 justify-center sm:justify-end whitespace-nowrap">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage <= 1}

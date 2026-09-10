@@ -530,25 +530,25 @@ function AdminReportsContent() {
                             return (
                                 <tfoot>
                                     <tr className="bg-gray-100 border-t-2 border-gray-300">
-                                        <td colSpan={5} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        <td colSpan={5} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                             Page Totals ({reports.filter(r => r.status !== 'Missing').length} submitted)
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-indigo-700 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-indigo-700 text-sm whitespace-nowrap">
                                             {totalHours.toFixed(2)}h
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-indigo-800 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-indigo-800 text-sm whitespace-nowrap">
                                             ${tRevenue.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-slate-700 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-slate-700 text-sm whitespace-nowrap">
                                             ${tCash.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-blue-700 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-blue-700 text-sm whitespace-nowrap">
                                             ${tCard.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-red-700 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-red-700 text-sm whitespace-nowrap">
                                             ${totalExp.toFixed(2)}
                                         </td>
-                                        <td className="px-6 py-3 text-right font-black text-emerald-800 text-sm">
+                                        <td className="px-6 py-3 text-right font-black text-emerald-800 text-sm whitespace-nowrap">
                                             ${tBalance.toFixed(2)}
                                         </td>
                                         <td colSpan={3} />
